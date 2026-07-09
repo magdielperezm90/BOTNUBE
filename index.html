@@ -197,6 +197,31 @@ function cartaRSI(d){
   </div>`;
 }
 
+function cartaImpulso(d){
+  const i = d.indicadores;
+  if (typeof i.roc10 !== 'number') return '';   // datos antiguos sin ROC: se omite
+  const roc = i.roc10;
+  const pos = Math.max(-10, Math.min(10, roc)); // velocimetro de -10% a +10%
+  const x = ((pos + 10) / 20 * 100).toFixed(2);
+  let lectura;
+  if (roc >= 5)       lectura = 'Impulso <b>fuerte alcista</b>: el mercado sube con velocidad inusual. Ojo, tambi&eacute;n es terreno de euforia.';
+  else if (roc >= 2)  lectura = 'Impulso <b>alcista</b>: el mercado empuja hacia arriba con fuerza moderada.';
+  else if (roc > -2)  lectura = 'Impulso <b>neutro</b>: el mercado se mueve sin direcci&oacute;n clara estas dos semanas.';
+  else if (roc > -5)  lectura = 'Impulso <b>bajista</b>: presi&oacute;n vendedora moderada. Si sigue, el RSI-2 podr&iacute;a encontrar su compra.';
+  else                lectura = 'Impulso <b>fuerte bajista</b>: ca&iacute;da r&aacute;pida. Zona donde el RSI-2 suele activarse.';
+  return `
+  <div class="card">
+    <h2><span class="dot" style="background:var(--text)"></span>Impulso del mercado</h2>
+    <div class="riel-titulo" style="margin-top:12px"><span>ROC 10 d&iacute;as (velocidad de QQQ)</span><span class="num">${pctTxt(roc)}</span></div>
+    <div class="riel">
+      <div class="via"></div><div class="cero" style="background:var(--muted)"></div>
+      <div class="marcador" style="left:${x}%"></div>
+    </div>
+    <div class="riel-leyenda"><span>&minus;10% fuerte bajista</span><span>0%</span><span>+10% fuerte alcista</span></div>
+    <div class="margen-texto">${lectura}</div>
+  </div>`;
+}
+
 function cartaGrafico(d){
   return `
   <div class="card">
@@ -285,7 +310,7 @@ async function cargar(){
     }
     $('#precio').textContent = dinero(d.precio);
     $('#actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
-    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaGrafico(d) + cartaOps(d);
+    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaImpulso(d) + cartaGrafico(d) + cartaOps(d);
     dibujarGrafico(d.historial);
   }catch(e){
     $('#contenido').innerHTML = '<div class="aviso">No se pudieron cargar los datos. Revisa tu conexi&oacute;n y vuelve a intentar con el bot&oacute;n de abajo.</div>';

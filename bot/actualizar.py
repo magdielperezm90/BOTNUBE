@@ -116,11 +116,13 @@ def main():
     df["SMA50"] = df["Close"].rolling(50).mean()
     df["SMA200"] = df["Close"].rolling(200).mean()
     df["RSI2"] = rsi(df["Close"], 2)
+    df["ROC10"] = (df["Close"] / df["Close"].shift(10) - 1) * 100
     df = df.dropna()
 
     fila = df.iloc[-1]
     precio = float(fila["Close"])
     sma50, sma200, rsi2 = float(fila["SMA50"]), float(fila["SMA200"]), float(fila["RSI2"])
+    roc10 = float(fila["ROC10"])
     fecha_vela = str(df.index[-1].date())
     senal_cruce = sma50 > sma200
 
@@ -152,6 +154,7 @@ def main():
             "cruce": round(data["cruce"]["efectivo"] + data["cruce"]["unidades"] * precio, 2),
             "rsi2": round(data["rsi2"]["efectivo"] + data["rsi2"]["unidades"] * precio, 2),
             "bh": round(data["bh"]["unidades"] * precio, 2),
+            "roc10": round(roc10, 2),
         })
         del data["historial"][:-MAX_HISTORIAL]
         data["ultima_vela"] = fecha_vela
@@ -164,6 +167,7 @@ def main():
         "sma200": round(sma200, 2),
         "margen_pct": round((sma50 / sma200 - 1) * 100, 2),
         "rsi2": round(rsi2, 1),
+        "roc10": round(roc10, 2),
         "tendencia": "alcista" if senal_cruce else "bajista",
         "cruce_posicion": "COMPRADO" if data["cruce"]["unidades"] > 0 else "EN EFECTIVO",
         "rsi2_posicion": "COMPRADO" if data["rsi2"]["unidades"] > 0 else "EN EFECTIVO",
