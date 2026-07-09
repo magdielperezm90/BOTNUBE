@@ -313,6 +313,38 @@ function verRepeticion(d){
   paso();
 }
 
+function cartaCazador(d){
+  if (!d.cazador) return '';
+  const i = d.indicadores;
+  const caz = d.cazador;
+  const tks = Object.keys(caz.posiciones || {});
+  const filas = tks.map(tk=>{
+    const p = caz.posiciones[tk];
+    const actual = p.precio_actual || p.entrada;
+    const pnl = (actual / p.entrada - 1) * 100;
+    return `<tr>
+      <td><b>${tk}</b></td>
+      <td class="num">${p.fecha}</td>
+      <td class="der num">${dinero(p.entrada)}</td>
+      <td class="der num">${dinero(actual)}</td>
+      <td class="der num ${pnl>=0?'pos':'neg'}">${pctTxt(pnl)}</td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="card" style="border-color:rgba(180,140,255,.25)">
+    <h2><span class="dot" style="background:#B48CFF"></span>Cazador Diario &middot; 20 tickers</h2>
+    <div class="fila-valor">
+      <div class="valor num">${dinero(i.valor_cazador)}</div>
+      <div class="badge ${tks.length? 'dentro':''}">${tks.length}/5 POSICIONES</div>
+    </div>
+    <div class="rend">${rendHTML(i.valor_cazador, d.capital_inicial)}</div>
+    ${tks.length ? `<div style="overflow-x:auto"><table>
+      <tr><th>Presa</th><th>Desde</th><th class="der">Entrada</th><th class="der">Actual</th><th class="der">Rebote</th></tr>
+      ${filas}</table></div>`
+    : '<div class="sin-ops">Sin presas hoy: esperando ca&iacute;das cortas (RSI-2 &lt; 10) en la lista de 20 tickers.</div>'}
+  </div>`;
+}
+
 function cartaGrafico(d){
   return `
   <div class="card">
@@ -321,6 +353,7 @@ function cartaGrafico(d){
     <div class="leyenda">
       <span><i style="background:var(--gold)"></i>Cruce Dorado</span>
       <span><i style="background:var(--blue)"></i>RSI-2</span>
+      <span><i style="background:#B48CFF"></i>Cazador</span>
       <span><i style="background:var(--muted)"></i>Comprar y mantener</span>
     </div>
   </div>`;
@@ -334,11 +367,12 @@ function dibujarGrafico(hist){
   const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
 
   const series = [
-    {k:'cruce', color:'#E8B84B', w:2.2},
-    {k:'rsi2',  color:'#6FA8FF', w:1.6},
-    {k:'bh',    color:'#8A97AB', w:1.4},
-  ];
-  const todos = hist.flatMap(h => series.map(s => h[s.k]));
+    {k:'cruce',   color:'#E8B84B', w:2.2},
+    {k:'rsi2',    color:'#6FA8FF', w:1.6},
+    {k:'cazador', color:'#B48CFF', w:1.6},
+    {k:'bh',      color:'#8A97AB', w:1.4},
+  ].filter(s => hist.some(h => typeof h[s.k] === 'number'));
+  const todos = hist.flatMap(h => series.map(s => h[s.k]).filter(v => typeof v === 'number'));
   let min = Math.min(...todos), max = Math.max(...todos);
   if(max - min < 1){ min -= 1; max += 1; }
   const pad = (max - min) * 0.08; min -= pad; max += pad;
@@ -357,7 +391,13 @@ function dibujarGrafico(hist){
   series.forEach(s=>{
     ctx.strokeStyle = s.color; ctx.lineWidth = s.w;
     ctx.lineJoin = 'round'; ctx.beginPath();
-    hist.forEach((h,i)=>{ const x=px(i), y=py(h[s.k]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    let iniciado = false;
+    hist.forEach((h,i)=>{
+      const v = h[s.k];
+      if (typeof v !== 'number') return;
+      const x=px(i), y=py(v);
+      if (iniciado) ctx.lineTo(x,y); else { ctx.moveTo(x,y); iniciado = true; }
+    });
     ctx.stroke();
   });
   // Fechas extremas
@@ -371,6 +411,7 @@ function cartaOps(d){
   const ops = [
     ...d.cruce.operaciones.map(o => ({...o, estrategia:'Cruce'})),
     ...d.rsi2.operaciones.map(o => ({...o, estrategia:'RSI-2'})),
+    ...((d.cazador && d.cazador.operaciones) || []).map(o => ({...o, estrategia:'Caza ' + o.ticker})),
   ].sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 15);
   const filas = ops.length ? ops.map(o => `
     <tr>
@@ -401,7 +442,7 @@ async function cargar(){
     }
     $('#precio').textContent = dinero(d.precio);
     $('#actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
-    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaImpulso(d) + cartaEstrategia(d) + cartaGrafico(d) + cartaOps(d);
+    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaCazador(d) + cartaImpulso(d) + cartaEstrategia(d) + cartaGrafico(d) + cartaOps(d);
     dibujarGrafico(d.historial);
     dibujarEstrategia(d);
     const b = document.getElementById('replay');
