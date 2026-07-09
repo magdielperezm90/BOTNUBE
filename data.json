@@ -2,7 +2,7 @@
  "version": 1,
  "ticker": "QQQ",
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-09 19:33 UTC",
+ "actualizado": "2026-07-09 19:51 UTC",
  "ultima_vela": "2026-07-08",
  "precio": 711.44,
  "indicadores": {
@@ -10,6 +10,7 @@
   "sma200": 635.37,
   "margen_pct": 12.06,
   "rsi2": 36.7,
+  "roc10": -0.31,
   "tendencia": "alcista",
   "cruce_posicion": "COMPRADO",
   "rsi2_posicion": "EN EFECTIVO",
