@@ -222,6 +222,97 @@ function cartaImpulso(d){
   </div>`;
 }
 
+function cartaEstrategia(d){
+  if (!Array.isArray(d.grafico) || d.grafico.length < 20) return '';
+  return `
+  <div class="card">
+    <h2><span class="dot" style="background:var(--gold)"></span>Lo que ve el bot</h2>
+    <div style="margin-top:12px"><canvas id="grafico-bot"></canvas></div>
+    <div class="leyenda">
+      <span><i style="background:#B9C5D6"></i>QQQ</span>
+      <span><i style="background:var(--gold)"></i>SMA 50</span>
+      <span><i style="background:#5A6B85"></i>SMA 200</span>
+      <span><span style="color:var(--up)">&#9650;</span> compra</span>
+      <span><span style="color:var(--down)">&#9660;</span> venta</span>
+    </div>
+    <button class="boton" id="replay" style="margin-top:12px">Ver repetici&oacute;n del &uacute;ltimo a&ntilde;o</button>
+  </div>`;
+}
+
+function dibujarEstrategia(d, hasta){
+  const cv = document.getElementById('grafico-bot'); if(!cv) return;
+  const g = d.grafico;
+  const n = (hasta == null) ? g.length : Math.max(2, Math.min(hasta, g.length));
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = 210;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const todos = g.flatMap(p => [p.c, p.s50, p.s200]);
+  let min = Math.min(...todos), max = Math.max(...todos);
+  const pad = (max - min) * 0.08 || 1; min -= pad; max += pad;
+  const px = i => 4 + (W-8) * i / (g.length - 1);
+  const py = v => H - 18 - (H-30) * (v - min) / (max - min);
+
+  // Guias
+  ctx.strokeStyle = 'rgba(34,48,74,.6)'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#8A97AB'; ctx.font = '10px IBM Plex Mono, monospace';
+  [min+pad, (min+max)/2, max-pad].forEach(v=>{
+    const y = py(v);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.fillText('$'+Math.round(v), 4, y-3);
+  });
+
+  // Series (hasta el punto n para la repeticion)
+  const series = [
+    {k:'c',    color:'#B9C5D6', w:1.5},
+    {k:'s200', color:'#5A6B85', w:1.8},
+    {k:'s50',  color:'#E8B84B', w:2.2},
+  ];
+  series.forEach(s=>{
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.w; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for(let i=0;i<n;i++){ const x=px(i), y=py(g[i][s.k]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.stroke();
+  });
+
+  // Marcas de operaciones del Cruce Dorado dentro de la ventana visible
+  const fechas = g.map(p => p.f);
+  (d.cruce.operaciones || []).forEach(o=>{
+    const i = fechas.indexOf(o.fecha);
+    if(i < 0 || i >= n) return;
+    const x = px(i), y = py(g[i].c);
+    ctx.fillStyle = o.tipo.startsWith('COMPRA') ? '#3DDC97' : '#FF6B7A';
+    ctx.beginPath();
+    if(o.tipo.startsWith('COMPRA')){ ctx.moveTo(x, y+8); ctx.lineTo(x-6, y+18); ctx.lineTo(x+6, y+18); }
+    else { ctx.moveTo(x, y-8); ctx.lineTo(x-6, y-18); ctx.lineTo(x+6, y-18); }
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Fechas extremas
+  ctx.fillStyle = '#8A97AB';
+  ctx.fillText(g[0].f, 4, H-4);
+  const f = g[n-1].f;
+  ctx.fillText(f, W - ctx.measureText(f).width - 4, H-4);
+}
+
+let replayActivo = false;
+function verRepeticion(d){
+  if (replayActivo || !d.grafico) return;
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducido){ dibujarEstrategia(d); return; }
+  replayActivo = true;
+  const total = d.grafico.length;
+  let i = 20;
+  function paso(){
+    dibujarEstrategia(d, i);
+    i += 2;
+    if (i <= total){ requestAnimationFrame(paso); }
+    else { dibujarEstrategia(d); replayActivo = false; }
+  }
+  paso();
+}
+
 function cartaGrafico(d){
   return `
   <div class="card">
@@ -310,8 +401,11 @@ async function cargar(){
     }
     $('#precio').textContent = dinero(d.precio);
     $('#actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
-    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaImpulso(d) + cartaGrafico(d) + cartaOps(d);
+    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaImpulso(d) + cartaEstrategia(d) + cartaGrafico(d) + cartaOps(d);
     dibujarGrafico(d.historial);
+    dibujarEstrategia(d);
+    const b = document.getElementById('replay');
+    if (b) b.addEventListener('click', () => verRepeticion(d));
   }catch(e){
     $('#contenido').innerHTML = '<div class="aviso">No se pudieron cargar los datos. Revisa tu conexi&oacute;n y vuelve a intentar con el bot&oacute;n de abajo.</div>';
   }

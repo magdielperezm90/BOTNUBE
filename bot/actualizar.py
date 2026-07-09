@@ -176,6 +176,14 @@ def main():
         "valor_bh": round(data["bh"]["unidades"] * precio, 2) if data["bh"]["iniciado"] else 0.0,
     }
 
+    # ---- Serie para la grafica de la estrategia (ultimos 250 dias) ----
+    cola = df.tail(250)
+    data["grafico"] = [
+        {"f": str(ix.date()), "c": round(float(r["Close"]), 2),
+         "s50": round(float(r["SMA50"]), 2), "s200": round(float(r["SMA200"]), 2)}
+        for ix, r in cola.iterrows()
+    ]
+
     guardar(data)
     print(f"OK | vela {fecha_vela} ({'nueva' if vela_nueva else 'ya procesada'}) | "
           f"{TICKER} ${precio:.2f} | margen {data['indicadores']['margen_pct']:+.2f}% | "
