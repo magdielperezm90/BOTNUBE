@@ -2,21 +2,22 @@
  "version": 1,
  "ticker": "QQQ",
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-09 19:59 UTC",
- "ultima_vela": "2026-07-08",
- "precio": 711.44,
+ "actualizado": "2026-07-09 21:48 UTC",
+ "ultima_vela": "2026-07-09",
+ "precio": 723.28,
  "indicadores": {
-  "sma50": 712.02,
-  "sma200": 635.37,
-  "margen_pct": 12.06,
-  "rsi2": 36.7,
-  "roc10": -0.31,
+  "sma50": 713.22,
+  "sma200": 636.0,
+  "margen_pct": 12.14,
+  "rsi2": 76.1,
+  "roc10": 1.78,
   "tendencia": "alcista",
   "cruce_posicion": "COMPRADO",
   "rsi2_posicion": "EN EFECTIVO",
-  "valor_cruce": 9995.0,
+  "valor_cruce": 10161.34,
   "valor_rsi2": 10000.0,
-  "valor_bh": 9995.0
+  "valor_cazador": 10000.0,
+  "valor_bh": 10161.34
  },
  "cruce": {
   "efectivo": 0.0,
@@ -46,15 +47,17 @@
    "cruce": 9995.0,
    "rsi2": 10000.0,
    "bh": 9995.0
+  },
+  {
+   "fecha": "2026-07-09",
+   "cruce": 10161.34,
+   "rsi2": 10000.0,
+   "cazador": 10000.0,
+   "bh": 10161.34,
+   "roc10": 1.78
   }
  ],
  "grafico": [
-  {
-   "f": "2025-07-10",
-   "c": 552.79,
-   "s50": 519.65,
-   "s200": 501.13
-  },
   {
    "f": "2025-07-11",
    "c": 551.54,
@@ -393,7 +396,7 @@
   },
   {
    "f": "2025-09-30",
-   "c": 598.18,
+   "c": 598.19,
    "s50": 574.66,
    "s200": 523.39
   },
@@ -1548,6 +1551,17 @@
    "c": 711.44,
    "s50": 712.02,
    "s200": 635.37
+  },
+  {
+   "f": "2026-07-09",
+   "c": 723.28,
+   "s50": 713.22,
+   "s200": 636.0
   }
- ]
+ ],
+ "cazador": {
+  "efectivo": 10000.0,
+  "posiciones": {},
+  "operaciones": []
+ }
 }
