@@ -1,0 +1,50 @@
+{
+ "version": 1,
+ "ticker": "QQQ",
+ "capital_inicial": 10000.0,
+ "actualizado": "2026-07-09 07:15 UTC",
+ "ultima_vela": "2026-07-08",
+ "precio": 711.44,
+ "indicadores": {
+  "sma50": 712.02,
+  "sma200": 635.37,
+  "margen_pct": 12.06,
+  "rsi2": 36.7,
+  "tendencia": "alcista",
+  "cruce_posicion": "COMPRADO",
+  "rsi2_posicion": "EN EFECTIVO",
+  "valor_cruce": 9995.0,
+  "valor_rsi2": 10000.0,
+  "valor_bh": 9995.0
+ },
+ "cruce": {
+  "efectivo": 0.0,
+  "unidades": 14.048971052654833,
+  "operaciones": [
+   {
+    "fecha": "2026-07-08",
+    "tipo": "COMPRA (Cruce Dorado)",
+    "precio": 711.44,
+    "unidades": 14.049,
+    "valor": 9995.0
+   }
+  ]
+ },
+ "rsi2": {
+  "efectivo": 10000.0,
+  "unidades": 0.0,
+  "operaciones": []
+ },
+ "bh": {
+  "unidades": 14.048971052654833,
+  "iniciado": true
+ },
+ "historial": [
+  {
+   "fecha": "2026-07-08",
+   "cruce": 9995.0,
+   "rsi2": 10000.0,
+   "bh": 9995.0
+  }
+ ]
+}
