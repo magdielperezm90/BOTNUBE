@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel Bot QQQ</title>
+<meta name="description" content="Panel del bot de trading simulado sobre QQQ">
+<meta name="theme-color" content="#0B1018">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1018; --card:#131B29; --line:#22304A; --text:#E7ECF4; --muted:#8A97AB;
+    --gold:#E8B84B; --up:#3DDC97; --down:#FF6B7A; --blue:#6FA8FF;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Sora',system-ui,sans-serif;
+    padding:16px 14px calc(28px + env(safe-area-inset-bottom));
+    max-width:680px; margin:0 auto;
+  }
+  .num{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums}
+
+  header{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px}
+  .eyebrow{color:var(--muted); font-size:11px; letter-spacing:.14em; text-transform:uppercase}
+  h1{font-size:20px; font-weight:700; margin-top:2px}
+  .precio-box{text-align:right}
+  .precio{font-size:22px; font-weight:600}
+  .actualizado{color:var(--muted); font-size:11px; margin-top:2px}
+
+  .aviso{
+    background:var(--card); border:1px dashed var(--line); border-radius:var(--radius);
+    padding:18px; color:var(--muted); font-size:14px; line-height:1.5; margin-bottom:14px;
+  }
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; margin-bottom:14px;
+  }
+  .card h2{font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px}
+  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .card.oro h2 .dot{background:var(--gold)}
+  .card.rsi h2 .dot{background:var(--blue)}
+
+  .fila-valor{display:flex; justify-content:space-between; align-items:baseline; margin:10px 0 4px}
+  .valor{font-size:26px; font-weight:600}
+  .badge{
+    font-size:11px; font-weight:600; letter-spacing:.08em; padding:4px 10px;
+    border-radius:99px; border:1px solid var(--line); color:var(--muted);
+  }
+  .badge.dentro{color:var(--up); border-color:rgba(61,220,151,.35); background:rgba(61,220,151,.08)}
+  .rend{font-size:13px; margin-bottom:12px}
+  .pos{color:var(--up)} .neg{color:var(--down)}
+
+  /* Riel del cruce: la firma del panel */
+  .riel-titulo{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:6px}
+  .riel{position:relative; height:34px; margin-bottom:4px}
+  .riel .via{position:absolute; top:15px; left:0; right:0; height:4px; border-radius:2px;
+    background:linear-gradient(90deg, rgba(255,107,122,.55), rgba(255,107,122,.15) 46%, rgba(232,184,75,.9) 50%, rgba(61,220,151,.15) 54%, rgba(61,220,151,.55))}
+  .riel .cero{position:absolute; top:6px; left:50%; width:2px; height:22px; background:var(--gold); transform:translateX(-1px); border-radius:1px}
+  .riel .marcador{position:absolute; top:10px; width:14px; height:14px; border-radius:50%;
+    background:var(--text); border:3px solid var(--bg); transform:translateX(-7px);
+    box-shadow:0 0 0 1px var(--line)}
+  .riel-leyenda{display:flex; justify-content:space-between; font-size:10px; color:var(--muted)}
+  .margen-texto{text-align:center; font-size:12px; color:var(--muted); margin-top:8px}
+  .margen-texto b{color:var(--text)}
+
+  /* Barra RSI */
+  .rsibar{position:relative; height:10px; border-radius:5px; background:var(--line); overflow:hidden; margin:8px 0 4px}
+  .rsibar .zona-compra{position:absolute; left:0; width:10%; top:0; bottom:0; background:rgba(61,220,151,.35)}
+  .rsibar .zona-venta{position:absolute; left:60%; right:0; top:0; bottom:0; background:rgba(255,107,122,.30)}
+  .rsibar .aguja{position:absolute; top:-2px; width:3px; height:14px; background:var(--text); border-radius:2px}
+  .rsi-leyenda{display:flex; justify-content:space-between; font-size:10px; color:var(--muted)}
+
+  .datos{display:flex; gap:14px; flex-wrap:wrap; margin-top:10px}
+  .dato{font-size:11px; color:var(--muted)}
+  .dato b{display:block; font-size:13px; color:var(--text); font-weight:500; margin-top:1px}
+
+  canvas{width:100%; height:190px; display:block}
+  .leyenda{display:flex; gap:14px; font-size:11px; color:var(--muted); margin-top:8px; flex-wrap:wrap}
+  .leyenda i{display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:5px; vertical-align:middle}
+
+  table{width:100%; border-collapse:collapse; font-size:12px}
+  th{color:var(--muted); font-weight:500; text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); font-size:11px}
+  td{padding:7px 4px; border-bottom:1px solid rgba(34,48,74,.5)}
+  td.der, th.der{text-align:right}
+  .op-compra{color:var(--up)} .op-venta{color:var(--down)}
+  .sin-ops{color:var(--muted); font-size:13px; padding:10px 0}
+
+  .boton{
+    display:block; width:100%; padding:12px; margin-top:4px;
+    background:transparent; color:var(--gold); border:1px solid rgba(232,184,75,.4);
+    border-radius:var(--radius); font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;
+  }
+  .boton:active{background:rgba(232,184,75,.1)}
+  footer{margin-top:16px; text-align:center; color:var(--muted); font-size:11px; line-height:1.6}
+  @media (prefers-reduced-motion:no-preference){
+    .card{animation:entrar .35s ease both}
+    @keyframes entrar{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow">Simulado &middot; QQQ</div>
+    <h1>Panel del Bot</h1>
+  </div>
+  <div class="precio-box">
+    <div class="precio num" id="precio">&mdash;</div>
+    <div class="actualizado" id="actualizado">cargando&hellip;</div>
+  </div>
+</header>
+
+<div id="contenido"></div>
+
+<button class="boton" id="refrescar">Actualizar datos</button>
+
+<footer>
+  Cartera simulada &middot; No es dinero real ni consejo financiero.<br>
+  Cruce Dorado (SMA 50/200) &middot; Reversi&oacute;n RSI-2 &middot; vs comprar y mantener
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const dinero = v => '$' + Number(v).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+const pctTxt = v => (v>=0?'+':'') + v.toFixed(2) + '%';
+
+function rendHTML(valor, base){
+  const p = (valor/base - 1) * 100;
+  return `<span class="num ${p>=0?'pos':'neg'}">${pctTxt(p)}</span> desde el inicio`;
+}
+
+function cartaCruce(d){
+  const i = d.indicadores;
+  const margen = i.margen_pct;
+  const pos = Math.max(-15, Math.min(15, margen));       // riel de -15% a +15%
+  const x = ((pos + 15) / 30 * 100).toFixed(2);
+  const dentro = i.cruce_posicion === 'COMPRADO';
+  const texto = margen >= 0
+    ? `La SMA50 va <b class="num">${pctTxt(margen)}</b> por encima de la SMA200. Si baja de 0%, el bot vende.`
+    : `La SMA50 va <b class="num">${pctTxt(margen)}</b> por debajo de la SMA200. Si supera 0%, el bot compra.`;
+  return `
+  <div class="card oro">
+    <h2><span class="dot"></span>Cruce Dorado 50/200</h2>
+    <div class="fila-valor">
+      <div class="valor num">${dinero(i.valor_cruce)}</div>
+      <div class="badge ${dentro?'dentro':''}">${i.cruce_posicion}</div>
+    </div>
+    <div class="rend">${rendHTML(i.valor_cruce, d.capital_inicial)}</div>
+    <div class="riel-titulo"><span>Distancia al cruce</span><span class="num">${pctTxt(margen)}</span></div>
+    <div class="riel">
+      <div class="via"></div><div class="cero"></div>
+      <div class="marcador" style="left:${x}%"></div>
+    </div>
+    <div class="riel-leyenda"><span>vende &larr; &minus;15%</span><span>cruce</span><span>+15% &rarr; compra</span></div>
+    <div class="margen-texto">${texto}</div>
+    <div class="datos">
+      <div class="dato">SMA 50<b class="num">${dinero(i.sma50)}</b></div>
+      <div class="dato">SMA 200<b class="num">${dinero(i.sma200)}</b></div>
+      <div class="dato">Tendencia<b>${i.tendencia === 'alcista' ? 'Alcista' : 'Bajista'}</b></div>
+    </div>
+  </div>`;
+}
+
+function cartaRSI(d){
+  const i = d.indicadores;
+  const dentro = i.rsi2_posicion === 'COMPRADO';
+  const x = Math.max(0, Math.min(100, i.rsi2)).toFixed(1);
+  const filtro = d.precio > i.sma200;
+  const estadoTxt = dentro
+    ? 'En posici&oacute;n: vende cuando el RSI-2 supere 60.'
+    : (filtro
+        ? 'Esperando una ca&iacute;da corta (RSI-2 &lt; 10) para comprar.'
+        : 'Fuera del mercado: el precio est&aacute; bajo la SMA200 (filtro de tendencia).');
+  return `
+  <div class="card rsi">
+    <h2><span class="dot"></span>Reversi&oacute;n RSI-2</h2>
+    <div class="fila-valor">
+      <div class="valor num">${dinero(i.valor_rsi2)}</div>
+      <div class="badge ${dentro?'dentro':''}">${i.rsi2_posicion}</div>
+    </div>
+    <div class="rend">${rendHTML(i.valor_rsi2, d.capital_inicial)}</div>
+    <div class="riel-titulo"><span>RSI de 2 d&iacute;as</span><span class="num">${i.rsi2.toFixed(1)}</span></div>
+    <div class="rsibar">
+      <div class="zona-compra"></div><div class="zona-venta"></div>
+      <div class="aguja" style="left:calc(${x}% - 1px)"></div>
+    </div>
+    <div class="rsi-leyenda"><span>compra &lt;10</span><span>vende &gt;60</span></div>
+    <div class="margen-texto">${estadoTxt}</div>
+  </div>`;
+}
+
+function cartaImpulso(d){
+  const i = d.indicadores;
+  if (typeof i.roc10 !== 'number') return '';   // datos antiguos sin ROC: se omite
+  const roc = i.roc10;
+  const pos = Math.max(-10, Math.min(10, roc)); // velocimetro de -10% a +10%
+  const x = ((pos + 10) / 20 * 100).toFixed(2);
+  let lectura;
+  if (roc >= 5)       lectura = 'Impulso <b>fuerte alcista</b>: el mercado sube con velocidad inusual. Ojo, tambi&eacute;n es terreno de euforia.';
+  else if (roc >= 2)  lectura = 'Impulso <b>alcista</b>: el mercado empuja hacia arriba con fuerza moderada.';
+  else if (roc > -2)  lectura = 'Impulso <b>neutro</b>: el mercado se mueve sin direcci&oacute;n clara estas dos semanas.';
+  else if (roc > -5)  lectura = 'Impulso <b>bajista</b>: presi&oacute;n vendedora moderada. Si sigue, el RSI-2 podr&iacute;a encontrar su compra.';
+  else                lectura = 'Impulso <b>fuerte bajista</b>: ca&iacute;da r&aacute;pida. Zona donde el RSI-2 suele activarse.';
+  return `
+  <div class="card">
+    <h2><span class="dot" style="background:var(--text)"></span>Impulso del mercado</h2>
+    <div class="riel-titulo" style="margin-top:12px"><span>ROC 10 d&iacute;as (velocidad de QQQ)</span><span class="num">${pctTxt(roc)}</span></div>
+    <div class="riel">
+      <div class="via"></div><div class="cero" style="background:var(--muted)"></div>
+      <div class="marcador" style="left:${x}%"></div>
+    </div>
+    <div class="riel-leyenda"><span>&minus;10% fuerte bajista</span><span>0%</span><span>+10% fuerte alcista</span></div>
+    <div class="margen-texto">${lectura}</div>
+  </div>`;
+}
+
+function cartaEstrategia(d){
+  if (!Array.isArray(d.grafico) || d.grafico.length < 20) return '';
+  return `
+  <div class="card">
+    <h2><span class="dot" style="background:var(--gold)"></span>Lo que ve el bot</h2>
+    <div style="margin-top:12px"><canvas id="grafico-bot"></canvas></div>
+    <div class="leyenda">
+      <span><i style="background:#B9C5D6"></i>QQQ</span>
+      <span><i style="background:var(--gold)"></i>SMA 50</span>
+      <span><i style="background:#5A6B85"></i>SMA 200</span>
+      <span><span style="color:var(--up)">&#9650;</span> compra</span>
+      <span><span style="color:var(--down)">&#9660;</span> venta</span>
+    </div>
+    <button class="boton" id="replay" style="margin-top:12px">Ver repetici&oacute;n del &uacute;ltimo a&ntilde;o</button>
+  </div>`;
+}
+
+function dibujarEstrategia(d, hasta){
+  const cv = document.getElementById('grafico-bot'); if(!cv) return;
+  const g = d.grafico;
+  const n = (hasta == null) ? g.length : Math.max(2, Math.min(hasta, g.length));
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = 210;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const todos = g.flatMap(p => [p.c, p.s50, p.s200]);
+  let min = Math.min(...todos), max = Math.max(...todos);
+  const pad = (max - min) * 0.08 || 1; min -= pad; max += pad;
+  const px = i => 4 + (W-8) * i / (g.length - 1);
+  const py = v => H - 18 - (H-30) * (v - min) / (max - min);
+
+  // Guias
+  ctx.strokeStyle = 'rgba(34,48,74,.6)'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#8A97AB'; ctx.font = '10px IBM Plex Mono, monospace';
+  [min+pad, (min+max)/2, max-pad].forEach(v=>{
+    const y = py(v);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.fillText('$'+Math.round(v), 4, y-3);
+  });
+
+  // Series (hasta el punto n para la repeticion)
+  const series = [
+    {k:'c',    color:'#B9C5D6', w:1.5},
+    {k:'s200', color:'#5A6B85', w:1.8},
+    {k:'s50',  color:'#E8B84B', w:2.2},
+  ];
+  series.forEach(s=>{
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.w; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for(let i=0;i<n;i++){ const x=px(i), y=py(g[i][s.k]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+    ctx.stroke();
+  });
+
+  // Marcas de operaciones del Cruce Dorado dentro de la ventana visible
+  const fechas = g.map(p => p.f);
+  (d.cruce.operaciones || []).forEach(o=>{
+    const i = fechas.indexOf(o.fecha);
+    if(i < 0 || i >= n) return;
+    const x = px(i), y = py(g[i].c);
+    ctx.fillStyle = o.tipo.startsWith('COMPRA') ? '#3DDC97' : '#FF6B7A';
+    ctx.beginPath();
+    if(o.tipo.startsWith('COMPRA')){ ctx.moveTo(x, y+8); ctx.lineTo(x-6, y+18); ctx.lineTo(x+6, y+18); }
+    else { ctx.moveTo(x, y-8); ctx.lineTo(x-6, y-18); ctx.lineTo(x+6, y-18); }
+    ctx.closePath(); ctx.fill();
+  });
+
+  // Fechas extremas
+  ctx.fillStyle = '#8A97AB';
+  ctx.fillText(g[0].f, 4, H-4);
+  const f = g[n-1].f;
+  ctx.fillText(f, W - ctx.measureText(f).width - 4, H-4);
+}
+
+let replayActivo = false;
+function verRepeticion(d){
+  if (replayActivo || !d.grafico) return;
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducido){ dibujarEstrategia(d); return; }
+  replayActivo = true;
+  const total = d.grafico.length;
+  let i = 20;
+  function paso(){
+    dibujarEstrategia(d, i);
+    i += 2;
+    if (i <= total){ requestAnimationFrame(paso); }
+    else { dibujarEstrategia(d); replayActivo = false; }
+  }
+  paso();
+}
+
+function cartaCazador(d){
+  if (!d.cazador) return '';
+  const i = d.indicadores;
+  const caz = d.cazador;
+  const tks = Object.keys(caz.posiciones || {});
+  const filas = tks.map(tk=>{
+    const p = caz.posiciones[tk];
+    const actual = p.precio_actual || p.entrada;
+    const pnl = (actual / p.entrada - 1) * 100;
+    return `<tr>
+      <td><b>${tk}</b></td>
+      <td class="num">${p.fecha}</td>
+      <td class="der num">${dinero(p.entrada)}</td>
+      <td class="der num">${dinero(actual)}</td>
+      <td class="der num ${pnl>=0?'pos':'neg'}">${pctTxt(pnl)}</td>
+    </tr>`;
+  }).join('');
+  return `
+  <div class="card" style="border-color:rgba(180,140,255,.25)">
+    <h2><span class="dot" style="background:#B48CFF"></span>Cazador Diario &middot; 20 tickers</h2>
+    <div class="fila-valor">
+      <div class="valor num">${dinero(i.valor_cazador)}</div>
+      <div class="badge ${tks.length? 'dentro':''}">${tks.length}/5 POSICIONES</div>
+    </div>
+    <div class="rend">${rendHTML(i.valor_cazador, d.capital_inicial)}</div>
+    ${tks.length ? `<div style="overflow-x:auto"><table>
+      <tr><th>Presa</th><th>Desde</th><th class="der">Entrada</th><th class="der">Actual</th><th class="der">Rebote</th></tr>
+      ${filas}</table></div>`
+    : '<div class="sin-ops">Sin presas hoy: esperando ca&iacute;das cortas (RSI-2 &lt; 10) en la lista de 20 tickers.</div>'}
+  </div>`;
+}
+
+function cartaGrafico(d){
+  return `
+  <div class="card">
+    <h2><span class="dot" style="background:var(--muted)"></span>Evoluci&oacute;n de las carteras</h2>
+    <div style="margin-top:12px"><canvas id="grafico"></canvas></div>
+    <div class="leyenda">
+      <span><i style="background:var(--gold)"></i>Cruce Dorado</span>
+      <span><i style="background:var(--blue)"></i>RSI-2</span>
+      <span><i style="background:#B48CFF"></i>Cazador</span>
+      <span><i style="background:var(--muted)"></i>Comprar y mantener</span>
+    </div>
+  </div>`;
+}
+
+function dibujarGrafico(hist){
+  const cv = $('#grafico'); if(!cv || hist.length < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth, H = 190;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+
+  const series = [
+    {k:'cruce',   color:'#E8B84B', w:2.2},
+    {k:'rsi2',    color:'#6FA8FF', w:1.6},
+    {k:'cazador', color:'#B48CFF', w:1.6},
+    {k:'bh',      color:'#8A97AB', w:1.4},
+  ].filter(s => hist.some(h => typeof h[s.k] === 'number'));
+  const todos = hist.flatMap(h => series.map(s => h[s.k]).filter(v => typeof v === 'number'));
+  let min = Math.min(...todos), max = Math.max(...todos);
+  if(max - min < 1){ min -= 1; max += 1; }
+  const pad = (max - min) * 0.08; min -= pad; max += pad;
+  const px = i => 4 + (W-8) * i / (hist.length - 1);
+  const py = v => H - 18 - (H-30) * (v - min) / (max - min);
+
+  // Lineas guia
+  ctx.strokeStyle = 'rgba(34,48,74,.6)'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#8A97AB'; ctx.font = '10px IBM Plex Mono, monospace';
+  [min+pad, (min+max)/2, max-pad].forEach(v=>{
+    const y = py(v);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.fillText('$'+Math.round(v).toLocaleString('en-US'), 4, y-3);
+  });
+  // Series
+  series.forEach(s=>{
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.w;
+    ctx.lineJoin = 'round'; ctx.beginPath();
+    let iniciado = false;
+    hist.forEach((h,i)=>{
+      const v = h[s.k];
+      if (typeof v !== 'number') return;
+      const x=px(i), y=py(v);
+      if (iniciado) ctx.lineTo(x,y); else { ctx.moveTo(x,y); iniciado = true; }
+    });
+    ctx.stroke();
+  });
+  // Fechas extremas
+  ctx.fillStyle = '#8A97AB';
+  ctx.fillText(hist[0].fecha, 4, H-4);
+  const f = hist[hist.length-1].fecha;
+  ctx.fillText(f, W - ctx.measureText(f).width - 4, H-4);
+}
+
+function cartaOps(d){
+  const ops = [
+    ...d.cruce.operaciones.map(o => ({...o, estrategia:'Cruce'})),
+    ...d.rsi2.operaciones.map(o => ({...o, estrategia:'RSI-2'})),
+    ...((d.cazador && d.cazador.operaciones) || []).map(o => ({...o, estrategia:'Caza ' + o.ticker})),
+  ].sort((a,b) => b.fecha.localeCompare(a.fecha)).slice(0, 15);
+  const filas = ops.length ? ops.map(o => `
+    <tr>
+      <td class="num">${o.fecha}</td>
+      <td>${o.estrategia}</td>
+      <td class="${o.tipo.startsWith('COMPRA')?'op-compra':'op-venta'}">${o.tipo.startsWith('COMPRA')?'Compra':'Venta'}</td>
+      <td class="der num">${dinero(o.precio)}</td>
+      <td class="der num">${dinero(o.valor)}</td>
+    </tr>`).join('')
+    : '';
+  return `
+  <div class="card">
+    <h2><span class="dot" style="background:var(--muted)"></span>Operaciones</h2>
+    ${ops.length ? `<div style="margin-top:10px; overflow-x:auto"><table>
+      <tr><th>Fecha</th><th>Bot</th><th>Tipo</th><th class="der">Precio</th><th class="der">Valor</th></tr>
+      ${filas}</table></div>`
+    : '<div class="sin-ops">Sin operaciones todav&iacute;a. La paciencia es parte de la estrategia.</div>'}
+  </div>`;
+}
+
+async function cargar(){
+  try{
+    const r = await fetch('data.json?t=' + Date.now(), {cache:'no-store'});
+    const d = await r.json();
+    if(!d.actualizado){
+      $('#contenido').innerHTML = '<div class="aviso">Esperando la primera actualizaci&oacute;n del bot. Se ejecuta autom&aacute;ticamente cada d&iacute;a h&aacute;bil despu&eacute;s del cierre del mercado, o puedes lanzarlo desde la pesta&ntilde;a Actions de GitHub.</div>';
+      return;
+    }
+    $('#precio').textContent = dinero(d.precio);
+    $('#actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
+    $('#contenido').innerHTML = cartaCruce(d) + cartaRSI(d) + cartaCazador(d) + cartaImpulso(d) + cartaEstrategia(d) + cartaGrafico(d) + cartaOps(d);
+    dibujarGrafico(d.historial);
+    dibujarEstrategia(d);
+    const b = document.getElementById('replay');
+    if (b) b.addEventListener('click', () => verRepeticion(d));
+  }catch(e){
+    $('#contenido').innerHTML = '<div class="aviso">No se pudieron cargar los datos. Revisa tu conexi&oacute;n y vuelve a intentar con el bot&oacute;n de abajo.</div>';
+  }
+}
+
+$('#refrescar').addEventListener('click', cargar);
+cargar();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
