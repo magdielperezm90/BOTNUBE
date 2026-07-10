@@ -1,13 +1,15 @@
 # ============================================================
-# BOT EN LA NUBE - Se ejecuta a diario en GitHub Actions
-# Actualiza data.json con TRES estrategias SIMULADAS:
-#   1) Cruce Dorado (SMA 50/200) sobre QQQ
-#   2) Reversion RSI-2 (con filtro SMA 200) sobre QQQ
-#   3) CAZADOR DIARIO: RSI-2 escaneando 20 tickers, max 5 posiciones
+# BOT EN LA NUBE v3 - CAZADOR SMC (Smart Money Concepts)
+# Estrategia UNICA, validada en 3 universos (PF 2.01 / 1.36 / 1.28):
+#   - Velas DIARIAS, solo largos, 20 tickers
+#   - ENTRA: CHoCH alcista (cierre rompe el ultimo swing high
+#     viniendo de estructura bajista) con precio sobre su SMA200
+#   - SALE: CHoCH bajista o perdida de la SMA200
+#   - Maximo 5 posiciones (20% del capital cada una)
+#   - Si hay mas señales que huecos: la ruptura mas fuerte primero
 #   + Referencia: comprar y mantener QQQ
-#
-# Tambien puede ejecutarse a mano en la PC:  py bot/actualizar.py
-# TODO SIMULADO: no toca dinero real.
+# Corre a diario en GitHub Actions. TODO SIMULADO.
+# A mano:  py bot/actualizar.py
 # ============================================================
 
 import json
@@ -17,17 +19,14 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-TICKER = "QQQ"
-TICKERS_CAZA = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD",
-                "NFLX", "JPM", "XOM", "UNH", "V", "KO", "DIS",
-                "SPY", "QQQ", "IWM", "XLK", "XLF"]
+TICKERS = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD",
+           "NFLX", "JPM", "XOM", "UNH", "V", "KO", "DIS",
+           "SPY", "QQQ", "IWM", "XLK", "XLF"]
 
 CAPITAL_INICIAL = 10000.0
-COSTO_OPERACION = 0.0005      # 0.05% por lado (QQQ)
-COSTO_CAZA = 0.001            # 0.1% por lado (acciones individuales)
-RSI2_ENTRADA = 10
-RSI2_SALIDA = 60
+COSTO = 0.001              # 0.1% por lado
 MAX_POSICIONES = 5
+FRACTAL = 2
 MAX_HISTORIAL = 1500
 MAX_OPS = 100
 
@@ -35,38 +34,79 @@ ARCHIVO_DATA = Path(__file__).resolve().parent.parent / "data.json"
 
 
 def descargar():
-    """Descarga 2 años de cierres diarios de los 20 tickers (incluye QQQ)."""
-    frame = yf.download(TICKERS_CAZA, period="2y", interval="1d",
+    frame = yf.download(TICKERS, period="2y", interval="1d",
                         auto_adjust=True, progress=False)
     if frame is None or frame.empty:
         raise RuntimeError("No se pudieron descargar datos.")
-    cierres = frame["Close"] if isinstance(frame.columns, pd.MultiIndex) else frame
-    return cierres.dropna(how="all")
+    return frame
 
 
-def rsi(serie, periodo):
-    delta = serie.diff()
-    g = delta.clip(lower=0).ewm(alpha=1 / periodo, adjust=False).mean()
-    p = (-delta.clip(upper=0)).ewm(alpha=1 / periodo, adjust=False).mean()
-    return 100 - 100 / (1 + g / p)
+def velas_cerradas(frame):
+    ahora = datetime.now(timezone.utc)
+    ultima = frame.index[-1].date()
+    if ultima >= ahora.date() and (ahora.hour, ahora.minute) < (21, 30):
+        return frame.iloc[:-1]
+    return frame
 
 
-def cazador_inicial():
-    return {"efectivo": CAPITAL_INICIAL, "posiciones": {}, "operaciones": []}
+def señales_ticker(df):
+    """(deseo, fuerza) para un ticker: la maquina de estructura SMC."""
+    df = df.dropna()
+    if len(df) < 220:
+        return None, None
+    H, L, C = df["High"].values, df["Low"].values, df["Close"].values
+    sma200 = df["Close"].rolling(200).mean().values
+    n = len(df)
+
+    sh, sl = [], []
+    for i in range(FRACTAL, n - FRACTAL):
+        if all(H[i] > H[i - k] for k in range(1, FRACTAL + 1)) and \
+           all(H[i] > H[i + k] for k in range(1, FRACTAL + 1)):
+            sh.append((i, H[i]))
+        if all(L[i] < L[i - k] for k in range(1, FRACTAL + 1)) and \
+           all(L[i] < L[i + k] for k in range(1, FRACTAL + 1)):
+            sl.append((i, L[i]))
+
+    deseo = [0] * n
+    fuerza = [0.0] * n
+    dentro, direccion = 0, 0
+    ish = isl = 0
+    ult_sh = ult_sl = None
+    for i in range(n):
+        while ish < len(sh) and sh[ish][0] + FRACTAL <= i:
+            ult_sh = sh[ish][1]; ish += 1
+        while isl < len(sl) and sl[isl][0] + FRACTAL <= i:
+            ult_sl = sl[isl][1]; isl += 1
+
+        choch_alcista = ult_sh is not None and direccion <= 0 and C[i] > ult_sh
+        choch_bajista = ult_sl is not None and direccion >= 0 and C[i] < ult_sl
+        if choch_alcista:
+            direccion = 1
+        elif choch_bajista:
+            direccion = -1
+        bias_ok = not pd.isna(sma200[i]) and C[i] > sma200[i]
+
+        if dentro == 0 and choch_alcista and bias_ok:
+            dentro = 1
+            fuerza[i] = (C[i] / ult_sh - 1) * 100
+        elif dentro == 1 and (choch_bajista or
+                              (not pd.isna(sma200[i]) and C[i] < sma200[i])):
+            dentro = 0
+        deseo[i] = dentro
+
+    return (pd.Series(deseo, index=df.index),
+            pd.Series(fuerza, index=df.index))
 
 
 def estado_inicial():
     return {
-        "version": 2,
-        "ticker": TICKER,
+        "version": 3,
         "capital_inicial": CAPITAL_INICIAL,
         "actualizado": "",
         "ultima_vela": "",
-        "precio": 0.0,
+        "precio_qqq": 0.0,
         "indicadores": {},
-        "cruce": {"efectivo": CAPITAL_INICIAL, "unidades": 0.0, "operaciones": []},
-        "rsi2": {"efectivo": CAPITAL_INICIAL, "unidades": 0.0, "operaciones": []},
-        "cazador": cazador_inicial(),
+        "smc": {"efectivo": CAPITAL_INICIAL, "posiciones": {}, "operaciones": []},
         "bh": {"unidades": 0.0, "iniciado": False},
         "historial": [],
     }
@@ -76,10 +116,9 @@ def cargar():
     if ARCHIVO_DATA.exists():
         with open(ARCHIVO_DATA, "r", encoding="utf-8") as f:
             data = json.load(f)
-        if "cazador" not in data:      # migracion desde la version anterior
-            data["cazador"] = cazador_inicial()
-        return data
-    return estado_inicial()
+        if data.get("version", 0) >= 3:
+            return data
+    return estado_inicial()   # borron y cuenta nueva para la v3
 
 
 def guardar(data):
@@ -92,194 +131,126 @@ def registrar(cartera, op):
     del cartera["operaciones"][MAX_OPS:]
 
 
-def comprar_qqq(cartera, precio, fecha, motivo):
-    invertible = cartera["efectivo"] * (1 - COSTO_OPERACION)
-    unidades = invertible / precio
-    cartera["unidades"] = unidades
-    cartera["efectivo"] = 0.0
-    registrar(cartera, {"fecha": fecha, "tipo": f"COMPRA ({motivo})",
-                        "precio": round(precio, 2), "unidades": round(unidades, 4),
-                        "valor": round(unidades * precio, 2)})
-
-
-def vender_qqq(cartera, precio, fecha, motivo):
-    unidades = cartera["unidades"]
-    valor = unidades * precio * (1 - COSTO_OPERACION)
-    cartera["efectivo"] = valor
-    cartera["unidades"] = 0.0
-    registrar(cartera, {"fecha": fecha, "tipo": f"VENTA ({motivo})",
-                        "precio": round(precio, 2), "unidades": round(unidades, 4),
-                        "valor": round(valor, 2)})
-
-
-def velas_cerradas(cierres):
-    ahora = datetime.now(timezone.utc)
-    ultima = cierres.index[-1].date()
-    if ultima >= ahora.date() and (ahora.hour, ahora.minute) < (21, 30):
-        return cierres.iloc[:-1]
-    return cierres
-
-
-def valor_cazador(caz, precios):
-    total = caz["efectivo"]
-    for tk, pos in caz["posiciones"].items():
+def valor_smc(smc, precios):
+    total = smc["efectivo"]
+    for tk, pos in smc["posiciones"].items():
         p = precios.get(tk)
-        if p is not None and not pd.isna(p):
-            total += pos["unidades"] * float(p)
-        else:
-            total += pos["costo"]
+        total += pos["unidades"] * float(p) if (p is not None and not pd.isna(p)) else pos["costo"]
     return total
-
-
-def operar_cazador(caz, precios, rsi2_fila, sma200_fila, fecha):
-    """Un dia del cazador: primero salidas, luego entradas (max 5 posiciones)."""
-    # --- Salidas ---
-    for tk in list(caz["posiciones"].keys()):
-        p, r, s = precios.get(tk), rsi2_fila.get(tk), sma200_fila.get(tk)
-        if p is None or pd.isna(p) or pd.isna(r) or pd.isna(s):
-            continue
-        if float(r) > RSI2_SALIDA or float(p) < float(s):
-            pos = caz["posiciones"].pop(tk)
-            valor = pos["unidades"] * float(p) * (1 - COSTO_CAZA)
-            caz["efectivo"] += valor
-            pnl = round(valor - pos["costo"], 2)
-            motivo = "rebote completado" if float(r) > RSI2_SALIDA else "perdio la SMA200"
-            registrar(caz, {"fecha": fecha, "tipo": f"VENTA ({motivo})", "ticker": tk,
-                            "precio": round(float(p), 2),
-                            "unidades": round(pos["unidades"], 4),
-                            "valor": round(valor, 2), "pnl": pnl})
-
-    # --- Entradas: caidas fuertes en tendencia alcista, la mas fuerte primero ---
-    candidatos = []
-    for tk in TICKERS_CAZA:
-        if tk in caz["posiciones"]:
-            continue
-        p, r, s = precios.get(tk), rsi2_fila.get(tk), sma200_fila.get(tk)
-        if p is None or pd.isna(p) or pd.isna(r) or pd.isna(s):
-            continue
-        if float(p) > float(s) and float(r) < RSI2_ENTRADA:
-            candidatos.append((float(r), tk))
-    candidatos.sort()
-
-    for r_val, tk in candidatos:
-        if len(caz["posiciones"]) >= MAX_POSICIONES:
-            break
-        total = valor_cazador(caz, precios)
-        monto = min(total / MAX_POSICIONES, caz["efectivo"])
-        if monto < 100:
-            break
-        p = float(precios[tk])
-        unidades = monto * (1 - COSTO_CAZA) / p
-        caz["efectivo"] -= monto
-        caz["posiciones"][tk] = {"unidades": round(unidades, 6), "costo": round(monto, 2),
-                                 "entrada": round(p, 2), "fecha": fecha,
-                                 "precio_actual": round(p, 2)}
-        registrar(caz, {"fecha": fecha, "tipo": f"COMPRA (RSI2 {r_val:.0f})", "ticker": tk,
-                        "precio": round(p, 2), "unidades": round(unidades, 4),
-                        "valor": round(monto, 2), "pnl": ""})
 
 
 def main():
     data = cargar()
-    cierres = velas_cerradas(descargar())
+    frame = velas_cerradas(descargar())
+    cierres = frame["Close"]
 
-    # Indicadores por ticker (para el cazador)
-    rsi2_todos = cierres.apply(lambda c: rsi(c, 2))
-    sma200_todos = cierres.rolling(200).mean()
+    # Señales SMC por ticker
+    deseos, fuerzas = {}, {}
+    for tk in TICKERS:
+        try:
+            df_tk = pd.DataFrame({c: frame[c][tk] for c in ("Open", "High", "Low", "Close")})
+        except KeyError:
+            continue
+        d, f = señales_ticker(df_tk)
+        if d is not None:
+            deseos[tk] = d
+            fuerzas[tk] = f
 
-    # Serie de QQQ (para las estrategias principales)
-    df = cierres[[TICKER]].rename(columns={TICKER: "Close"}).dropna()
-    df["SMA50"] = df["Close"].rolling(50).mean()
-    df["SMA200"] = df["Close"].rolling(200).mean()
-    df["RSI2"] = rsi(df["Close"], 2)
-    df["ROC10"] = (df["Close"] / df["Close"].shift(10) - 1) * 100
-    df = df.dropna()
-
-    fila = df.iloc[-1]
-    precio = float(fila["Close"])
-    sma50, sma200, rsi2 = float(fila["SMA50"]), float(fila["SMA200"]), float(fila["RSI2"])
-    roc10 = float(fila["ROC10"])
-    fecha_vela = str(df.index[-1].date())
-    senal_cruce = sma50 > sma200
-
+    fecha_vela = str(cierres.index[-1].date())
     precios_hoy = cierres.iloc[-1].to_dict()
+    qqq = cierres["QQQ"].dropna()
+    precio_qqq = float(qqq.iloc[-1])
+    roc10 = float((qqq.iloc[-1] / qqq.iloc[-11] - 1) * 100) if len(qqq) > 11 else 0.0
 
     vela_nueva = fecha_vela != data.get("ultima_vela", "")
     if vela_nueva:
-        # ---- 1: Cruce Dorado ----
-        c = data["cruce"]
-        if senal_cruce and c["unidades"] == 0:
-            comprar_qqq(c, precio, fecha_vela, "Cruce Dorado")
-        elif not senal_cruce and c["unidades"] > 0:
-            vender_qqq(c, precio, fecha_vela, "Cruce de la Muerte")
+        smc = data["smc"]
 
-        # ---- 2: Reversion RSI-2 en QQQ ----
-        r = data["rsi2"]
-        if r["unidades"] == 0 and precio > sma200 and rsi2 < RSI2_ENTRADA:
-            comprar_qqq(r, precio, fecha_vela, f"RSI2 {rsi2:.0f} en tendencia alcista")
-        elif r["unidades"] > 0 and (rsi2 > RSI2_SALIDA or precio < sma200):
-            motivo = "RSI2 recuperado" if rsi2 > RSI2_SALIDA else "Perdio la SMA200"
-            vender_qqq(r, precio, fecha_vela, motivo)
+        # ---- VENTAS: la estructura se rompio o se perdio el bias ----
+        for tk in list(smc["posiciones"].keys()):
+            d = deseos.get(tk)
+            p = precios_hoy.get(tk)
+            if d is None or p is None or pd.isna(p):
+                continue
+            if int(d.iloc[-1]) == 0:
+                pos = smc["posiciones"].pop(tk)
+                valor = pos["unidades"] * float(p) * (1 - COSTO)
+                smc["efectivo"] += valor
+                registrar(smc, {"fecha": fecha_vela, "tipo": "VENTA (estructura rota)",
+                                "ticker": tk, "precio": round(float(p), 2),
+                                "unidades": round(pos["unidades"], 4),
+                                "valor": round(valor, 2),
+                                "pnl": round(valor - pos["costo"], 2)})
 
-        # ---- 3: Cazador diario ----
-        operar_cazador(data["cazador"], precios_hoy,
-                       rsi2_todos.iloc[-1].to_dict(),
-                       sma200_todos.iloc[-1].to_dict(), fecha_vela)
+        # ---- COMPRAS: CHoCH alcista nuevo, la ruptura mas fuerte primero ----
+        candidatos = []
+        for tk, d in deseos.items():
+            if tk in smc["posiciones"] or len(d) < 2:
+                continue
+            p = precios_hoy.get(tk)
+            if p is None or pd.isna(p):
+                continue
+            if int(d.iloc[-1]) == 1 and int(d.iloc[-2]) == 0:
+                candidatos.append((-float(fuerzas[tk].iloc[-1]), tk))
+        candidatos.sort()
+        for neg_f, tk in candidatos:
+            if len(smc["posiciones"]) >= MAX_POSICIONES:
+                break
+            total = valor_smc(smc, precios_hoy)
+            monto = min(total / MAX_POSICIONES, smc["efectivo"])
+            if monto < 100:
+                break
+            p = float(precios_hoy[tk])
+            unidades = monto * (1 - COSTO) / p
+            smc["efectivo"] -= monto
+            smc["posiciones"][tk] = {"unidades": round(unidades, 6),
+                                     "costo": round(monto, 2),
+                                     "entrada": round(p, 2), "fecha": fecha_vela,
+                                     "precio_actual": round(p, 2)}
+            registrar(smc, {"fecha": fecha_vela,
+                            "tipo": f"COMPRA (CHoCH +{-neg_f:.1f}%)", "ticker": tk,
+                            "precio": round(p, 2), "unidades": round(unidades, 4),
+                            "valor": round(monto, 2), "pnl": ""})
 
-        # ---- Referencia ----
+        # ---- Referencia: comprar y mantener QQQ ----
         if not data["bh"]["iniciado"]:
-            data["bh"]["unidades"] = CAPITAL_INICIAL * (1 - COSTO_OPERACION) / precio
+            data["bh"]["unidades"] = CAPITAL_INICIAL * (1 - COSTO) / precio_qqq
             data["bh"]["iniciado"] = True
 
         data["historial"].append({
             "fecha": fecha_vela,
-            "cruce": round(data["cruce"]["efectivo"] + data["cruce"]["unidades"] * precio, 2),
-            "rsi2": round(data["rsi2"]["efectivo"] + data["rsi2"]["unidades"] * precio, 2),
-            "cazador": round(valor_cazador(data["cazador"], precios_hoy), 2),
-            "bh": round(data["bh"]["unidades"] * precio, 2),
+            "smc": round(valor_smc(data["smc"], precios_hoy), 2),
+            "bh": round(data["bh"]["unidades"] * precio_qqq, 2),
             "roc10": round(roc10, 2),
         })
         del data["historial"][:-MAX_HISTORIAL]
         data["ultima_vela"] = fecha_vela
 
-    # ---- Refrescar precio actual de las posiciones abiertas del cazador ----
-    for tk, pos in data["cazador"]["posiciones"].items():
+    # ---- refrescar precios de posiciones abiertas ----
+    for tk, pos in data["smc"]["posiciones"].items():
         p = precios_hoy.get(tk)
         if p is not None and not pd.isna(p):
             pos["precio_actual"] = round(float(p), 2)
 
-    # ---- Estado e indicadores ----
-    data["precio"] = round(precio, 2)
+    # ---- cuantos tickers estan hoy en estructura alcista (contexto) ----
+    alcistas = sum(1 for d in deseos.values() if int(d.iloc[-1]) == 1)
+
+    data["precio_qqq"] = round(precio_qqq, 2)
     data["actualizado"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     data["indicadores"] = {
-        "sma50": round(sma50, 2),
-        "sma200": round(sma200, 2),
-        "margen_pct": round((sma50 / sma200 - 1) * 100, 2),
-        "rsi2": round(rsi2, 1),
         "roc10": round(roc10, 2),
-        "tendencia": "alcista" if senal_cruce else "bajista",
-        "cruce_posicion": "COMPRADO" if data["cruce"]["unidades"] > 0 else "EN EFECTIVO",
-        "rsi2_posicion": "COMPRADO" if data["rsi2"]["unidades"] > 0 else "EN EFECTIVO",
-        "valor_cruce": round(data["cruce"]["efectivo"] + data["cruce"]["unidades"] * precio, 2),
-        "valor_rsi2": round(data["rsi2"]["efectivo"] + data["rsi2"]["unidades"] * precio, 2),
-        "valor_cazador": round(valor_cazador(data["cazador"], precios_hoy), 2),
-        "valor_bh": round(data["bh"]["unidades"] * precio, 2) if data["bh"]["iniciado"] else 0.0,
+        "valor_smc": round(valor_smc(data["smc"], precios_hoy), 2),
+        "valor_bh": round(data["bh"]["unidades"] * precio_qqq, 2) if data["bh"]["iniciado"] else 0.0,
+        "tickers_alcistas": alcistas,
+        "tickers_total": len(deseos),
     }
 
-    # ---- Serie para la grafica de la estrategia (ultimos 250 dias) ----
-    cola = df.tail(250)
-    data["grafico"] = [
-        {"f": str(ix.date()), "c": round(float(r["Close"]), 2),
-         "s50": round(float(r["SMA50"]), 2), "s200": round(float(r["SMA200"]), 2)}
-        for ix, r in cola.iterrows()
-    ]
-
     guardar(data)
-    caz = data["cazador"]
+    smc = data["smc"]
     print(f"OK | vela {fecha_vela} ({'nueva' if vela_nueva else 'ya procesada'}) | "
-          f"{TICKER} ${precio:.2f} | margen {data['indicadores']['margen_pct']:+.2f}% | "
-          f"RSI2 {rsi2:.1f} | cazador: {len(caz['posiciones'])}/{MAX_POSICIONES} posiciones, "
-          f"${data['indicadores']['valor_cazador']:,.2f}")
+          f"QQQ ${precio_qqq:.2f} | SMC: {len(smc['posiciones'])}/{MAX_POSICIONES} posiciones, "
+          f"${data['indicadores']['valor_smc']:,.2f} | "
+          f"{alcistas}/{len(deseos)} tickers en estructura alcista")
 
 
 if __name__ == "__main__":
