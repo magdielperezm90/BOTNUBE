@@ -1,20 +1,38 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-10 00:13 UTC",
- "ultima_vela": "2026-07-09",
- "precio_qqq": 723.28,
+ "actualizado": "2026-07-10 23:38 UTC",
+ "ultima_vela": "2026-07-10",
+ "precio_qqq": 725.51,
  "indicadores": {
-  "roc10": 1.78,
-  "valor_smc": 10000.0,
-  "valor_bh": 9990.0,
-  "tickers_alcistas": 8,
+  "roc10": 1.27,
+  "valor_smc": 9998.0,
+  "valor_bh": 10020.8,
+  "tickers_alcistas": 9,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 10000.0,
-  "posiciones": {},
-  "operaciones": []
+  "efectivo": 8000.0,
+  "posiciones": {
+   "SPY": {
+    "unidades": 2.646533,
+    "costo": 2000.0,
+    "entrada": 754.95,
+    "fecha": "2026-07-10",
+    "precio_actual": 754.95
+   }
+  },
+  "operaciones": [
+   {
+    "fecha": "2026-07-10",
+    "tipo": "COMPRA (CHoCH +0.3%)",
+    "ticker": "SPY",
+    "precio": 754.95,
+    "unidades": 2.6465,
+    "valor": 2000.0,
+    "pnl": ""
+   }
+  ]
  },
  "bh": {
   "unidades": 13.812077750455266,
@@ -26,6 +44,12 @@
    "smc": 10000.0,
    "bh": 9990.0,
    "roc10": 1.78
+  },
+  {
+   "fecha": "2026-07-10",
+   "smc": 9998.0,
+   "bh": 10020.8,
+   "roc10": 1.27
   }
  ]
 }
