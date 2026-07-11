@@ -2,260 +2,1263 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Cazador SMC</title>
-<meta name="description" content="Bot de trading simulado: Smart Money Concepts sobre 20 tickers">
-<meta name="theme-color" content="#0B1018">
-<link rel="manifest" href="manifest.json">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trading Academy Pro</title>
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0d1117">
 <style>
-  :root{
-    --bg:#0B1018; --card:#131B29; --line:#22304A; --text:#E7ECF4; --muted:#8A97AB;
-    --gold:#E8B84B; --up:#3DDC97; --down:#FF6B7A; --violeta:#B48CFF;
-    --radius:14px;
-  }
-  *{box-sizing:border-box; margin:0; padding:0}
-  body{
-    background:var(--bg); color:var(--text);
-    font-family:'Sora',system-ui,sans-serif;
-    padding:16px 14px calc(28px + env(safe-area-inset-bottom));
-    max-width:680px; margin:0 auto;
-  }
-  .num{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums}
-  header{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px}
-  .eyebrow{color:var(--muted); font-size:11px; letter-spacing:.14em; text-transform:uppercase}
-  h1{font-size:20px; font-weight:700; margin-top:2px}
-  .precio-box{text-align:right}
-  .precio{font-size:22px; font-weight:600}
-  .actualizado{color:var(--muted); font-size:11px; margin-top:2px}
-  .aviso{background:var(--card); border:1px dashed var(--line); border-radius:var(--radius);
-    padding:18px; color:var(--muted); font-size:14px; line-height:1.5; margin-bottom:14px}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-    padding:16px; margin-bottom:14px}
-  .card h2{font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px}
-  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-  .fila-valor{display:flex; justify-content:space-between; align-items:baseline; margin:10px 0 4px}
-  .valor{font-size:28px; font-weight:600}
-  .badge{font-size:11px; font-weight:600; letter-spacing:.08em; padding:4px 10px;
-    border-radius:99px; border:1px solid var(--line); color:var(--muted)}
-  .badge.dentro{color:var(--violeta); border-color:rgba(180,140,255,.4); background:rgba(180,140,255,.08)}
-  .rend{font-size:13px; margin-bottom:12px}
-  .pos{color:var(--up)} .neg{color:var(--down)}
-  .contexto{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5}
-  .contexto b{color:var(--text)}
-  .riel-titulo{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:6px}
-  .riel{position:relative; height:34px; margin-bottom:4px}
-  .riel .via{position:absolute; top:15px; left:0; right:0; height:4px; border-radius:2px;
-    background:linear-gradient(90deg, rgba(255,107,122,.55), rgba(255,107,122,.15) 46%, rgba(138,151,171,.6) 50%, rgba(61,220,151,.15) 54%, rgba(61,220,151,.55))}
-  .riel .cero{position:absolute; top:6px; left:50%; width:2px; height:22px; background:var(--muted); transform:translateX(-1px); border-radius:1px}
-  .riel .marcador{position:absolute; top:10px; width:14px; height:14px; border-radius:50%;
-    background:var(--text); border:3px solid var(--bg); transform:translateX(-7px);
-    box-shadow:0 0 0 1px var(--line)}
-  .riel-leyenda{display:flex; justify-content:space-between; font-size:10px; color:var(--muted)}
-  .margen-texto{text-align:center; font-size:12px; color:var(--muted); margin-top:8px}
-  .margen-texto b{color:var(--text)}
-  canvas{width:100%; height:190px; display:block}
-  .leyenda{display:flex; gap:14px; font-size:11px; color:var(--muted); margin-top:8px; flex-wrap:wrap}
-  .leyenda i{display:inline-block; width:10px; height:3px; border-radius:2px; margin-right:5px; vertical-align:middle}
-  table{width:100%; border-collapse:collapse; font-size:12px}
-  th{color:var(--muted); font-weight:500; text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); font-size:11px}
-  td{padding:7px 4px; border-bottom:1px solid rgba(34,48,74,.5)}
-  td.der, th.der{text-align:right}
-  .op-compra{color:var(--up)} .op-venta{color:var(--down)}
-  .sin-ops{color:var(--muted); font-size:13px; padding:10px 0}
-  .boton{display:block; width:100%; padding:12px; margin-top:4px;
-    background:transparent; color:var(--violeta); border:1px solid rgba(180,140,255,.4);
-    border-radius:var(--radius); font-family:inherit; font-size:14px; font-weight:600; cursor:pointer}
-  .boton:active{background:rgba(180,140,255,.1)}
-  footer{margin-top:16px; text-align:center; color:var(--muted); font-size:11px; line-height:1.6}
-  @media (prefers-reduced-motion:no-preference){
-    .card{animation:entrar .35s ease both}
-    @keyframes entrar{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--bg4:#21262d;--border:#30363d;--border2:#3d444d;--tx1:#e6edf3;--tx2:#8b949e;--tx3:#6e7681;--sc:#3b82f6;--scr:59,130,246}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx1);overflow:hidden}
+#app{display:flex;height:100vh}
+#sidebar{width:200px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.sb-logo{padding:16px 14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center}
+.sb-logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.sb-logo-text{font-weight:700;font-size:.9rem}.sb-logo-sub{font-size:.7rem;color:var(--tx3)}
+.sb-label{padding:14px 14px 6px;font-size:.68rem;font-weight:700;letter-spacing:1.2px;color:var(--tx3);text-transform:uppercase}
+#nav-list{flex:1;overflow-y:auto;padding:4px 8px}
+#nav-list::-webkit-scrollbar{width:3px}#nav-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.nav-btn{width:100%;background:none;border:none;border-radius:8px;padding:9px 10px;cursor:pointer;display:flex;align-items:center;gap:9px;color:var(--tx2);transition:all .18s;text-align:left;margin-bottom:2px}
+.nav-btn:hover{background:var(--bg3);color:var(--tx1)}
+.nav-btn.active{background:rgba(var(--scr),.15);color:var(--sc);border:1px solid rgba(var(--scr),.25)}
+.ni{font-size:1.2rem;width:24px;text-align:center}.nl{font-weight:600;font-size:.82rem}.ns{font-size:.68rem;opacity:.6;margin-top:1px}
+.sb-footer{padding:12px 14px;border-top:1px solid var(--border)}
+.prog-row{display:flex;justify-content:space-between;font-size:.75rem;color:var(--tx3);margin-bottom:6px}
+.prog-bar{height:4px;background:var(--bg4);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--sc),rgba(var(--scr),.5));border-radius:4px;transition:width .5s;width:0%}
+#topbar{padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2)}
+.tb-title{font-size:1rem;font-weight:700}.tb-crumb{font-size:.75rem;color:var(--tx3);margin-top:2px}
+.stat-chips{display:flex;gap:10px}
+.stat-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 14px;text-align:center}
+.chip-num{font-size:1.1rem;font-weight:800;line-height:1}.chip-lbl{font-size:.65rem;color:var(--tx3);margin-top:2px}
+.c-blue{color:#60a5fa}.c-green{color:#4ade80}.c-amber{color:#fbbf24}
+#content{flex:1;overflow-y:auto;padding:20px 22px;min-height:0}
+#content::-webkit-scrollbar{width:5px}#content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+#welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 160px);text-align:center;padding:40px 20px}
+#welcome h1{font-size:2rem;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px}
+#welcome p{color:var(--tx2);max-width:460px;line-height:1.7;font-size:.95rem}
+.w-pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:22px}
+.w-pill{padding:8px 16px;border-radius:30px;font-size:.8rem;font-weight:600;border:1px solid}
+#strat-screen{display:none}
+.strat-header{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:16px;position:relative;overflow:hidden}
+.strat-header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(var(--scr),.07),transparent 70%);pointer-events:none}
+.sh-row{display:flex;gap:14px;align-items:flex-start}
+.sh-icon{width:52px;height:52px;border-radius:14px;background:rgba(var(--scr),.15);border:1px solid rgba(var(--scr),.3);display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0}
+.sh-name{font-size:1.2rem;font-weight:800;margin-bottom:4px}.sh-sub{font-size:.82rem;color:var(--tx2);line-height:1.5;max-width:580px}
+.sh-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{display:inline-block;padding:3px 9px;border-radius:30px;font-size:.72rem;font-weight:600;border:1px solid}
+.sh-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.sh-chip{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:.72rem;display:flex;gap:5px}
+.sh-chip span:first-child{color:var(--tx3)}.sh-chip span:last-child{color:var(--tx1);font-weight:600}
+.tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px}
+.tab-btn{flex:1;background:none;border:none;border-radius:7px;padding:9px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .18s}
+.tab-btn:hover{color:var(--tx1)}.tab-btn.active{background:rgba(var(--scr),.18);color:var(--sc);box-shadow:0 0 0 1px rgba(var(--scr),.3)}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.concept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.concept-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 14px 28px;transition:all .2s;cursor:pointer;position:relative;overflow:hidden}
+.concept-card:hover{border-color:var(--sc);transform:translateY(-2px);box-shadow:0 4px 20px rgba(var(--scr),.15)}
+.concept-card::after{content:'Toca para ver ejemplos de cada regla';position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:.7rem;color:var(--sc);font-weight:600;opacity:0;transition:opacity .2s}
+.concept-card:hover::after{opacity:1}
+.cc-row{display:flex;gap:10px;align-items:flex-start}
+.cc-icon{font-size:1.4rem;flex-shrink:0}.cc-title{font-weight:700;font-size:.88rem;margin-bottom:4px}.cc-desc{font-size:.8rem;color:var(--tx2);line-height:1.5}
+.q-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px}
+.q-progress{height:4px;background:var(--bg4);border-radius:4px;margin-bottom:18px;overflow:hidden}
+.q-bar{height:100%;background:var(--sc);border-radius:4px;transition:width .4s}
+.q-ctx{background:var(--bg3);border-left:3px solid var(--sc);padding:10px 14px;border-radius:6px;font-size:.83rem;color:var(--tx2);margin-bottom:14px;line-height:1.5}
+.q-text{font-size:.95rem;font-weight:600;line-height:1.6;margin-bottom:16px}
+.q-opts{display:flex;flex-direction:column;gap:8px}
+.q-opt{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px 16px;text-align:left;cursor:pointer;color:var(--tx1);font-size:.85rem;line-height:1.4;transition:all .18s}
+.q-opt:hover{border-color:var(--sc);background:rgba(var(--scr),.08)}
+.q-correct{background:rgba(38,166,154,.18)!important;border-color:#26a69a!important;color:#26a69a!important;font-weight:700}
+.q-wrong{background:rgba(239,83,80,.15)!important;border-color:#ef5350!important;color:#ef5350!important}
+.q-exp{margin-top:14px;padding:12px 16px;background:var(--bg3);border-radius:8px;font-size:.83rem;line-height:1.6}
+.q-next{margin-top:14px;width:100%;background:rgba(var(--scr),.15);border:1px solid rgba(var(--scr),.3);color:var(--sc);border-radius:8px;padding:11px;font-weight:700;cursor:pointer;transition:all .18s;font-size:.9rem}
+.q-next:hover{background:rgba(var(--scr),.25)}
+.q-result{text-align:center;padding:30px 20px}
+/* MODAL */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:none;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(4px)}
+#modal.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto}
+.modal-box::-webkit-scrollbar{width:4px}.modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.modal-hdr{padding:20px 22px;border-bottom:1px solid var(--border);display:flex;gap:14px;align-items:flex-start;position:sticky;top:0;background:var(--bg2);z-index:1}
+.modal-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
+.modal-title{font-size:1.1rem;font-weight:800;margin-bottom:4px}.modal-sub{font-size:.8rem;color:var(--tx2);line-height:1.5}
+.modal-close{margin-left:auto;background:var(--bg3);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;color:var(--tx2);cursor:pointer;font-size:1rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .18s;align-self:flex-start}
+.modal-close:hover{background:var(--bg4);color:var(--tx1)}
+.modal-body{padding:20px 22px}
+.m-section{margin-bottom:20px}
+.m-stitle{font-size:.72rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.m-stitle::before{content:'';width:3px;height:11px;border-radius:2px;background:var(--sc);display:block}
+.m-long{font-size:.85rem;color:var(--tx2);line-height:1.7}
+/* ACCORDION RULES */
+.m-rules{list-style:none;display:flex;flex-direction:column;gap:5px}
+.m-rule{background:var(--bg3);border-radius:8px;border-left:3px solid var(--sc);overflow:hidden;transition:border-color .18s}
+.m-rule-hdr{padding:11px 14px;font-size:.83rem;color:var(--tx2);line-height:1.5;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;transition:color .18s;user-select:none}
+.m-rule-hdr:hover{color:var(--tx1)}
+.m-rule-badge{font-size:.68rem;color:var(--sc);background:rgba(var(--scr),.12);border:1px solid rgba(var(--scr),.2);border-radius:20px;padding:2px 8px;white-space:nowrap;flex-shrink:0;transition:all .18s}
+.m-rule:hover .m-rule-badge{background:rgba(var(--scr),.22)}
+.m-rule-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.m-rule.open .m-rule-body{max-height:200px}
+.m-rule-ex{margin:0 12px 10px;padding:10px 12px;background:rgba(var(--scr),.07);border-radius:6px;font-size:.8rem;color:var(--tx2);line-height:1.65;border:1px solid rgba(var(--scr),.12)}
+.m-rule-ex strong{color:var(--sc)}
+.m-tip{background:rgba(var(--scr),.07);border:1px solid rgba(var(--scr),.2);border-radius:9px;padding:12px 16px;font-size:.82rem;color:var(--tx2);line-height:1.6}
+.m-tip strong{color:var(--sc)}
+.m-chart{width:100%;overflow:hidden;border-radius:8px;background:var(--bg3)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes drawSvg{to{stroke-dashoffset:0}}
+@keyframes confettiFall{0%{opacity:1;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(180px) rotate(360deg)}}
+.fadeup{animation:fadeUp .35s ease both}
+#pane-g,#pane-q{display:none}
+
+/* ─── RESPONSIVE MOBILE ──────────────────────────────────────────────── */
+@media (max-width: 680px) {
+  html,body{overflow:auto}
+  #app{flex-direction:column;height:auto;min-height:100vh}
+  #sidebar{width:100%;min-width:unset;border-right:none;border-bottom:1px solid var(--border);flex-shrink:0}
+  .sb-logo{padding:10px 14px}
+  .sb-label{padding:6px 14px 3px}
+  #nav-list{display:flex;flex-direction:row;overflow-x:auto;padding:4px 8px 8px;gap:5px;flex:unset;scrollbar-width:thin}
+  #nav-list::-webkit-scrollbar{height:3px}
+  .nav-btn{flex-direction:column;align-items:center;justify-content:center;padding:7px 10px;min-width:68px;white-space:nowrap;margin-bottom:0;gap:3px}
+  .ns{display:none}
+  .nl{font-size:.72rem;text-align:center}
+  .ni{font-size:1.1rem;width:auto}
+  .sb-footer{display:none}
+  #main{overflow:visible}
+  #content{overflow:visible;padding:12px 10px;flex:unset}
+  #topbar{padding:10px 12px;flex-wrap:wrap;gap:6px}
+  .tb-title{font-size:.88rem}
+  .tb-crumb{font-size:.68rem}
+  .stat-chips{gap:6px}
+  .stat-chip{padding:4px 10px}
+  .chip-num{font-size:.95rem}
+  .chip-lbl{font-size:.6rem}
+  .strat-header{padding:12px 12px 14px;margin-bottom:12px}
+  .sh-icon{width:40px;height:40px;font-size:1.3rem}
+  .sh-name{font-size:1rem}
+  .sh-sub{font-size:.78rem}
+  .sh-meta{gap:5px;margin-top:8px}
+  .sh-chip{font-size:.68rem;padding:3px 8px}
+  .sh-tags{gap:5px;margin-top:8px}
+  .tag{font-size:.68rem;padding:2px 8px}
+  .tabs{gap:3px;padding:3px}
+  .tab-btn{font-size:.74rem;padding:8px 2px}
+  .concept-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .concept-card{padding:11px 11px 26px}
+  .cc-icon{font-size:1.2rem}
+  .cc-title{font-size:.82rem}
+  .cc-desc{font-size:.74rem}
+  .q-card{padding:14px}
+  .q-opt{font-size:.8rem;padding:10px 12px}
+  .q-text{font-size:.88rem}
+  #welcome{min-height:calc(100vh - 250px);padding:20px 14px}
+  #welcome h1{font-size:1.55rem}
+  #welcome p{font-size:.88rem}
+  .w-pills{gap:7px}
+  .w-pill{font-size:.75rem;padding:6px 12px}
+  #modal{padding:10px}
+  .modal-box{max-height:96vh;border-radius:14px}
+  .modal-hdr{padding:14px 16px}
+  .modal-icon{width:40px;height:40px;font-size:1.3rem}
+  .modal-title{font-size:1rem}
+  .modal-body{padding:14px 16px}
+  .m-long{font-size:.82rem}
+  .m-rule-hdr{font-size:.8rem;padding:10px 12px}
+  .m-rule-ex{font-size:.77rem}
+  .m-tip{font-size:.79rem}
+  .m-stitle{font-size:.68rem}
+  .strat-header::before{display:none}
+}
+
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <div class="eyebrow">Simulado &middot; Smart Money</div>
-    <h1>Cazador SMC</h1>
+<div id="app">
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">&#x1F4C8;</div>
+    <div><div class="sb-logo-text">Trading Academy</div><div class="sb-logo-sub">11 estrategias pro</div></div>
   </div>
-  <div class="precio-box">
-    <div class="precio num" id="precio">&mdash;</div>
-    <div class="actualizado" id="actualizado">cargando&hellip;</div>
+  <div class="sb-label">Estrategias</div>
+  <div id="nav-list"></div>
+  <div class="sb-footer">
+    <div class="prog-row"><span>Progreso</span><span id="prog-pct">0%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
   </div>
-</header>
-
-<div id="contenido"></div>
-
-<button class="boton" id="refrescar">Actualizar datos</button>
-<a href="academia.html" class="boton" style="text-decoration:none;text-align:center;color:var(--muted);border-color:var(--line);margin-top:10px;display:block">&#x1F393; Academia de Trading</a>
-
-<footer>
-  Cartera simulada &middot; No es dinero real ni consejo financiero.<br>
-  CHoCH alcista + bias SMA200 &middot; 20 tickers &middot; m&aacute;x. 5 posiciones &middot; vs comprar y mantener QQQ
-</footer>
-
+</div>
+<div id="main">
+  <div id="topbar">
+    <div><div class="tb-title" id="tb-title">Trading Academy Pro</div><div class="tb-crumb" id="tb-crumb">Selecciona una estrategia para comenzar</div></div>
+    <button onclick="loadBot()" style="background:rgba(180,140,255,.12);border:1px solid rgba(180,140,255,.4);color:#B48CFF;border-radius:9px;padding:8px 16px;font-weight:700;font-size:.82rem;cursor:pointer;margin-right:12px;white-space:nowrap">🤖 BOT Cazador</button>
+    <div class="stat-chips">
+      <div class="stat-chip"><div class="chip-num c-blue">11</div><div class="chip-lbl">Estrategias</div></div>
+      <div class="stat-chip"><div class="chip-num c-green" id="st-done">0</div><div class="chip-lbl">Completadas</div></div>
+      <div class="stat-chip"><div class="chip-num c-amber" id="st-pct">--</div><div class="chip-lbl">Precision</div></div>
+    </div>
+  </div>
+  <div id="content">
+    <div id="bot-screen" style="display:none;height:calc(100vh - 130px)">
+      <iframe src="bot.html" style="width:100%;height:100%;border:0;border-radius:14px;background:#0B1018" title="Cazador SMC en vivo"></iframe>
+    </div>
+    <div id="welcome">
+      <div style="font-size:3.5rem;margin-bottom:16px">&#x1F4CA;</div>
+      <h1>Trading Academy Pro</h1>
+      <p>11 estrategias con resumenes, graficos animados, quiz y <strong style="color:var(--sc)">ejemplos practicos expandibles para cada regla</strong>.</p>
+      <div class="w-pills">
+        <div class="w-pill" style="background:rgba(59,130,246,.1);color:#93c5fd;border-color:rgba(59,130,246,.3)">&#x1F4DA; Resumenes</div>
+        <div class="w-pill" style="background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.3)">&#x1F4C9; Graficos</div>
+        <div class="w-pill" style="background:rgba(167,139,250,.1);color:#c4b5fd;border-color:rgba(167,139,250,.3)">&#x1F3AE; Quiz</div>
+        <div class="w-pill" style="background:rgba(249,115,22,.1);color:#fdba74;border-color:rgba(249,115,22,.3)">&#x1F4A1; Ejemplos por regla</div>
+      </div>
+    </div>
+    <div id="strat-screen">
+      <div class="strat-header">
+        <div class="sh-row">
+          <div class="sh-icon" id="sh-icon"></div>
+          <div style="flex:1">
+            <div class="sh-name" id="sh-name"></div>
+            <div class="sh-sub" id="sh-sub"></div>
+            <div class="sh-tags" id="sh-tags"></div>
+          </div>
+        </div>
+        <div class="sh-meta" id="sh-meta"></div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="r">&#x1F4CB; Resumen</button>
+        <button class="tab-btn" data-tab="g">&#x1F4C8; Grafico</button>
+        <button class="tab-btn" data-tab="q">&#x1F3AE; Quiz</button>
+      </div>
+      <div id="pane-r"></div>
+      <div id="pane-g"></div>
+      <div id="pane-q"></div>
+    </div>
+  </div>
+</div>
+</div>
+<div id="modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-icon" id="m-icon"></div>
+      <div style="flex:1"><div class="modal-title" id="m-title"></div><div class="modal-sub" id="m-sub"></div></div>
+      <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
 <script>
-const $ = s => document.querySelector(s);
-const dinero = v => '$' + Number(v).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-const pctTxt = v => (v>=0?'+':'') + v.toFixed(2) + '%';
+const SC={
+  smc:{c:'#3b82f6',r:'59,130,246'},orb:{c:'#f59e0b',r:'245,158,11'},
+  wyckoff:{c:'#8b5cf6',r:'139,92,246'},ict:{c:'#14b8a6',r:'20,184,166'},
+  elliott:{c:'#60a5fa',r:'96,165,250'},sd:{c:'#f97316',r:'249,115,22'},
+  pa:{c:'#22c55e',r:'34,197,94'},fib:{c:'#a78bfa',r:'167,139,250'},
+  ma:{c:'#06b6d4',r:'6,182,212'},rsi:{c:'#ef4444',r:'239,68,68'},
+  crt:{c:'#eab308',r:'234,179,8'}
+};
+function sc(id){return (SC[id]||SC.smc).c;}
+function sr(id){return (SC[id]||SC.smc).r;}
 
-function cartaSMC(d){
-  const i = d.indicadores;
-  const smc = d.smc;
-  const tks = Object.keys(smc.posiciones || {});
-  const p = (i.valor_smc / d.capital_inicial - 1) * 100;
-  const filas = tks.map(tk=>{
-    const pos = smc.posiciones[tk];
-    const actual = pos.precio_actual || pos.entrada;
-    const pnl = (actual / pos.entrada - 1) * 100;
-    return `<tr>
-      <td><b>${tk}</b></td>
-      <td class="num">${pos.fecha}</td>
-      <td class="der num">${dinero(pos.entrada)}</td>
-      <td class="der num">${dinero(actual)}</td>
-      <td class="der num ${pnl>=0?'pos':'neg'}">${pctTxt(pnl)}</td>
-    </tr>`;
-  }).join('');
-  return `
-  <div class="card" style="border-color:rgba(180,140,255,.3)">
-    <h2><span class="dot" style="background:var(--violeta)"></span>Cartera del Cazador</h2>
-    <div class="fila-valor">
-      <div class="valor num">${dinero(i.valor_smc)}</div>
-      <div class="badge ${tks.length? 'dentro':''}">${tks.length}/5 POSICIONES</div>
-    </div>
-    <div class="rend"><span class="num ${p>=0?'pos':'neg'}">${pctTxt(p)}</span> desde el inicio &middot; vs QQQ: <span class="num">${dinero(i.valor_bh)}</span></div>
-    ${tks.length ? `<div style="overflow-x:auto"><table>
-      <tr><th>Posici&oacute;n</th><th>Desde</th><th class="der">Entrada</th><th class="der">Actual</th><th class="der">P&amp;L</th></tr>
-      ${filas}</table></div>`
-    : '<div class="sin-ops">Sin posiciones: esperando un CHoCH alcista con bias a favor en la lista de 20.</div>'}
-    <div class="contexto">Estructura del mercado hoy: <b>${i.tickers_alcistas} de ${i.tickers_total}</b> tickers en estructura alcista (CHoCH vigente sobre su SMA200).</div>
-  </div>`;
+const CD={
+'smc.0':{title:'Order Block (OB)',long:'El Order Block es la última vela antes de un movimiento institucional explosivo. Representa zonas donde bancos e instituciones dejaron órdenes pendientes sin ejecutar. Cuando el precio regresa a esa zona, esas órdenes se activan generando un rebote poderoso.',
+rules:[
+{t:'La última vela BAJISTA antes de un rally alcista = OB alcista',ex:'<strong>Ejemplo:</strong> El precio cae con 5 velas rojas. La última vela roja cierra en $1.200. De repente viene una explosión alcista fuerte. Esa última vela roja a $1.200 es tu OB alcista — cuando el precio regrese a esa zona, espera compra.'},
+{t:'La última vela ALCISTA antes de una caída fuerte = OB bajista',ex:'<strong>Ejemplo:</strong> EURUSD sube durante horas. La última vela verde cierra en 1.0850. De repente cae agresivamente. Cuando el precio rebote hasta 1.0850 de nuevo, es zona de venta.'},
+{t:'Cuanto más explosivo el movimiento que salió del OB, más válido el OB',ex:'<strong>Ejemplo:</strong> Un OB del que salió un movimiento de 100 pips es más potente que uno que solo generó 20 pips. La fuerza del impulso refleja la urgencia institucional de esas órdenes.'},
+{t:'El primer retesteo al OB es siempre el más potente',ex:'<strong>Ejemplo:</strong> La primera vez que el precio vuelve al OB, todavía hay órdenes institucionales pendientes. En retesteos posteriores, esas órdenes se van agotando. En el tercero o cuarto retesteo la zona puede fallar.'},
+{t:'Si el precio cierra dentro del OB sin rebotar → OB invalidado',ex:'<strong>Ejemplo:</strong> El precio entra al OB y cierra una vela completa dentro de él sin rebotar. Eso significa que las órdenes institucionales ya se consumieron. Ese OB ya no es válido — busca el siguiente nivel.'}
+],tip:'<strong>Entrada:</strong> Espera que el precio regrese al OB y muestre una vela de rechazo (pin bar, engulfing). <strong>Stop:</strong> Bajo el mínimo del OB. <strong>Target:</strong> El siguiente nivel de liquidez (HH, FVG, PDH).',chartFn:'chartOB'},
+
+'smc.1':{title:'BOS y CHoCH',long:'BOS (Break of Structure) confirma que la tendencia continúa. CHoCH (Change of Character) señala un posible cambio de tendencia. Son las dos herramientas para saber si el mercado sigue igual o está cambiando de dirección.',
+rules:[
+{t:'BOS alcista: precio cierra sobre el último Higher High (HH)',ex:'<strong>Ejemplo:</strong> Estabas en tendencia alcista con HH en $100. El precio corrige y luego rompe $100 cerrando una vela sobre ese nivel. BOS alcista confirmado — la tendencia sigue alcista, busca compras en el retroceso.'},
+{t:'BOS bajista: precio cierra bajo el último Lower Low (LL)',ex:'<strong>Ejemplo:</strong> Tendencia bajista con LL en $80. El precio rebota y luego vuelve a caer cerrando bajo $80. BOS bajista — la tendencia bajista continúa, busca ventas en el rebote.'},
+{t:'CHoCH alcista: en tendencia bajista, el precio rompe el último Lower High',ex:'<strong>Ejemplo:</strong> Venías en tendencia bajista con LH en $90. El precio rompe y cierra sobre $90 por primera vez. Ese CHoCH es la primera alerta de posible reversión alcista — NO es señal de compra inmediata, espera confirmación.'},
+{t:'CHoCH bajista: en tendencia alcista, el precio rompe el último Higher Low',ex:'<strong>Ejemplo:</strong> Tendencia alcista con HL en $85. El precio cae y cierra bajo $85. CHoCH bajista — primera señal de posible fin de la tendencia alcista. Espera un BOS bajista para confirmar antes de vender.'}
+],tip:'<strong>Regla de oro:</strong> BOS = continúa la tendencia (opera a favor). CHoCH = posible cambio (espera confirmación antes de operar en contra).',chartFn:'chartBOS'},
+
+'smc.2':{title:'Fair Value Gap (FVG)',long:'El FVG es un desequilibrio de precio creado cuando el mercado se mueve tan rápido que quedan zonas sin negociar. El mercado tiende a regresar a rellenar esas zonas antes de continuar. Son imanes de precio muy fiables.',
+rules:[
+{t:'FVG alcista: hay espacio entre la mecha superior de vela 1 y la mecha inferior de vela 3',ex:'<strong>Ejemplo:</strong> Vela 1 sube hasta $100 (mecha superior). Vela 2 explota al alza. Vela 3 abre en $108 (mecha inferior). El gap entre $100 y $108 es el FVG alcista — cuando el precio vuelva a ese rango, busca compras.'},
+{t:'FVG bajista: hay espacio entre la mecha inferior de vela 1 y la mecha superior de vela 3',ex:'<strong>Ejemplo:</strong> Vela 1 cae hasta $90 (mecha inferior). Vela 2 se desploma. Vela 3 abre en $82 (mecha superior). El gap entre $82 y $90 es el FVG bajista — zona donde buscar ventas en el rebote.'},
+{t:'El precio tiende a regresar al FVG y rellenarlo entre un 50% y 100%',ex:'<strong>Ejemplo:</strong> FVG entre $100 y $108. El precio sube más, luego regresa. Si cierra sobre el 50% del FVG ($104) sin seguir bajando, señal de continuación alcista. Si lo rellena completamente ($100), busca soporte ahí.'},
+{t:'FVGs en H4 y D1 tienen mayor peso y duran más tiempo',ex:'<strong>Ejemplo:</strong> Un FVG en 5 minutos puede rellenarse en 2 horas. Un FVG en gráfico diario puede actuar como soporte/resistencia durante semanas. Prioriza siempre los FVGs de timeframes mayores.'}
+],tip:'<strong>Confluencia:</strong> Los FVGs más potentes son los que coinciden con OBs o niveles de Fibonacci. Esa doble confirmación aumenta mucho la probabilidad de rebote.',chartFn:'chartFVG'},
+
+'smc.3':{title:'Liquidity Sweep',long:'Los institucionales necesitan liquidez (órdenes de otros traders) para ejecutar sus posiciones masivas. Primero barren los stops de los traders retail (sweep), luego revierten en la dirección real. El sweep ES la señal.',
+rules:[
+{t:'Sweep del máximo: precio perfora brevemente el HH y revierte rápido',ex:'<strong>Ejemplo:</strong> El máximo anterior está en $150. El precio sube hasta $150.80, activa los stops de los que vendieron en $150, y en minutos revierte bajando hasta $145. Esa perforación y vuelta inmediata = sweep alcista cazado.'},
+{t:'Sweep del mínimo: precio perfora el LL y revierte rápido',ex:'<strong>Ejemplo:</strong> El soporte está en $80. El precio baja hasta $79.20, activa los stops de los compradores, y luego sube rápidamente. Esa trampa bajista = sweep del mínimo.'},
+{t:'Cuanto más rápida la reversión tras el sweep, más válida la señal',ex:'<strong>Ejemplo:</strong> Sweep y reversión en 2 velas de 15 minutos = señal muy potente. Sweep y el precio se queda rondando el nivel durante horas = señal débil, posiblemente no es un sweep real.'},
+{t:'Los sweeps de liquidez de múltiples sesiones son los más potentes',ex:'<strong>Ejemplo:</strong> El máximo del día anterior (PDH), el máximo semanal, y el máximo de la sesión asiática están todos en $150. Un sweep que perfora ese nivel donde convergen tres tipos de liquidez es especialmente potente.'}
+],tip:'<strong>Entrada:</strong> Justo después de la reversión tras el sweep, en el primer OB o FVG que el precio forme. Stop detrás del extremo swepeado.',chartFn:'chartLQ'},
+
+'smc.4':{title:'Premium & Discount',long:'El mercado se mueve entre zonas de precio "caro" (Premium, sobre el 50% del rango) y "barato" (Discount, bajo el 50%). Comprar en Discount y vender en Premium es el principio institucional fundamental.',
+rules:[
+{t:'Identifica el rango: de swing low a swing high del movimiento más reciente',ex:'<strong>Ejemplo:</strong> El precio cayó de $200 a $100 (swing high a swing low). Eso define tu rango. El nivel 50% es $150. Todo bajo $150 es Discount (zona de compra). Todo sobre $150 es Premium (zona de venta).'},
+{t:'Compra en Discount (bajo el 50%): precio está "barato" para los institucionales',ex:'<strong>Ejemplo:</strong> El precio retrocedió al 61.8% del rango ($138). Estás en zona Discount. Si hay un OB o FVG ahí también, la confluencia es muy fuerte. Esa es la zona para buscar entradas largas.'},
+{t:'Vende en Premium (sobre el 50%): precio está "caro" para los institucionales',ex:'<strong>Ejemplo:</strong> El precio subió al 79% del rango ($179). Estás en zona Premium. Si hay un OB bajista o resistencia ahí, es zona para ventas. Los institucionales venden caro lo que compraron barato.'},
+{t:'El nivel 50% (equilibrio) es zona de alta indecisión: evitar entradas aquí',ex:'<strong>Ejemplo:</strong> El precio ronda $150 (el 50% del rango). Los compradores y vendedores están en equilibrio. Los movimientos son erráticos. Espera que el precio llegue a Premium o Discount antes de operar.'}
+],tip:'<strong>Regla práctica:</strong> Nunca compres en Premium ni vendas en Discount. Siempre busca entradas cerca del extremo opuesto del rango.',chartFn:'chartPD'},
+'smc.5':{title:'Estructura de Mercado',long:'La estructura de mercado es la base de todo análisis SMC. El precio siempre deja una huella de máximos y mínimos que revela quién está en control: compradores o vendedores. Leer la estructura correctamente te dice en qué dirección operar SIEMPRE.',
+rules:[
+{t:'Tendencia alcista: serie de Higher Highs (HH) y Higher Lows (HL)',ex:'<strong>Ejemplo:</strong> El precio sube a $110 (HH1), corrige a $105 (HL1), sube a $118 (HH2), corrige a $112 (HL2), sube a $125 (HH3). Cada mínimo es más alto que el anterior = tendencia alcista confirmada. Solo busca compras.'},
+{t:'Tendencia bajista: serie de Lower Highs (LH) y Lower Lows (LL)',ex:'<strong>Ejemplo:</strong> El precio cae a $90 (LL1), rebota a $95 (LH1), cae a $85 (LL2), rebota a $88 (LH2), cae a $80 (LL3). Cada máximo es más bajo que el anterior = tendencia bajista confirmada. Solo busca ventas.'},
+{t:'CHoCH (Change of Character): primera rotura del patrón en la dirección contraria',ex:'<strong>Ejemplo:</strong> Estás en tendencia bajista (LH-LL). El precio forma un LH en $88 pero luego sube y ROMPE ese nivel cerrando en $91. Ese CHoCH es la primera señal de que la tendencia bajista puede estar terminando. No operes todavía — es solo una alerta.'},
+{t:'BOS (Break of Structure): confirma que la nueva tendencia está establecida',ex:'<strong>Ejemplo:</strong> Tras el CHoCH alcista, el precio sube, corrige (formando un HL), y luego rompe el HH anterior. Ese BOS confirma que la tendencia ha cambiado a alcista. AHORA puedes buscar compras en los retrocesos.'}
+],tip:'<strong>Regla de oro:</strong> Nunca operes en contra de la estructura. Si la estructura es alcista (HH-HL), solo compra. Si es bajista (LH-LL), solo vende. La estructura lo decide todo.',chartFn:null},
+
+'orb.0':{title:'Opening Range Breakout',long:'El ORB captura la ruptura del rango formado en los primeros 15-30 minutos de la sesión. Los primeros minutos del mercado establecen los niveles del día — máximo y mínimo del OR — que actúan como imanes para el resto de la jornada.',
+rules:[
+{t:'El máximo de los primeros 15 min del OR = resistencia clave del día',ex:'<strong>Ejemplo:</strong> SPY abre a las 9:30 AM. En los primeros 15 minutos el precio sube hasta $450. Ese $450 es tu resistencia del día. Si el precio lo supera con una vela que cierra sobre ese nivel, es la señal de compra del ORB.'},
+{t:'El mínimo de los primeros 15 min del OR = soporte clave del día',ex:'<strong>Ejemplo:</strong> En esos primeros 15 minutos el precio también baja hasta $440. Ese $440 es el soporte. Si el precio lo rompe con cierre bajo ese nivel, es la señal de venta del ORB — se espera movimiento bajista el resto del día.'},
+{t:'Espera cierre de vela fuera del OR para confirmar ruptura (evitar fakeouts)',ex:'<strong>Ejemplo:</strong> El precio toca $450.50 pero la vela cierra en $449. Eso es un fakeout — el precio violó el máximo pero no lo confirmó. Muchos traders pierden dinero comprando la mecha sin esperar el cierre de vela por encima.'},
+{t:'Targets: 1x y 2x la amplitud del OR desde el punto de ruptura',ex:'<strong>Ejemplo:</strong> El OR mide $10 (de $440 a $450). El precio rompe al alza desde $450. Target 1 = $460 (1x el OR). Target 2 = $470 (2x el OR). Toma parciales en T1, deja correr hasta T2 con stop en breakeven.'},
+{t:'Mejor funciona con tendencia del día alineada (gapping up/down)',ex:'<strong>Ejemplo:</strong> Si SPY abre con un gap alcista (abre sobre el cierre de ayer), la ruptura del máximo del OR tiene mucha más probabilidad de éxito que una ruptura del mínimo. El gap confirma el sesgo direccional del día.'}
+],tip:'<strong>Horario:</strong> Exclusivo para las primeras 2-3 horas de la sesión (9:30 - 12:00 AM NY). No operar ORB por la tarde.',chartFn:'chartOR'},
+
+'wyckoff.0':{title:'Acumulación de Wyckoff',long:'Wyckoff describió el proceso mediante el cual los "Composite Men" (institucionales) acumulan posiciones masivas en secreto antes de mover el mercado al alza. Reconocer estas fases te permite entrar junto a los grandes operadores.',
+rules:[
+{t:'PS (Preliminary Support): primer rebote notable tras una caída prolongada',ex:'<strong>Ejemplo:</strong> Bitcoin lleva 3 meses cayendo. De repente sube un 8% en un día con volumen moderado. Las noticias siguen siendo negativas. Ese rebote es el PS — las primeras compras institucionales aparecen pero todavía no controlan el mercado.'},
+{t:'SC (Selling Climax): volumen máximo del movimiento bajista + vela muy bajista',ex:'<strong>Ejemplo:</strong> BTC cae 20% en un día con el volumen más alto de todo el bear market. Twitter explota con predicciones de $0. Paradójicamente, ese pánico vendedor es donde los institucionales absorben toda esa venta comprando masivamente.'},
+{t:'AR (Automatic Rally): rebote rápido tras el SC que define el techo del rango',ex:'<strong>Ejemplo:</strong> Tras el SC en $15.000, BTC sube automáticamente hasta $22.000 en pocos días. No hay noticias buenas — es el rebote técnico. Ese $22.000 será el techo del rango de acumulación (resistencia) durante las semanas siguientes.'},
+{t:'Spring: falsa ruptura bajista del soporte que activa stops antes del markup',ex:'<strong>Ejemplo:</strong> BTC lleva semanas entre $15.000 y $22.000. De repente cae hasta $14.500 (bajo el SC), activa todos los stops y genera pánico. En horas regresa a $16.000. Esa trampa final es el Spring — la última sacudida antes del gran movimiento alcista.'},
+{t:'LPS (Last Point of Support): último retroceso antes del markup definitivo',ex:'<strong>Ejemplo:</strong> Después del Spring, BTC sube con fuerza, corrige ligeramente a $18.000 (con poco volumen — nadie quiere vender ya) y luego explota al alza. Ese retroceso suave a $18.000 es el LPS — la última oportunidad de compra antes del rally.'}
+],tip:'<strong>Señal de entrada:</strong> El LPS tras el Spring confirmado con volumen creciente en el rebote. Stop bajo el Spring. Target: el objetivo de la estructura (markup).',chartFn:'chartWYACC'},
+
+'ict.0':{title:'ICT Kill Zones',long:'Las Kill Zones son las ventanas horarias donde los algoritmos institucionales están más activos. Operar en estas ventanas aumenta la probabilidad porque los movimientos son intencionales y direccionales, no ruido.',
+rules:[
+{t:'Asian KZ (00:00 - 04:00 UTC): establece el rango de liquidez del día',ex:'<strong>Ejemplo:</strong> Durante la sesión asiática el GBPUSD se mueve solo 30 pips, formando un rango estrecho entre 1.2700 y 1.2730. Esos extremos son la liquidez que Londres cazará al abrir — el mínimo asiático y el máximo asiático son los targets.'},
+{t:'London KZ (08:00 - 11:00 UTC): mayor movimiento del día, frecuente Judas Swing',ex:'<strong>Ejemplo:</strong> Al abrir Londres a las 8:00 UTC, el precio rompe el mínimo asiático (1.2700) bajando hasta 1.2680, activa stops y revierte al alza con fuerza. Ese movimiento falso inicial es el Judas Swing — va en la dirección contraria a la tendencia real del día.'},
+{t:'NY KZ (13:00 - 16:00 UTC): segunda ventana de alta actividad, continuación o reversión',ex:'<strong>Ejemplo:</strong> A las 13:00 UTC abre NY. Si la tendencia del día es alcista, el precio retrocede brevemente a un OB o FVG formado durante Londres y luego continúa al alza. Los mejores trades de continuación ocurren aquí.'},
+{t:'Evitar 12:00 - 13:00 UTC: transición entre sesiones, máximo ruido y mínima direccionalidad',ex:'<strong>Ejemplo:</strong> A las 12:00 UTC Londres está cerrando y NY aún no abre. El volumen cae drásticamente. Los movimientos son erráticos y engañosos. Es el período con mayor número de señales falsas. Mejor no estar en ningún trade activo.'}
+],tip:'<strong>Combinación óptima:</strong> Espera a que se forme el Judas Swing en London KZ. Cuando el precio revierte, entra en la dirección real con OBs o FVGs como guía.',chartFn:'chartKZ'},
+
+'elliott.0':{title:'Ondas de Elliott',long:'Elliott descubrió que el mercado se mueve en patrones repetitivos de 5 ondas a favor de la tendencia y 3 ondas de corrección. Reconocer en qué onda estás te permite anticipar el siguiente movimiento con alta probabilidad.',
+rules:[
+{t:'Onda 1: inicio discreto del movimiento, volumen moderado, nadie lo nota',ex:'<strong>Ejemplo:</strong> Tras una caída de 6 meses, el precio sube un 8%. Los medios siguen bajistas, los analistas dicen que es un "dead cat bounce". Este movimiento inadvertido que nadie cree es la Onda 1.'},
+{t:'Onda 2: corrección profunda (50-61.8% de onda 1). REGLA: nunca baja del inicio de onda 1',ex:'<strong>Ejemplo:</strong> Onda 1 fue de $100 a $115. Onda 2 corrige hasta $106 (60% de retroceso). Si el precio bajara de $100 (inicio de onda 1), el conteo completo es incorrecto — debes empezar de cero y reidentificar las ondas.'},
+{t:'Onda 3: la más fuerte y larga. Mínimo 1.618x de onda 1. REGLA: nunca es la más corta',ex:'<strong>Ejemplo:</strong> Si onda 1 midió 15 puntos ($100 a $115), la onda 3 debe medir al menos 24.27 puntos (15 x 1.618). Si tu onda 3 es más corta que la onda 1 o que la onda 5, el conteo es definitivamente incorrecto.'},
+{t:'Onda 4: corrección superficial (38.2% de onda 3). REGLA: no entra en el territorio de onda 1',ex:'<strong>Ejemplo:</strong> Si onda 3 llegó hasta $139. El 38.2% implica corrección hasta ~$130. La regla crítica: si el precio baja a $115 (territorio de onda 1), el conteo es inválido. Esto raramente ocurre en la onda 4 real.'},
+{t:'Onda 5: última onda alcista, frecuentemente con divergencia RSI como señal de agotamiento',ex:'<strong>Ejemplo:</strong> Onda 5 sube a un nuevo máximo pero el RSI no acompaña — el RSI hace un máximo más bajo que en onda 3. Esa divergencia es la señal clásica de agotamiento. La onda 5 suele ser la trampa donde los traders retail compran creyendo que hay más subida.'}
+],tip:'<strong>La onda más tradeable:</strong> La Onda 3. Entra en el final de la Onda 2 (retroceso del 50-61.8% de onda 1). Stop bajo el inicio de onda 1. Es el setup de mayor RR en Elliott.',chartFn:'chartEW'},
+
+'sd.0':{title:'Zonas de Oferta y Demanda',long:'Las zonas de oferta y demanda son niveles donde instituciones dejaron órdenes masivas sin ejecutar. A diferencia del soporte/resistencia tradicional, estas zonas se identifican por la causa (el impulso) no por el efecto (el precio). El impulso revela dónde están las órdenes.',
+rules:[
+{t:'El impulso que crea la zona debe ser fuerte y rápido (pocas velas)',ex:'<strong>Ejemplo:</strong> Zona creada en 2 velas vs. zona creada en 10 velas. La de 2 velas es más potente — indica urgencia institucional. Si tardó muchas velas en salir del nivel, las órdenes institucionales se fueron ejecutando gradualmente y la zona es más débil.'},
+{t:'La base (consolidación antes del impulso) debe ser estrecha y limpia',ex:'<strong>Ejemplo:</strong> 3-4 velas de consolidación lateral antes del impulso = base limpia y potente. 15 velas con muchos pivots = zona sucia. Mientras más estrecha la base, más concentradas están las órdenes institucionales en un precio específico.'},
+{t:'El primer retesteo a la zona es el más potente (órdenes intactas)',ex:'<strong>Ejemplo:</strong> La primera vez que el precio regresa a la zona de demanda, todas las órdenes de compra institucionales están ahí esperando. En el segundo retesteo, algunas ya se ejecutaron. En el tercero, las órdenes pueden haberse agotado completamente y la zona falla.'},
+{t:'Confluencia con Fibonacci 61.8% en la zona aumenta su fiabilidad significativamente',ex:'<strong>Ejemplo:</strong> La zona de demanda está entre $100 y $105. El nivel 61.8% de Fibonacci también cae en $102. Esa confluencia de dos herramientas en el mismo precio es muy poderosa — la probabilidad de rebote aumenta notablemente.'}
+],tip:'<strong>Gestión:</strong> Entra a mercado cuando el precio toca la zona con una vela de confirmación. Stop bajo la zona (demanda) o sobre la zona (oferta). No entres si la zona ya fue testeada más de 2 veces.',chartFn:'chartSDB'},
+
+'pa.0':{title:'Pin Bar',long:'El Pin Bar es la vela de reversión más reconocible en price action. Su mecha larga revela rechazo de un nivel de precio — el mercado fue llevado a una zona y rechazado con fuerza. La información está en la mecha: cuanto más larga, más fuerte el rechazo.',
+rules:[
+{t:'La mecha debe ser al menos 2/3 de la longitud total de la vela',ex:'<strong>Ejemplo:</strong> Vela total: 30 pips. Cuerpo: 6 pips. Mecha: 24 pips (80% de la vela). ESO es un Pin Bar válido. Si la mecha mide solo 15 pips (50% de la vela), la señal es débil — el rechazo no fue suficientemente decisivo.'},
+{t:'El cuerpo debe ser pequeño y ubicarse en el extremo opuesto a la mecha',ex:'<strong>Ejemplo:</strong> Pin Bar alcista: cuerpo pequeño en la parte SUPERIOR de la vela (cerca del cierre del período), mecha larga que apunta hacia ABAJO. El cuerpo pequeño muestra equilibrio final de fuerzas. La mecha larga muestra el rechazo de esa zona baja.'},
+{t:'Pin Bar bajista (shooting star): mecha larga hacia ARRIBA → señal de venta',ex:'<strong>Ejemplo:</strong> El precio en resistencia de $150. Aparece una vela con mecha larga hacia arriba (hasta $155) y cuerpo pequeño abajo. El mercado intentó subir pero fue rechazado con fuerza. Entra en venta cuando cierre la vela, stop sobre la mecha en $155.50.'},
+{t:'Pin Bar alcista (hammer): mecha larga hacia ABAJO → señal de compra',ex:'<strong>Ejemplo:</strong> EURUSD toca soporte en 1.0800. Aparece una vela con mecha larga hacia abajo (hasta 1.0760) y cuerpo pequeño arriba. Los vendedores intentaron romper el soporte pero los compradores tomaron control total. Compra al cierre, stop bajo la mecha en 1.0755.'},
+{t:'El contexto lo es todo: Pin Bar en nivel clave es mucho más fiable',ex:'<strong>Ejemplo:</strong> Un Pin Bar en zona neutral (mitad de un rango) tiene ~45% de probabilidad. Ese mismo Pin Bar exacto formado en una zona de demanda + OB + Fibonacci 61.8% puede tener 75%+ de probabilidad. El setup no cambia — el contexto cambia todo.'}
+],tip:'<strong>Los mejores Pin Bars:</strong> En niveles de soporte/resistencia clave, zonas de demanda/oferta, FVGs, o niveles de Fibonacci importantes. Esa confluencia es el verdadero edge.',chartFn:'chartPB'},
+
+'fib.0':{title:'Retroceso de Fibonacci',long:'Los niveles de Fibonacci emergen de la secuencia matemática de la naturaleza y se manifiestan en los mercados financieros como zonas donde los precios frecuentemente pausan o revierten durante correcciones. El Golden Ratio (61.8%) es el nivel más respetado universalmente.',
+rules:[
+{t:'Traza SIEMPRE de swing low a swing high del movimiento más reciente significativo',ex:'<strong>Ejemplo:</strong> El precio subió de $1.000 (mínimo del movimiento) a $1.200 (máximo). Anclas Fibonacci en $1.000 y arrastras hasta $1.200. Los niveles aparecen automáticamente: 23.6% en $1.153, 38.2% en $1.123, 50% en $1.100, 61.8% en $1.076.'},
+{t:'38.2%: corrección leve, tendencias muy fuertes rebotan aquí',ex:'<strong>Ejemplo:</strong> En una tendencia alcista muy fuerte (subida de 500 pips), el precio corrige solo hasta el 38.2%. Eso confirma que la tendencia es poderosa — los compradores entran tan pronto que no dejan que el precio caiga más profundo.'},
+{t:'50%: nivel psicológico, no matemático pero muy respetado por los traders',ex:'<strong>Ejemplo:</strong> El 50% no es parte de la secuencia Fibonacci matemáticamente, pero todos los traders lo usan. Esa creencia colectiva lo hace funcionar. Es el nivel de "equilibrio" del movimiento — mitad del camino entre el inicio y el final.'},
+{t:'61.8% (Golden Ratio): el nivel más importante, la mayoría de correcciones terminan aquí',ex:'<strong>Ejemplo:</strong> El precio subió de $100 a $200 (100 puntos). 61.8% = $138.20. Estadísticamente, la mayoría de correcciones en tendencia alcista terminan cerca de ese nivel antes de retomar la tendencia. Es el nivel donde más institucionales colocan sus órdenes.'},
+{t:'Más allá del 78.6% la tendencia probablemente ha cambiado, replantear el análisis',ex:'<strong>Ejemplo:</strong> Si el precio corrige más del 78.6% del movimiento alcista, la tendencia ya no está tan clara. Un retroceso tan profundo sugiere que el movimiento original fue débil o que hay una reversión en marcha. Replantea el análisis antes de entrar.'}
+],tip:'<strong>Entrada ideal:</strong> Fibonacci 61.8% + OB o zona de demanda en ese nivel + vela de confirmación (Pin Bar, engulfing). Esa triple confluencia es uno de los setups más potentes.',chartFn:'chartFIB'},
+
+'ma.0':{title:'Golden & Death Cross',long:'El cruce de medias móviles (EMA 50 y EMA 200) en timeframes altos es uno de los indicadores de tendencia más utilizados por traders profesionales. El Golden Cross define el sesgo alcista de largo plazo; el Death Cross, el bajista.',
+rules:[
+{t:'Golden Cross: EMA 50 cruza hacia ARRIBA la EMA 200 → sesgo alcista de largo plazo',ex:'<strong>Ejemplo:</strong> BTC en 2020: la EMA 50 (gráfico semanal) cruzó hacia arriba la EMA 200. Los que siguieron esa señal compraron cerca de $10.000. BTC subió hasta $65.000 meses después. El Golden Cross en timeframes altos es una señal muy poderosa.'},
+{t:'Death Cross: EMA 50 cruza hacia ABAJO la EMA 200 → sesgo bajista',ex:'<strong>Ejemplo:</strong> BTC en mayo 2021: la EMA 50 cruzó hacia abajo la EMA 200 en el gráfico diario. Los que ignoraron esa señal vieron caer el precio de $65.000 a $17.000 en 2022. El Death Cross en gráfico diario o semanal no se puede ignorar.'},
+{t:'En gráficos diarios y semanales tienen mayor confiabilidad y señales más duraderas',ex:'<strong>Ejemplo:</strong> Un Golden Cross en gráfico de 5 minutos dura horas y genera muchas señales falsas. El mismo cruce en gráfico diario puede marcar el inicio de una tendencia que dura meses. A mayor timeframe, mayor fiabilidad.'},
+{t:'El precio suele retestear la zona del cruce (EMA 200) justo después del evento',ex:'<strong>Ejemplo:</strong> Después del Golden Cross, el precio frecuentemente retrocede hacia la EMA 200 (que ahora actúa como soporte). Ese retroceso no significa que la señal falló — es la oportunidad de entrada. Compra el retroceso a la EMA 200 con stop bajo ella.'}
+],tip:'<strong>Uso práctico:</strong> Usa el Golden/Death Cross en D1 para definir el sesgo (solo comprar o solo vender). Luego baja a H1 o M15 para encontrar entradas de precisión en OBs o FVGs.',chartFn:'chartGC'},
+
+'rsi.0':{title:'Divergencia RSI',long:'La divergencia RSI ocurre cuando el precio hace un nuevo extremo (máximo o mínimo) pero el RSI no lo confirma. Esta desconexión revela que el movimiento está perdiendo fuerza interna — es una señal de alerta de posible reversión, no una señal de entrada inmediata.',
+rules:[
+{t:'Divergencia bajista: precio hace máximo más alto, RSI hace máximo más bajo',ex:'<strong>Ejemplo:</strong> El precio sube de $100 a $110 (RSI en 72). Luego sube de $108 a $115 (nuevo máximo más alto) pero el RSI solo llega a 68 (más bajo que antes). Esa discrepancia = divergencia bajista. El precio sube pero la fuerza del movimiento disminuye.'},
+{t:'Divergencia alcista: precio hace mínimo más bajo, RSI hace mínimo más alto',ex:'<strong>Ejemplo:</strong> El precio cae de $100 a $85 (RSI en 28). Luego cae de $88 a $82 (nuevo mínimo más bajo) pero el RSI solo baja a 32 (más alto que antes). Divergencia alcista — el precio cae pero los vendedores pierden fuerza. Posible reversión.'},
+{t:'La divergencia en zona de sobrecompra (RSI > 70) o sobreventa (< 30) es más potente',ex:'<strong>Ejemplo:</strong> Una divergencia bajista con el RSI en 82 es mucho más potente que una con RSI en 55. En sobrecompra el mercado ya está "cansado" de subir — la divergencia en esa zona confirma el agotamiento extremo de los compradores.'},
+{t:'Siempre confirmar con patrón de vela de reversión antes de entrar',ex:'<strong>Ejemplo:</strong> Ves la divergencia bajista perfecta. NO entres todavía. Espera que el precio forme un Pin Bar bajista, un Bearish Engulfing, o que rompa un soporte menor. La divergencia dice "el movimiento se debilita". La vela de reversión dice "el cambio está ocurriendo ahora".'}
+],tip:'<strong>Combinación ideal:</strong> Divergencia RSI + nivel de resistencia/soporte clave + patrón de vela de reversión. Los tres juntos dan una señal de alta probabilidad.',chartFn:'chartRSIDIV'},
+
+'crt.0':{title:'CRT de 4 Horas',long:'El Candle Range Theory (CRT) se basa en que el algoritmo tiene una tendencia a barrer los extremos (máximo y mínimo) de velas previas de timeframes altos antes de continuar. En el CRT de 4H, los extremos de la última vela de 4H son los objetivos del algoritmo durante las siguientes horas.',
+rules:[
+{t:'Identifica el máximo y mínimo de la ÚLTIMA vela de 4H que ya cerró',ex:'<strong>Ejemplo:</strong> Son las 14:00. La última vela de 4H cerró a las 12:00 y tuvo máximo en 1.0850 y mínimo en 1.0810. ESOS son tus niveles CRT para las próximas horas. El algoritmo buscará barrer uno de esos dos extremos.'},
+{t:'Sweep del MÁXIMO de la vela de 4H → señal de venta hacia el mínimo de 4H',ex:'<strong>Ejemplo:</strong> El precio sube hasta 1.0853 (perforando el máximo de 1.0850). Las mechas lo confirman. El precio revierte rápidamente hacia abajo. Esa es la señal: entrada corta con objetivo en el mínimo de la vela de 4H (1.0810). Distancia = 43 pips.'},
+{t:'Sweep del MÍNIMO de la vela de 4H → señal de compra hacia el máximo de 4H',ex:'<strong>Ejemplo:</strong> El precio baja hasta 1.0807 (perforando el mínimo de 1.0810). Luego sube rápidamente. Entrada larga con objetivo en el máximo de la vela de 4H (1.0850). Stop bajo el sweep. Target claro y calculable.'},
+{t:'Entrada en H1 justo después del sweep, stop detrás del extremo swepeado',ex:'<strong>Ejemplo:</strong> Sweep del máximo en 1.0853. Entras corto cuando el precio regresa bajo 1.0850. Stop en 1.0858 (5 pips sobre el sweep). Target en 1.0810 (43 pips de recorrido). Risk/Reward = 1:8.6. El CRT da RRs muy favorables.'},
+{t:'Los mejores CRT ocurren durante las Kill Zones de ICT (máxima actividad algoritmica)',ex:'<strong>Ejemplo:</strong> Un sweep del máximo de 4H que ocurre exactamente a las 8:00 AM UTC (apertura de Londres) tiene mucha más fuerza que el mismo sweep a las 3:00 AM. Las Kill Zones son cuando el algoritmo está "activo" y los movimientos son intencionales, no ruido.'}
+],tip:'<strong>Confirmación extra:</strong> Si el sweep de la vela de 4H coincide con un OB o FVG del mismo timeframe, la señal se vuelve de altísima probabilidad. Ambas herramientas apuntan al mismo nivel.',chartFn:'chartCRT4H'},
+'orb.1':{title:'Análisis del Gap Pre-Mercado',long:'El gap de apertura (diferencia entre el cierre de ayer y la apertura de hoy) establece el sesgo direccional del día. Un gap alcista favorece rupturas del máximo del OR; un gap bajista favorece rupturas del mínimo. Ignorar el gap es operar a ciegas.',
+rules:[
+{t:'Gap alcista (abre sobre el cierre anterior): sesgo comprador para el día',ex:'<strong>Ejemplo:</strong> SPY cerró ayer en $440. Hoy abre en $443 (+$3 gap). Ese gap alcista dice que los compradores están en control desde el inicio. Busca ruptura del MÁXIMO del OR — la probabilidad es mayor que buscar ruptura bajista.'},
+{t:'Gap bajista (abre bajo el cierre anterior): sesgo vendedor para el día',ex:'<strong>Ejemplo:</strong> AAPL cerró en $180, abre en $177 (-$3 gap bajista). El mercado ya está presionando hacia abajo antes de los primeros 15 minutos. Favorece ruptura del MÍNIMO del OR como trade principal.'},
+{t:'Gap fill: el precio tiende a regresar a rellenar el gap en el primer 30% de la sesión',ex:'<strong>Ejemplo:</strong> Gap alcista en SPY desde $440 hasta $443. El precio abre, y en los primeros 30 minutos baja a tocar $440 (rellena el gap) antes de subir con fuerza. Eso es muy común — espera el fill antes de entrar o úsalo como zona de soporte.'},
+{t:'Gap mayor de 1% en índices = mayor volatilidad y posibles fakeouts',ex:'<strong>Ejemplo:</strong> SPY abre con gap del 1.5%. La volatilidad en los primeros 15 minutos es extrema y los fakeouts son más frecuentes. Puede ser mejor esperar a las 10:00-10:30 AM antes de operar el ORB en días de gaps muy grandes.'}
+],tip:'<strong>Regla práctica:</strong> Antes de operar el ORB, anota el cierre del día anterior y compáralo con la apertura. El gap te da el sesgo — opera solo en la dirección del gap a menos que haya catalizador muy fuerte en contra.',chartFn:null},
+
+'orb.2':{title:'Volumen y Catalizadores',long:'El ORB sin volumen es una trampa. Los mejores días de ORB son aquellos impulsados por noticias, earnings, datos económicos o eventos que generan volumen anormalmente alto en la apertura. El volumen es el motor que hace que la ruptura sea sostenida.',
+rules:[
+{t:'Volumen en la ruptura debe ser al menos 1.5x el promedio de los días anteriores',ex:'<strong>Ejemplo:</strong> SPY rompe el máximo del OR. El volumen en esa vela es 2 millones de acciones vs un promedio de 1.2 millones en las primeras velas. Ese volumen 1.7x superior confirma que hay convicción detrás del movimiento — alta probabilidad de continuación.'},
+{t:'Earnings reports, datos de inflación (CPI/PPI), FOMC = catalizadores ideales para ORB',ex:'<strong>Ejemplo:</strong> AAPL reporta earnings antes de la apertura con resultados mejores de lo esperado. El stock abre con gap alcista y rompe el máximo del OR con volumen 3x. Ese contexto (earnings positivos + gap + ruptura con volumen) es el escenario perfecto para el ORB.'},
+{t:'Volumen decreciente en la ruptura = señal de fakeout inminente',ex:'<strong>Ejemplo:</strong> El precio rompe el máximo del OR pero el volumen en esa vela es solo 800k (por debajo del promedio de 1.2M). Esa ruptura de bajo volumen es sospechosa — alta probabilidad de que sea un fakeout. Mejor esperar una segunda vela de confirmación con más volumen.'}
+],tip:'<strong>Herramienta clave:</strong> Compara siempre el volumen de la vela de ruptura vs el volumen promedio de las primeras velas. Si no supera 1.5x el promedio, considera esperar confirmación.',chartFn:null},
+
+'orb.3':{title:'Falsa Ruptura (Fakeout)',long:'Los fakeouts del OR son muy comunes — el precio perfora brevemente el máximo o mínimo y revierte. Reconocer un fakeout a tiempo es tan valioso como operar la ruptura real, porque puedes operar en la dirección contraria con stops muy ajustados.',
+rules:[
+{t:'Fakeout: el precio rompe el OR brevemente pero cierra DE VUELTA dentro del rango',ex:'<strong>Ejemplo:</strong> El máximo del OR está en $450. El precio sube hasta $450.80 pero la vela cierra en $449.50 (dentro del OR). Eso es fakeout claro — no hubo cierre fuera. Los que compraron en la perforación están atrapados y el precio cae.'},
+{t:'Fakeout + reversión = trade en dirección contraria con excelente RR',ex:'<strong>Ejemplo:</strong> Fakeout del máximo en $450. El precio revierte y rompe el MÍNIMO del OR ($440) con fuerza. Tu entrada era short justo después del cierre dentro del OR. Stop sobre el fakeout ($451). Target: mínimo OR ($440) y más abajo. RR muy favorable.'},
+{t:'Los fakeouts son más frecuentes en las primeras velas (9:30-9:45 AM)',ex:'<strong>Ejemplo:</strong> En los primeros 5-10 minutos de mercado el volumen es errático y hay muchas órdenes conflictivas. Los fakeouts en ese período son la norma, no la excepción. Muchos traders profesionales esperan hasta las 9:45 o 10:00 AM para entrar al ORB.'}
+],tip:'<strong>Señal de fakeout:</strong> Vela que perfora el OR pero cierra dentro + siguiente vela con dirección contraria + volumen bajo en la ruptura = las 3 señales juntas confirman el fakeout.',chartFn:null},
+
+'orb.4':{title:'Gestión de Posición y Targets',long:'La ventaja del ORB es que los targets son matemáticamente precisos. Saber exactamente dónde tomar ganancias y mover el stop elimina la emoción del proceso de gestión.',
+rules:[
+{t:'Target 1 = 1x la amplitud del OR desde la ruptura (toma el 50-75% de la posición)',ex:'<strong>Ejemplo:</strong> OR de $440-$450 (amplitud $10). Ruptura al alza desde $450. Target 1 = $460. Cuando el precio llega a $460, vendes el 50-75% de tu posición y mueves el stop a breakeven. Así el trade ya no puede perder.'},
+{t:'Target 2 = 2x la amplitud del OR (deja correr el 25-50% restante)',ex:'<strong>Ejemplo:</strong> Con el mismo OR de $10, Target 2 = $470. Solo dejas correr hacia $470 el 25-50% que quedó después de T1. Esta porción captura los días de tendencia fuerte. Si no llega, cierras al final de la sesión.'},
+{t:'Stop inicial: justo bajo el punto de ruptura (o midpoint del OR)',ex:'<strong>Ejemplo:</strong> Compraste en la ruptura del máximo $450. Stop en $447 (bajo el midpoint del OR en $445 o simplemente bajo la vela de ruptura). El OR midpoint ($445) es un soporte clave — si el precio cae hasta ahí, la ruptura fue falsa.'},
+{t:'No operar ORB después de las 11:30 AM — la ventana óptima cierra',ex:'<strong>Ejemplo:</strong> El ORB tiene una ventana óptima de 9:30 a 11:30 AM. Después de esa hora el volumen baja, la tendencia del día ya está establecida y los movimientos son más aleatorios. Rupturas después de las 11:30 AM tienen mucha menor probabilidad de alcanzar los targets.'}
+],tip:'<strong>Regla de oro:</strong> Siempre toma algo en Target 1. Un trade que llega a T1 y luego revierte sin haber tomado ganancias es frustrante y evitable. El mercado no te debe nada — asegura la ganancia.',chartFn:null},
+
+'wyckoff.1':{title:'Distribución de Wyckoff',long:'La distribución es el proceso opuesto a la acumulación: los institucionales venden sus posiciones masivas al público en un rango lateral. Mientras las noticias son positivas y el sentimiento optimista, los "smart money" están saliendo silenciosamente.',
+rules:[
+{t:'PSY (Preliminary Supply): primera resistencia notable tras subida prolongada',ex:'<strong>Ejemplo:</strong> BTC lleva 6 meses subiendo. De repente aparece una vela bajista muy grande con alto volumen. No es el techo — es la primera señal de oferta institucional. El precio rebota pero esa resistencia queda marcada.'},
+{t:'BC (Buying Climax): volumen máximo + vela muy alcista = institucionales vendiendo al retail eufórico',ex:'<strong>Ejemplo:</strong> BTC hace un nuevo ATH con el mayor volumen de la historia. Las noticias son eufóricas. Twitter celebra. Paradójicamente, ahí los institucionales están vendiendo masivamente sus posiciones al retail que compra por FOMO.'},
+{t:'SOW (Sign of Weakness): primera caída fuerte que rompe el soporte del rango',ex:'<strong>Ejemplo:</strong> Después de semanas en el rango de distribución, el precio cae con fuerza y alto volumen rompiendo el soporte. Ese SOW confirma que la distribución terminó y comienza el markdown. Es la señal de salida.'},
+{t:'UTAD (UpThrust After Distribution): falsa ruptura alcista del techo antes del markdown',ex:'<strong>Ejemplo:</strong> El precio lleva semanas en rango. Sube brevemente sobre el techo del rango (UTAD), genera euforia y compras, y luego colapsa violentamente. Esa trampa alcista final es el UTAD — análogo al Spring pero en la distribución.'}
+],tip:'<strong>Señal de distribución:</strong> Precio en máximos históricos + sentimiento eufórico + volumen anormalmente alto en velas alcistas = venden, no compres. La distribución ocurre cuando todos están comprando.',chartFn:null},
+
+'wyckoff.2':{title:'Las 3 Leyes de Wyckoff',long:'Wyckoff formuló 3 leyes universales que gobiernan el comportamiento del mercado. Son principios atemporales que funcionan en cualquier activo y cualquier timeframe. Entenderlas es entender cómo funciona realmente el mercado.',
+rules:[
+{t:'Ley 1 — Oferta y Demanda: el precio sube cuando demanda > oferta, baja cuando oferta > demanda',ex:'<strong>Ejemplo:</strong> Si hay más compradores que vendedores dispuestos a vender en un nivel, el precio sube hasta que la oferta y demanda se equilibran. Si hay más vendedores, el precio baja. Wyckoff dijo que TODO el análisis técnico se puede reducir a esta ley.'},
+{t:'Ley 2 — Causa y Efecto: el tamaño del movimiento es proporcional al tiempo de acumulación/distribución',ex:'<strong>Ejemplo:</strong> Una acumulación que duró 2 semanas generará un mark-up menor que una acumulación de 3 meses. Cuanto más tiempo pasó el precio en el rango (más "causa"), mayor será el movimiento resultante (el "efecto"). Puedes estimar el target con el recuento de Wyckoff.'},
+{t:'Ley 3 — Esfuerzo vs Resultado: el volumen (esfuerzo) debe confirmar el movimiento del precio (resultado)',ex:'<strong>Ejemplo:</strong> El precio sube con alto volumen = esfuerzo y resultado en armonía = movimiento legítimo. El precio sube pero el volumen es bajo = esfuerzo mínimo, resultado grande = sospechoso, probable fakeout. El precio cae con muy poco volumen = los vendedores se están agotando.'}
+],tip:'<strong>Aplicación práctica:</strong> Antes de cada setup, pregúntate: ¿El esfuerzo (volumen) confirma el resultado (precio)? Si no coinciden, hay trampa.',chartFn:null},
+
+'wyckoff.3':{title:'Fases del Mercado (Mark-Up y Mark-Down)',long:'Wyckoff describe el mercado como un ciclo de 4 fases: Acumulación → Mark-Up → Distribución → Mark-Down. Saber en qué fase está el mercado determina si debes comprar, mantener, vender o ponerte corto.',
+rules:[
+{t:'Fase de Acumulación: rango lateral con volumen decreciente hacia el final',ex:'<strong>Ejemplo:</strong> BTC lleva 4 meses entre $15.000 y $22.000. El volumen va disminuyendo — menos gente quiere vender. Los Springs ya ocurrieron. Ese agotamiento vendedor en el rango = acumulación en fase final. El mark-up es inminente.'},
+{t:'Fase de Mark-Up: tendencia alcista limpia con retrocesos superficiales (solo compras)',ex:'<strong>Ejemplo:</strong> BTC rompió $22.000 con volumen y ya no mira atrás. Los retrocesos son suaves (30-40%) y duran poco. En esta fase no se distribuye ni se acumula — se mantiene la posición o se compran los retrocesos. Los Bears están siendo aplastados.'},
+{t:'Fase de Distribución: rango lateral similar a acumulación pero en tops, con volumen alto',ex:'<strong>Ejemplo:</strong> BTC lleva 2 meses entre $60.000 y $69.000. El volumen es alto pero el precio no avanza = distribución. Los institucionales están vendiendo. El público cree que "consolida antes de $100.000". En realidad la trampa ya está tendida.'},
+{t:'Fase de Mark-Down: tendencia bajista, solo ventas y coberturas, no comprar',ex:'<strong>Ejemplo:</strong> BTC rompe $60.000 a la baja. Cada rebote es más débil. Los que compraron en distribución están atrapados y venden en los rebotes generando más presión bajista. En mark-down no se compran "soportes" — se espera la nueva acumulación.'}
+],tip:'<strong>Regla simple:</strong> Si no estás seguro de en qué fase estás, no operes. Wyckoff decía que el mayor error es operar antes de que la fase esté confirmada.',chartFn:null},
+
+'wyckoff.4':{title:'Volumen como Herramienta de Confirmación',long:'El volumen es la huella del dinero institucional. No puede ser manipulado tan fácilmente como el precio. Aprender a leer el volumen según el contexto de precio te da una ventaja real sobre traders que solo miran candlesticks.',
+rules:[
+{t:'Alto volumen en soporte con precio estable = acumulación (absorción de oferta)',ex:'<strong>Ejemplo:</strong> El precio llega a $100 (soporte). Hay velas con volumen alto pero el precio no cae más — se "absorbe" toda la venta. Eso no es debilidad: es que alguien grande está comprando todo lo que el retail vende, evitando que el precio caiga más.'},
+{t:'Alto volumen + precio no avanza = distribución (absorción de demanda)',ex:'<strong>Ejemplo:</strong> El precio intenta subir sobre $150 con volumen muy alto pero las velas cierran con mechas largas arriba y cuerpos pequeños. Alguien está vendiendo todo lo que el retail compra. Eso es distribución — el precio no puede avanzar porque la oferta institucional lo detiene.'},
+{t:'Volumen muy bajo en retroceso = corrección saludable (sin presión vendedora real)',ex:'<strong>Ejemplo:</strong> En tendencia alcista, el precio corrige un 38% de la subida pero el volumen en la corrección es 40% del promedio. Eso es alcista — los vendedores no tienen convicción. El retroceso "en seco" (low volume) es la oportunidad de compra.'}
+],tip:'<strong>Principio de Wyckoff:</strong> El volumen confirma el movimiento. Sin volumen, no hay convicción. Con volumen anormal, hay actividad institucional — averigua en qué dirección.',chartFn:null},
+
+'ict.1':{title:'Judas Swing',long:'El Judas Swing es el movimiento falso e intencional que el algoritmo ejecuta al inicio de las Kill Zones para barrer la liquidez en la dirección equivocada antes de moverse en la dirección real. Es la trampa más consistente y reconocible del modelo ICT.',
+rules:[
+{t:'El Judas Swing ocurre típicamente en los primeros 15-30 minutos de la Kill Zone',ex:'<strong>Ejemplo:</strong> Son las 8:00 UTC (apertura de Londres). El EURUSD cae fuertemente barriendo los mínimos de la sesión asiática — todo parece bajista. Pero en 20 minutos el precio revierte y sube con fuerza. Esa caída inicial falsa fue el Judas Swing bajista.'},
+{t:'Dirección del Judas Swing = OPUESTA a la tendencia real del día',ex:'<strong>Ejemplo:</strong> Si el sesgo del día es alcista (precio en discount, datos económicos positivos), el Judas Swing será bajista (cae primero para barrer stops y liquidez). Si el sesgo es bajista, el Judas Swing sube primero para atrapar compradores.'},
+{t:'Identifica el sesgo del día ANTES de abrir el mercado (análisis pre-sesión)',ex:'<strong>Ejemplo:</strong> Antes de las 8:00 UTC analizas: ¿El precio está en discount o premium? ¿Qué noticias hay? ¿Cuál fue la tendencia de ayer? Si el sesgo es alcista, esperas que el Judas Swing sea bajista y preparas tu entrada larga cuando revierte.'},
+{t:'Confirmación del Judas Swing: reversión rápida con mecha pronunciada',ex:'<strong>Ejemplo:</strong> El Judas Swing bajista crea una mecha larga hacia abajo (barrel de liquidez). Cuando el precio regresa rápidamente al nivel de inicio del movimiento, esa reversión confirmada es tu señal de entrada larga. Stop bajo el extremo del Judas.'}
+],tip:'<strong>Flujo de trabajo ICT:</strong> (1) Define el sesgo del día. (2) Espera el Judas Swing en dirección contraria al sesgo. (3) Entra cuando el precio revierte. (4) Target: próximo nivel de liquidez en la dirección del sesgo.',chartFn:null},
+
+'ict.2':{title:'Optimal Trade Entry (OTE)',long:'El OTE es la zona de entrada de alta probabilidad que ICT define usando Fibonacci. Específicamente, la zona entre el 62% y el 79% de retroceso de cualquier impulso relevante es donde el algoritmo tiende a entregar el precio antes de continuar en la dirección original.',
+rules:[
+{t:'OTE alcista: retroceso de 62-79% del impulso alcista anterior',ex:'<strong>Ejemplo:</strong> El precio sube de 1.0800 a 1.0900 (100 pips de impulso). El OTE alcista está entre 1.0838 (62%) y 1.0821 (79%). Si el precio corrige a esa zona y muestra señales de compra (Pin Bar, FVG), es la entrada de precisión ICT.'},
+{t:'OTE bajista: retroceso de 62-79% del impulso bajista anterior',ex:'<strong>Ejemplo:</strong> El precio cae de 1.0900 a 1.0800 (100 pips bajistas). El OTE bajista está entre 1.0862 (62%) y 1.0879 (79%). Si el precio rebota a esa zona y muestra rechazos, es la entrada de venta de precisión.'},
+{t:'El OTE debe coincidir con un OB o FVG para mayor probabilidad',ex:'<strong>Ejemplo:</strong> El OTE alcista está en 1.0838. En ese mismo nivel hay también un OB alcista. Esa confluencia (OTE + OB) es mucho más potente que el OTE solo. Los institucionales concentran sus órdenes donde múltiples herramientas convergen.'},
+{t:'Stop loss: justo bajo el inicio del impulso (bajo el swing low en OTE alcista)',ex:'<strong>Ejemplo:</strong> OTE alcista del impulso 1.0800→1.0900. Entras en 1.0835. Stop en 1.0795 (bajo el inicio del impulso en 1.0800). Si el precio cae bajo 1.0800, el impulso fue inválido y la estructura cambió.'}
+],tip:'<strong>OTE + Kill Zone + OB:</strong> Cuando los tres coinciden, es uno de los setups de más alta probabilidad del modelo ICT. La trifecta de confluencia.',chartFn:null},
+
+'ict.3':{title:'Fair Value Gap (ICT)',long:'En el modelo ICT, los Fair Value Gaps (FVGs) son desequilibrios creados por el algoritmo cuando necesita moverse rápidamente para ejecutar un programa de órdenes. Son zonas imán de alta precisión que el algoritmo frecuentemente usa para "entregar precio" antes de continuar.',
+rules:[
+{t:'FVG alcista ICT: el precio regresa a rellenar el 50% del FVG y rebota',ex:'<strong>Ejemplo:</strong> FVG alcista entre 1.0900 y 1.0920. El precio sube hasta 1.0960 y luego corrige. ICT enseña que el precio tiende a regresar al 50% del FVG (1.0910) como punto de entrega. Ahí es donde preparas la entrada larga.'},
+{t:'FVG en H4 o D1 = niveles de mayor importancia y duración',ex:'<strong>Ejemplo:</strong> Un FVG en el gráfico de 15M puede rellenarse en horas. Un FVG en H4 puede actuar como soporte/resistencia durante días. Un FVG en D1 durante semanas. Siempre identifica los FVGs en timeframes altos primero.'},
+{t:'Consecuent Encroachment (CE): el precio toca exactamente el 50% del FVG',ex:'<strong>Ejemplo:</strong> FVG entre 1.0900 y 1.0920. El CE = 1.0910. Muy frecuentemente el precio entra al FVG y para exactamente en el CE antes de rebotar. Puedes poner tu orden límite exactamente en el CE del FVG para entradas de alta precisión.'},
+{t:'FVG que se superpone con OTE = zona de máxima precisión de entrada',ex:'<strong>Ejemplo:</strong> El OTE del movimiento anterior está en 1.0835. En ese mismo nivel hay un FVG entre 1.0830 y 1.0840. La confluencia de OTE y FVG en el mismo precio es un setup de altísima probabilidad que los traders ICT avanzados buscan activamente.'}
+],tip:'<strong>Protocolo ICT FVG:</strong> Identifica el FVG en H4. Calcula el 50% (CE). Espera a que el precio entre a la zona en una Kill Zone. Entra con stop bajo el FVG completo.',chartFn:null},
+
+'ict.4':{title:'Market Maker Model',long:'El Market Maker Model describe el ciclo completo de cómo el algoritmo mueve el precio: primero barre la liquidez de un lado (Judas Swing), luego se mueve al objetivo real del otro lado. Entender este ciclo permite anticipar el movimiento completo, no solo una parte.',
+rules:[
+{t:'Fase 1 — Consolidación: precio acumula liquidez (stops) en ambos lados del rango',ex:'<strong>Ejemplo:</strong> EURUSD lleva 8 horas entre 1.0820 y 1.0850 durante la sesión asiática. Hay stops de compradores bajo 1.0820 y stops de vendedores sobre 1.0850. El algoritmo acumula esa liquidez en ambos lados antes de elegir dirección.'},
+{t:'Fase 2 — Manipulación: el algoritmo barre un lado (Judas Swing) para obtener liquidez',ex:'<strong>Ejemplo:</strong> Al abrir Londres, el precio rompe brevemente bajo 1.0820 (barre los stops de los compradores). Eso es la manipulación — el algoritmo obtiene la liquidez que necesita para su posición real.'},
+{t:'Fase 3 — Distribución: el precio se mueve al objetivo real (lado contrario)',ex:'<strong>Ejemplo:</strong> Después de barrer los stops bajo 1.0820, el precio revierte y sube con fuerza hasta 1.0880 (liquidez sobre el rango). El algoritmo "distribuye" su posición larga comprando en el sweep y vendiendo en los máximos.'},
+{t:'El objetivo final siempre es la liquidez del lado contrario al sweep inicial',ex:'<strong>Ejemplo:</strong> Sweep bajista (bajo 1.0820) → el objetivo es la liquidez alcista (sobre 1.0850). Sweep alcista (sobre 1.0850) → el objetivo es la liquidez bajista (bajo 1.0820). Siempre el lado opuesto del Judas Swing.'}
+],tip:'<strong>El modelo completo:</strong> Rango → Sweep → Reversión → Target (liquidez opuesta). Cuando ves un sweep claro con reversión inmediata, el target ya está definido: el extremo contrario del rango.',chartFn:null},
+
+'elliott.1':{title:'Ondas Correctivas ABC',long:'Después de las 5 ondas de impulso, el mercado corrige en 3 ondas (A-B-C). Las ondas correctivas son más difíciles de operar que las de impulso, pero identificarlas correctamente te dice cuándo termina la corrección y dónde comienza el siguiente impulso.',
+rules:[
+{t:'Onda A: primera caída de la corrección, parece un retroceso normal',ex:'<strong>Ejemplo:</strong> Tras las 5 ondas alcistas, el precio cae un 30%. Muchos traders creen que es solo una corrección para comprar. En realidad es la Onda A de una corrección mayor ABC que llevará el precio mucho más abajo antes de rebotar.'},
+{t:'Onda B: rebote dentro de la corrección, trampa para los compradores optimistas',ex:'<strong>Ejemplo:</strong> Tras la Onda A bajista, el precio sube un 50-60% de lo que cayó. Los traders celebran creyendo que "la tendencia retomó". Pero ese rebote es la Onda B — una trampa. La Onda C que sigue será igual o mayor que la A.'},
+{t:'Onda C: la caída final y más dolorosa de la corrección, igual o mayor que Onda A',ex:'<strong>Ejemplo:</strong> Onda A bajó 200 puntos. Onda B subió 100 (50% de corrección). Onda C cae mínimo 200 puntos desde el pico de B. Si los mercados están en pánico durante la Onda C, los institucionales están acumulando para el próximo ciclo alcista.'},
+{t:'Las correcciones ABC frecuentemente terminan en el nivel Fibonacci 61.8% del impulso anterior',ex:'<strong>Ejemplo:</strong> El impulso alcista fue de $100 a $200. La corrección ABC termina en $138 (61.8% de retroceso de todo el impulso). Ese nivel Fibonacci es donde los institucionales reposicionan sus compras para el siguiente impulso.'}
+],tip:'<strong>Estrategia:</strong> No compres en la Onda B creyendo que la tendencia retomó. Espera que la Onda C complete el movimiento correctivo hasta el 61.8% del impulso anterior. Ahí está la entrada de alta probabilidad.',chartFn:null},
+
+'elliott.2':{title:'Reglas y Guías de Elliott',long:'Elliott estableció reglas inquebrantables (que si se violan invalidan el conteo) y guías (probabilidades altas pero no absolutas). Conocer la diferencia entre regla y guía es esencial para aplicar la teoría correctamente.',
+rules:[
+{t:'REGLA: Onda 2 no puede retroceder más del 100% de Onda 1',ex:'<strong>Ejemplo:</strong> Onda 1 va de $100 a $120. Si el precio baja de $100, la Onda 2 violaría la regla — el conteo de ondas es incorrecto. Hay que reidentificar las ondas desde cero. Esta es la regla más básica e importante.'},
+{t:'REGLA: Onda 3 nunca puede ser la más corta de las ondas impulsivas (1, 3 y 5)',ex:'<strong>Ejemplo:</strong> Si Onda 1 = 20 puntos y Onda 5 = 25 puntos, la Onda 3 debe medir más de 25 puntos. Si tu Onda 3 es de solo 15 puntos, el conteo es incorrecto — lo que identificaste como Onda 3 probablemente es otra cosa.'},
+{t:'REGLA: Onda 4 no puede entrar en el territorio de precio de Onda 1',ex:'<strong>Ejemplo:</strong> Onda 1 fue de $100 a $120. Onda 4 corrige pero no puede bajar de $120. Si baja de $120, el conteo inválido. (Excepción en mercados de commodities donde esto puede ocurrir ocasionalmente.)'},
+{t:'GUÍA: La Onda 3 frecuentemente extiende a 1.618x de Onda 1 (no es regla, es probabilidad)',ex:'<strong>Ejemplo:</strong> Onda 1 = 100 pips. La Onda 3 frecuentemente (pero no siempre) extiende hasta 161.8 pips. Puedes usar esto como target de la Onda 3. Si llega ahí y muestra señales de agotamiento, considera reducir posición.'}
+],tip:'<strong>Prioridad:</strong> Las REGLAS son líneas rojas — si se violan, el conteo es incorrecto, empieza de cero. Las GUÍAS son probabilidades — úsalas para targets y entradas pero no como certezas.',chartFn:null},
+
+'elliott.3':{title:'Elliott + Fibonacci: La Combinación',long:'Elliott y Fibonacci son inseparables. Las ondas de Elliott se proyectan y validan usando ratios Fibonacci. Saber qué nivel Fibonacci aplica a cada onda transforma el análisis de ondas de subjetivo a matemáticamente preciso.',
+rules:[
+{t:'Onda 2 retrocede 50%-61.8% de Onda 1 (los niveles más comunes)',ex:'<strong>Ejemplo:</strong> Onda 1 = 100 pips (de $100 a $110). La Onda 2 más probable termina entre $106.18 (38.2%) y $104 (61.8%). El 61.8% ($103.82) es el retroceso más clásico de la Onda 2. Ahí puedes colocar tu entrada para capturar la Onda 3.'},
+{t:'Onda 3 extiende entre 1.618x y 2.618x de Onda 1',ex:'<strong>Ejemplo:</strong> Onda 1 = 100 pips. La Onda 3 típicamente extiende entre 161.8 pips (1.618x) y 261.8 pips (2.618x). En mercados con fuerte momentum, las extensiones de 2.618x son comunes. Estos son tus targets para la Onda 3.'},
+{t:'Onda 4 retrocede 23.6%-38.2% de Onda 3 (corrección más superficial)',ex:'<strong>Ejemplo:</strong> Onda 3 fue 161.8 pips. La Onda 4 típicamente retrocede solo 23.6% (38.2 pips) o 38.2% (61.8 pips). Es una corrección suave — los compradores siguen en control. Un retroceso más profundo sugiere que podría ser Onda B, no Onda 4.'},
+{t:'Onda 5 típicamente iguala Onda 1 o extiende hasta 0.618x de la distancia de Ondas 1-3',ex:'<strong>Ejemplo:</strong> Onda 1 fue 100 pips, Ondas 1+2+3+4 tomaron 300 pips. La Onda 5 frecuentemente iguala los 100 pips de Onda 1, o extiende a 0.618 x 300 = 185 pips desde el inicio de Onda 5.'}
+],tip:'<strong>Flujo de trabajo:</strong> Identifica la Onda 2 en el 61.8% de retroceso → entra comprando → target inicial en 1.618x de Onda 1 (objetivo de Onda 3). Ese es el setup de mayor RR de la teoría de Elliott.',chartFn:null},
+
+'sd.1':{title:'Zona de Oferta (Supply Zone)',long:'La zona de oferta es el equivalente bajista de la demanda: el área donde los institucionales dejaron órdenes de venta masivas sin ejecutar. Cuando el precio regresa a esa zona, esas órdenes se activan generando rechazo y caída.',
+rules:[
+{t:'Rally-Base-Drop (RBD): subida → consolidación → caída explosiva = zona de oferta en la base',ex:'<strong>Ejemplo:</strong> El precio sube a $150, consolida lateralmente por 4 velas (la "base"), luego cae explosivamente a $130. La zona de oferta está en las 4 velas de consolidación (la "base" entre el rally y el drop). Cuando el precio regrese a $148-$150, busca ventas.'},
+{t:'El drop que sale de la zona debe ser rápido y de por lo menos 2x la amplitud de la base',ex:'<strong>Ejemplo:</strong> Base de 4 velas entre $148 y $150 ($2 de amplitud). El drop que siguió fue de $20 (10x la base). Esa desproporción entre base pequeña y drop enorme indica que había órdenes institucionales masivas acumuladas en esa zona.'},
+{t:'Zona de oferta reciente (fresh): nunca fue retesteada = órdenes intactas',ex:'<strong>Ejemplo:</strong> El precio cayó de una zona de oferta hace 3 días y aún no ha regresado. Esa zona es "fresh" — todas las órdenes de venta institucionales siguen ahí esperando. El primer retesteo a esa zona tiene la mayor probabilidad de éxito.'},
+{t:'Stop loss: ligeramente sobre el máximo de la zona de oferta',ex:'<strong>Ejemplo:</strong> Zona de oferta entre $148 y $150. Entras corto cuando el precio regresa a $149. Stop en $150.50 (sobre el máximo de la zona). Si el precio cierra sobre $150, la zona se invalidó.'}
+],tip:'<strong>Nemónico para zonas:</strong> DBR (Drop-Base-Rally) = demanda. RBD (Rally-Base-Drop) = oferta. La "base" es siempre la zona donde colocarás tu entrada.',chartFn:null},
+
+'sd.2':{title:'Multi-Timeframe en S&D',long:'Las zonas de S&D en timeframes mayores tienen más peso que las de timeframes menores. Aprender a combinar las zonas de D1/H4 con entradas en H1/M15 es lo que separa a los traders de S&D profesionales de los principiantes.',
+rules:[
+{t:'Zonas D1 y H4: las más respetadas, pueden durar semanas o meses',ex:'<strong>Ejemplo:</strong> Una zona de demanda en el gráfico diario de EUR/USD entre 1.0500 y 1.0520 puede ser respetada por 3-6 meses. Cada vez que el precio regresa a esa zona, los institucionales que tienen posiciones de largo plazo recompran ahí.'},
+{t:'Usa D1/H4 para identificar las zonas, baja a H1/M15 para afinar la entrada',ex:'<strong>Ejemplo:</strong> Identificas zona de demanda en H4 entre 1.0500 y 1.0520. Bajas a H1 y esperas que el precio llegue a esa zona. En H1 ves un Pin Bar o un FVG que te da una entrada más precisa dentro de esa zona mayor. Eso reduce tu stop y mejora el RR.'},
+{t:'Una zona de H1 dentro de una zona de H4 = confluencia potente',ex:'<strong>Ejemplo:</strong> La zona de demanda H4 está entre 1.0500 y 1.0520. El precio llega ahí y en H1 forma una nueva zona de demanda más pequeña entre 1.0505 y 1.0510. Entrada en 1.0506 con stop en 1.0498. La zona H1 dentro de la H4 es la entrada de precisión.'},
+{t:'Nunca operes una zona de M5/M15 que contradice la zona de D1',ex:'<strong>Ejemplo:</strong> La zona D1 es de oferta (bajista) entre $150-$152. En M15 aparece una zona de demanda pequeña en $151. NO la operes — va en contra de la zona mayor. El institutional timeframe (D1/H4) siempre gana sobre el trader timeframe (H1/M15).'}
+],tip:'<strong>Jerarquía:</strong> D1 > H4 > H1 > M15. Siempre opera a favor de la zona de mayor timeframe. Las zonas menores que van en contra de zonas mayores fallan con mucha frecuencia.',chartFn:null},
+
+'sd.3':{title:'Gestión y Psicología del S&D',long:'Identificar la zona es solo el 30% del trabajo. Gestionar la posición correctamente — cuándo entrar, qué tipo de orden usar, dónde poner el stop y el target — es el 70% restante que determina si eres rentable.',
+rules:[
+{t:'Entrada límite vs. entrada de mercado: ambas tienen sus pros y contras',ex:'<strong>Ejemplo:</strong> Entrada límite en el techo de la zona de demanda = mejor precio, pero puede que el precio no llegue exactamente y te pierdas el trade. Entrada de mercado cuando el precio ya está en la zona con confirmación de vela = peor precio pero más certeza de que estás en el trade correcto.'},
+{t:'Stop loss: bajo el mínimo de la zona (demanda) o sobre el máximo (oferta)',ex:'<strong>Ejemplo:</strong> Zona de demanda entre $100 y $105. Entras en $101. Stop en $99 (bajo el mínimo de la zona $100). Si el precio cierra bajo $100, la zona ha fallado — tus pérdidas están controladas.'},
+{t:'Target primario: la zona opuesta más cercana del mismo timeframe',ex:'<strong>Ejemplo:</strong> Compraste en zona de demanda D1 en $100-$105. El target primario es la zona de oferta D1 más cercana, que está en $130-$135. Risk de $6 ($101 entrada - $99 stop) vs. reward de $29 ($101 hasta $130). RR = 1:4.8.'},
+{t:'No muevas el stop a breakeven demasiado pronto — dale espacio a la zona',ex:'<strong>Ejemplo:</strong> Compraste en $101. El precio sube a $108 pero aún no llegó al target de $130. Si mueves el stop a $101 (breakeven) y el precio corrige a $103, tu stop no se activa. Pero si lo mueves a $106 demasiado pronto, una corrección normal te saca antes de tiempo.'}
+],tip:'<strong>Mindset S&D:</strong> La zona o funciona o no funciona — no hay término medio. Si el precio cierra por debajo de tu zona, acéptalo y sal. No promedies a la baja en zonas que están fallando.',chartFn:null},
+
+'pa.1':{title:'Inside Bar (Barra Interior)',long:'El Inside Bar es una vela cuyo máximo y mínimo están completamente dentro del rango de la vela anterior (la madre). Representa compresión y acumulación de energía. La ruptura del Inside Bar suele generar movimientos explosivos.',
+rules:[
+{t:'Inside Bar: máximo más bajo Y mínimo más alto que la vela madre',ex:'<strong>Ejemplo:</strong> Vela madre va de $100 a $110 (rango de $10). El Inside Bar debe tener máximo por debajo de $110 Y mínimo por encima de $100. Si tiene máximo en $108 y mínimo en $103, es un Inside Bar válido — el rango se comprimió dentro de la vela madre.'},
+{t:'Ruptura alcista del Inside Bar: cierre sobre el máximo de la vela madre = señal de compra',ex:'<strong>Ejemplo:</strong> Máximo de la vela madre en $110. El Inside Bar comprime entre $103-$108. Al día siguiente el precio cierra en $111 (sobre $110). Esa ruptura alcista del Inside Bar en soporte clave = entrada compradora. Stop bajo el mínimo del Inside Bar ($103).'},
+{t:'Inside Bar en tendencia alcista = señal de continuación (no de reversión)',ex:'<strong>Ejemplo:</strong> Tendencia alcista fuerte. Aparece un Inside Bar. La probabilidad es que el mercado "descanse" brevemente y luego continúe al alza. Opera la ruptura alcista del máximo de la madre, no la bajista — va con la tendencia.'},
+{t:'Multiple Inside Bars (MIB): 2-3 Inside Bars seguidos = mayor compresión = explosión más potente',ex:'<strong>Ejemplo:</strong> Aparecen 3 Inside Bars consecutivos, cada uno más pequeño. La energía comprimida es enorme. La ruptura de ese patrón suele generar movimientos de 2-3x el tamaño habitual de un Inside Bar simple.'}
+],tip:'<strong>Contexto importa:</strong> El Inside Bar más potente aparece en tendencia clara, en soporte/resistencia clave, después de una vela madre de gran tamaño. Ese contexto triplica la probabilidad.',chartFn:null},
+
+'pa.2':{title:'Engulfing Pattern (Envolvente)',long:'El Engulfing es la señal de reversión por vela más poderosa del Price Action. Una vela que "engulle" completamente la vela anterior (incluyendo sus mechas en el Engulfing de cuerpos o solo los cuerpos en el clásico) señala un cambio brusco de control entre compradores y vendedores.',
+rules:[
+{t:'Bearish Engulfing: vela bajista cuyo cuerpo engulle completamente el cuerpo de la vela alcista anterior',ex:'<strong>Ejemplo:</strong> Vela alcista abre en $100 y cierra en $110 (cuerpo de $10). La siguiente vela bajista abre en $112 (por encima) y cierra en $98 (por debajo). Ese cuerpo bajista de $14 "englutió" el cuerpo alcista de $10 = Bearish Engulfing. Señal de venta.'},
+{t:'Bullish Engulfing: vela alcista cuyo cuerpo engulle completamente el cuerpo de la vela bajista anterior',ex:'<strong>Ejemplo:</strong> Vela bajista de $110 a $100. Siguiente vela alcista abre en $98 (debajo) y cierra en $112 (arriba). El cuerpo alcista englutió completamente al bajista. En soporte clave = señal de compra de alta probabilidad.'},
+{t:'Mayor el tamaño relativo del engulfing, más fuerte la señal',ex:'<strong>Ejemplo:</strong> Engulfing que engulle 1.5x la vela anterior es potente. Engulfing que engulle 3x es extremadamente potente — indica pánico o euforia institucional masiva. El tamaño relativo refleja la urgencia del cambio de control.'},
+{t:'Engulfing en zona clave (soporte/resistencia/S&D) es mucho más fiable',ex:'<strong>Ejemplo:</strong> Un Bearish Engulfing en zona neutral tiene ~50% de probabilidad. El mismo Bearish Engulfing exacto en una zona de oferta D1 tiene 70%+ de probabilidad. El contexto transforma la señal.'}
+],tip:'<strong>Stop loss en Engulfing:</strong> Para Bearish Engulfing, stop sobre el máximo de la vela engulfing. Para Bullish Engulfing, stop bajo el mínimo. El tamaño del stop es pequeño porque la vela de señal define claramente el nivel de invalidación.',chartFn:null},
+
+'pa.3':{title:'Análisis Multi-Vela y Contexto',long:'Las velas individuales (Pin Bar, Engulfing, Inside Bar) son más poderosas cuando se leen en conjunto como narrativa. El Price Action real no se trata de reconocer patrones aislados sino de leer la historia que cuentan las velas en secuencia.',
+rules:[
+{t:'Lee el "momentum" de las últimas 5-10 velas antes de buscar señales',ex:'<strong>Ejemplo:</strong> Si las últimas 8 velas son bajistas con cuerpos grandes, el momentum es fuertemente bajista. Un Pin Bar alcista en ese contexto tiene baja probabilidad — va en contra del momentum. Espera a que el momentum cambie antes de buscar reversiones.'},
+{t:'Velas con cuerpos grandes = momentum fuerte; velas con mechas largas = indecisión o rechazo',ex:'<strong>Ejemplo:</strong> 5 velas seguidas con cuerpos grandes alcistas = tendencia fuerte, solo compra retrocesos. Si esas velas alcistas empiezan a tener mechas largas hacia arriba con cuerpos más pequeños = la fuerza compradora se está agotando, pronto habrá corrección.'},
+{t:'Doji + vela de dirección siguiente = patrón de decisión (Doji confirma la siguiente vela)',ex:'<strong>Ejemplo:</strong> El precio llega a resistencia y forma un Doji (cuerpo casi inexistente = equilibrio total). La SIGUIENTE vela determina el movimiento: si es bajista grande = confirma rechazo. Si es alcista = rompe resistencia. El Doji avisa que algo está por decidirse.'},
+{t:'Consolidación apretada (rangos pequeños) + ruptura fuerte = señal de alta probabilidad',ex:'<strong>Ejemplo:</strong> 6 velas con rangos muy pequeños (precio apenas se mueve). La 7ma vela es grande y bajista que rompe el soporte. Esa ruptura tras consolidación apretada es potente — la energía comprimida se libera en una dirección. Mucho más fiable que una ruptura en medio de volatilidad.'}
+],tip:'<strong>Practica esto:</strong> Al final de cada día, estudia 3-5 gráficos sin indicadores y escribe en palabras simples "qué están diciendo las velas". Esa habilidad narrativa es el verdadero Price Action.',chartFn:null},
+
+'fib.1':{title:'Extensiones de Fibonacci',long:'Mientras los retrocesos identifican hasta dónde puede corregir el precio, las extensiones identifican hasta dónde puede llegar el precio en la dirección del trend. Son los targets naturales del movimiento — dónde el precio frecuentemente termina una onda o impulso.',
+rules:[
+{t:'Extensión 127.2%: primer target de extensión, frecuente en movimientos moderados',ex:'<strong>Ejemplo:</strong> El precio subió de $100 a $120 (movimiento de $20). Corrigió a $113 (61.8% de retroceso). La extensión 127.2% proyecta el target en $100 + ($20 × 1.272) = $125.44. Ese nivel es el primer target natural de la siguiente subida.'},
+{t:'Extensión 161.8%: el target más común, la mayoría de impulsos llegan aquí',ex:'<strong>Ejemplo:</strong> Con el mismo setup, 161.8% = $100 + ($20 × 1.618) = $132.36. Estadísticamente, la mayoría de impulsos alcanzan el 161.8% de extensión. Es el target principal de la Onda 3 en Elliott y el target estándar del SMC.'},
+{t:'Extensión 261.8%: target para movimientos muy fuertes o Onda 3 extendida',ex:'<strong>Ejemplo:</strong> En una Onda 3 con mucho momentum, la extensión puede alcanzar 261.8% = $100 + ($20 × 2.618) = $152.36. Este es un target ambicioso solo para tendencias con catalizadores fuertes. En mercados alcistas de crypto o acciones tech, las extensiones 2.618x son comunes.'},
+{t:'Traza extensiones desde el swing anterior para proyectar targets del movimiento actual',ex:'<strong>Ejemplo:</strong> El precio bajó de $200 a $100 (swing de $100). Corrigió hasta $161.8 (61.8% de retroceso). Para la próxima caída, trazas las extensiones desde $200 (inicio) hacia abajo: 127.2% = $73, 161.8% = $38. Esos son los targets del movimiento bajista.'}
+],tip:'<strong>Uso combinado:</strong> Retroceso 61.8% = entrada. Extensión 161.8% = target. Esa combinación (entrada en 61.8%, salida en 161.8%) es uno de los setups con mejor RR promedio del análisis técnico.',chartFn:null},
+
+'fib.2':{title:'Fibonacci en Multi-Timeframe',long:'Los niveles Fibonacci de timeframes altos actúan como zonas de precios "magnéticas" que se respetan durante períodos prolongados. Aprender a combinar Fibonacci de D1/W1 con entradas en H1/H4 es lo que separa las entradas de alta calidad de las mediocres.',
+rules:[
+{t:'Fibonacci de W1 (semanal): niveles que duran meses y generan rebotes enormes',ex:'<strong>Ejemplo:</strong> BTC trazas Fibonacci del swing bajista de $69.000 a $15.500. El nivel 61.8% está en $42.000. Cada vez que BTC se acerca a $42.000, hay una decisión mayor. En julio 2023 BTC llegó a $31.800 y rebotó — el 61.8% semanal era demasiado fuerte para perforarlo fácil.'},
+{t:'Alinea los Fibonacci de D1 y H4: cuando dos niveles coinciden, son resistencias/soportes muy fuertes',ex:'<strong>Ejemplo:</strong> El 61.8% del Fibonacci D1 cae en $42.000. El 38.2% del Fibonacci H4 también cae en $42.000. Dos Fibonacci en el mismo nivel = zona de doble confluencia. Si además hay un OB o zona de S&D ahí, la probabilidad de rebote es muy alta.'},
+{t:'Usa Fibonacci de timeframe alto para sesgo, baja al timeframe de entrada para la señal',ex:'<strong>Ejemplo:</strong> El 61.8% semanal de EURUSD está en 1.0850 (zona de compra de largo plazo). Bajas a H1 y esperas que el precio llegue a 1.0850 y forme un Pin Bar o Engulfing alcista en H1. Ese Pin Bar H1 dentro del 61.8% semanal es una entrada de alta calidad.'},
+{t:'El cluster Fibonacci (zona donde múltiples niveles de distintos swings convergen) es muy potente',ex:'<strong>Ejemplo:</strong> Trazas 3 swings distintos en EURUSD. El 61.8% del swing 1 cae en 1.0840. El 38.2% del swing 2 cae en 1.0845. El 50% del swing 3 cae en 1.0850. Ese cluster entre 1.0840-1.0850 donde convergen 3 niveles Fibonacci es una zona de altísima probabilidad.'}
+],tip:'<strong>Herramienta de TradingView:</strong> Usa el Fibonacci Retracement Tool con líneas de extensión activadas. Dibuja de 2-3 swings distintos y busca las zonas donde múltiples niveles de distintos Fibonacci se superponen.',chartFn:null},
+
+'ma.1':{title:'EMA como Soporte y Resistencia Dinámico',long:'Las EMAs no solo sirven para cruzar entre sí — funcionan como niveles de soporte y resistencia que se mueven con el precio. En tendencia alcista, la EMA 21 y EMA 50 actúan como soportes donde el precio frecuentemente rebota para continuar al alza.',
+rules:[
+{t:'En tendencia alcista, la EMA 21 (H1/H4) es el primer soporte dinámico',ex:'<strong>Ejemplo:</strong> EURUSD en tendencia alcista. Cada vez que el precio corrige y toca la EMA 21 en H4, rebota y sube. Eso es el soporte dinámico — la media móvil "sube" con el precio y actúa como soporte en movimiento. Comprar el toque de EMA 21 en tendencia alcista es un setup clásico.'},
+{t:'En tendencia bajista, la EMA 21 actúa como resistencia dinámica',ex:'<strong>Ejemplo:</strong> El precio en tendencia bajista. Cada rebote que llega hasta la EMA 21 es rechazado y el precio cae de nuevo. La EMA 21 "baja" con el precio actuando como resistencia. Vender en el toque de EMA 21 en tendencia bajista es el trade de continuación clásico.'},
+{t:'Cuándo rompe la EMA 200 en D1: cambio significativo de tendencia de largo plazo',ex:'<strong>Ejemplo:</strong> El precio de un activo llevaba años sobre la EMA 200 diaria (tendencia alcista). El precio rompe y cierra bajo la EMA 200 por primera vez en años. Ese cruce bajo la EMA 200 es una señal mayor de cambio de tendencia — reduce exposición larga drásticamente.'},
+{t:'EMA 200 en D1 actúa como "imán" cuando el precio está lejos de ella',ex:'<strong>Ejemplo:</strong> Si el precio está 30% por encima de la EMA 200 diaria, existe una tendencia estadística a que "se corrija" hacia ella. Los traders llaman a esto mean reversion. No es una señal para operar corto inmediatamente, pero sí sugiere cautela con posiciones largas muy estiradas.'}
+],tip:'<strong>Setup simple:</strong> En tendencia alcista (precio sobre EMA 200 D1) busca compras cuando el precio toca la EMA 21 en H4 con una vela de confirmación (Pin Bar, Engulfing). Stop bajo la EMA 21, target: máximos anteriores.',chartFn:null},
+
+'ma.2':{title:'Ribbon de Medias Móviles',long:'El ribbon es un conjunto de EMAs de diferentes períodos que en conjunto muestran la salud de la tendencia. Cuando todas las EMAs están alineadas en el mismo orden y el precio está sobre/bajo todas, la tendencia es fuerte. Cuando se entrelazan, hay indecisión.',
+rules:[
+{t:'Ribbon alcista: EMA 8 > EMA 21 > EMA 50 > EMA 200 y precio sobre todas',ex:'<strong>Ejemplo:</strong> BTC en 2021: EMA 8 estaba sobre la EMA 21, que estaba sobre la EMA 50, que estaba sobre la EMA 200, y el precio sobre todas. Ese "ribbon alcista" ordenado confirmaba que la tendencia alcista era poderosa y sostenida en múltiples horizontes temporales.'},
+{t:'Ribbon bajista: EMA 8 < EMA 21 < EMA 50 < EMA 200 y precio bajo todas',ex:'<strong>Ejemplo:</strong> BTC a finales de 2021: las EMAs se cruzaron en orden inverso y el precio estaba bajo todas ellas. El ribbon bajista es la señal visual de que la tendencia bajista está establecida en todos los horizontes — no hay excusa para mantener posiciones largas.'},
+{t:'Ribbon comprimido (EMAs entrelazadas): mercado en rango, evitar operar con medias',ex:'<strong>Ejemplo:</strong> Las EMAs de BTC se entrelazan y cruzan constantemente durante un rango lateral. Las señales de cruce son falsas constantemente. El ribbon comprimido dice "el mercado no tiene dirección clara" — usa otras herramientas (S&D, niveles horizontales) para operar rangos.'},
+{t:'Fan-out del ribbon tras compresión = inicio de tendencia fuerte',ex:'<strong>Ejemplo:</strong> Tras meses de ribbon comprimido, las EMAs empiezan a separarse en orden alcista. Ese "abanico" del ribbon es una señal de que comienza una nueva tendencia. Los primeros retrocesos a las EMAs durante el fan-out son oportunidades de entrada.'}
+],tip:'<strong>Configuración del ribbon:</strong> EMA 8, EMA 21, EMA 50, EMA 100, EMA 200 en colores distintos. El orden y separación entre ellas te dice instantáneamente la fuerza y dirección de la tendencia.',chartFn:null},
+
+'rsi.1':{title:'Sobrecompra y Sobreventa en RSI',long:'Los niveles extremos del RSI (>70 sobrecompra, <30 sobreventa) son señales de agotamiento potencial del movimiento. Sin embargo, un mercado puede mantenerse en sobrecompra por mucho tiempo durante una tendencia fuerte. Aprender cuándo actuar y cuándo esperar es la clave.',
+rules:[
+{t:'RSI > 70: el activo está sobrecomprado — posible agotamiento alcista, no señal de venta inmediata',ex:'<strong>Ejemplo:</strong> BTC sube con fuerza y el RSI llega a 78. Eso indica sobrecompra, pero BTC en bull market puede mantener RSI sobre 70 por semanas. No vendas solo por el RSI alto — espera divergencia o patrón de vela de reversión además del RSI extremo.'},
+{t:'RSI < 30: sobreventa — posible agotamiento bajista, no señal de compra inmediata',ex:'<strong>Ejemplo:</strong> Una acción cae fuerte y el RSI llega a 22. Sobreventa, sí. Pero en un bear market el RSI puede mantenerse bajo 30 por meses. "Sobreventa puede volverse más sobrevendido." Espera la divergencia alcista o señal de acción del precio antes de comprar.'},
+{t:'RSI rebotando desde sobreventa (< 30) que cruza el nivel 50 = confirmación de cambio',ex:'<strong>Ejemplo:</strong> RSI estaba en 25 (sobreventa). Empieza a subir. Cuando cruza el nivel 50 (de abajo hacia arriba), esa es la confirmación de que el momentum cambió a alcista. El cruce del nivel 50 es más útil como señal que el nivel 30 en sí.'},
+{t:'En tendencia fuerte: RSI puede permanecer en sobrecompra/sobreventa durante semanas',ex:'<strong>Ejemplo:</strong> NVIDIA en 2023: el RSI estuvo sobre 70 por casi 3 meses consecutivos mientras la acción subía de $200 a $500. Vender en cada toque de 70 habría sido catastrófico. En tendencias fuertes, el RSI extremo es una señal de FORTALEZA, no de agotamiento.'}
+],tip:'<strong>Regla práctica:</strong> El RSI solo en sobrecompra/sobreventa no es suficiente señal. Necesita ir acompañado de: (1) divergencia con el precio, (2) nivel clave de S/R, (3) patrón de vela de reversión. Los tres juntos sí generan una señal de alta probabilidad.',chartFn:null},
+
+'rsi.2':{title:'Divergencia Oculta (Hidden Divergence)',long:'La divergencia oculta es lo opuesto a la divergencia clásica: en lugar de señalar reversión, señala CONTINUACIÓN de la tendencia. Es menos conocida que la divergencia regular pero igual de potente, y se forma durante los retrocesos de las tendencias.',
+rules:[
+{t:'Divergencia oculta alcista: precio hace HL (mínimo más alto) pero RSI hace LL (mínimo más bajo)',ex:'<strong>Ejemplo:</strong> En tendencia alcista, el precio corrige. El mínimo anterior fue $100, este nuevo mínimo es $105 (HL — mínimo más alto, señal de tendencia alcista). Pero el RSI baja más bajo que antes. Esa "contradicción" es divergencia oculta alcista = el retroceso terminó, continuación alcista inminente.'},
+{t:'Divergencia oculta bajista: precio hace LH (máximo más bajo) pero RSI hace HH (máximo más alto)',ex:'<strong>Ejemplo:</strong> En tendencia bajista, el precio rebota. El rebote anterior llegó a $150, este llega a $145 (LH — máximo más bajo, señal de tendencia bajista). Pero el RSI sube más alto que antes. Divergencia oculta bajista = el rebote terminó, continuación bajista inminente.'},
+{t:'Aparece en retrocesos durante tendencias establecidas = señal de entrada en la tendencia',ex:'<strong>Ejemplo:</strong> Tendencia alcista confirmada (Golden Cross + precio sobre EMA 200). El precio corrige al 38.2% de Fibonacci. En ese retroceso aparece divergencia oculta alcista en RSI. Es la señal perfecta de que el retroceso terminó — entrada larga con el sesgo de la tendencia.'},
+{t:'Combínala con niveles de soporte/resistencia para mayor precisión',ex:'<strong>Ejemplo:</strong> Divergencia oculta alcista que aparece exactamente cuando el precio toca la EMA 21 + zona de demanda H4 + nivel 38.2% de Fibonacci. Esa triple confluencia con la divergencia oculta = setup de muy alta probabilidad de continuación alcista.'}
+],tip:'<strong>Resumen:</strong> Divergencia clásica = reversión. Divergencia oculta = continuación. Aprende las dos para tener herramientas tanto para operar retrocesos como reversiones.',chartFn:null},
+
+'crt.1':{title:'CRT Diario (Rangos del Día Anterior)',long:'El mismo principio del CRT aplicado al rango del DÍA ANTERIOR completo. El máximo y mínimo de ayer son niveles de liquidez clave que el algoritmo tiende a barrer antes de establecer la dirección del día actual. Más potente que el CRT de 4H por su mayor alcance.',
+rules:[
+{t:'PDH (Previous Day High) y PDL (Previous Day Low): los niveles más importantes del día',ex:'<strong>Ejemplo:</strong> Ayer EURUSD tuvo máximo en 1.0900 y mínimo en 1.0820. Esos dos niveles son el PDH y PDL. Hoy el algoritmo buscará barrer uno de los dos. Marca ambos antes de abrir la sesión y espera el sweep.'},
+{t:'Sweep del PDH en London KZ → señal de venta hacia el PDL',ex:'<strong>Ejemplo:</strong> Al abrir Londres, EURUSD sube hasta 1.0905 (5 pips sobre el PDH de 1.0900) y revierte. Entrada corta cuando el precio vuelve bajo 1.0900. Target: PDL en 1.0820. Stop sobre 1.0910. RR = 1:16 aproximadamente.'},
+{t:'Sweep del PDL en Asian/London KZ → señal de compra hacia el PDH',ex:'<strong>Ejemplo:</strong> EURUSD baja hasta 1.0815 (5 pips bajo el PDL de 1.0820) en la sesión asiática y rebota rápido. Entrada larga en 1.0820. Target: PDH en 1.0900 (80 pips). Stop bajo 1.0810 (10 pips). RR = 1:8.'},
+{t:'PDH/PDL que coincide con nivel semanal o mensual tiene más fuerza',ex:'<strong>Ejemplo:</strong> El PDH de ayer fue 1.0900. Además, 1.0900 es un número redondo y la resistencia semanal. El sweep de ese PDH que también es resistencia semanal genera una señal mucho más potente que un PDH en zona neutral.'}
+],tip:'<strong>Rutina pre-sesión:</strong> Cada día antes de abrir, marca el PDH y PDL en tu gráfico. Son los dos niveles más importantes del día — todo lo demás es secundario.',chartFn:null},
+
+'crt.2':{title:'CRT Semanal (Rangos de la Semana Anterior)',long:'El CRT Semanal usa el máximo y mínimo de la semana anterior como niveles de liquidez objetivo. Son niveles de alta importancia que el algoritmo tiende a atacar durante la semana actual, generando los movimientos de mayor magnitud y RR del modelo.',
+rules:[
+{t:'PWH (Previous Week High) y PWL (Previous Week Low): niveles de alta importancia',ex:'<strong>Ejemplo:</strong> La semana pasada GBPUSD tuvo máximo en 1.2750 y mínimo en 1.2580. Esos son el PWH y PWL de esta semana. El algoritmo buscará barrer uno de los dos durante la semana — típicamente en los primeros 2-3 días.'},
+{t:'El sweep del PWH/PWL suele ocurrir el lunes-martes (inicio de semana)',ex:'<strong>Ejemplo:</strong> El lunes o martes el precio barre el PWL en 1.2575 (5 pips bajo 1.2580) durante la sesión asiática o de Londres. Entrada larga con target en el PWH (1.2750). Stop bajo el sweep. Eso es un movimiento de 170+ pips con stop de 10-15 pips. RR excepcional.'},
+{t:'Si el lunes abre con gap sobre/bajo el PWH/PWL, la semana puede ir en esa dirección',ex:'<strong>Ejemplo:</strong> El GBPUSD cierra el viernes en 1.2700. El lunes abre con gap alcista en 1.2760 (sobre el PWH de 1.2750). Esa apertura sobre el PWH sugiere sesgo alcista para toda la semana — busca compras en los retrocesos en lugar de esperar un sweep del PWH.'},
+{t:'CRT Semanal + Kill Zone = entradas de mayor precisión temporal',ex:'<strong>Ejemplo:</strong> El sweep del PWL ocurre exactamente durante la Kill Zone de Londres del lunes (08:00-11:00 UTC). La coincidencia de CRT Semanal + Kill Zone = señal de máxima calidad en el modelo ICT-CRT. Son los setups que los traders institucionales buscan activamente.'}
+],tip:'<strong>Preparación dominical:</strong> Cada domingo antes de abrir la semana, marca el PWH y PWL en tus pares. Esos 2 niveles definirán las oportunidades de mayor RR de la semana.',chartFn:null},
+
+'crt.3':{title:'Multi-TF CRT: Alineación de Rangos',long:'La máxima potencia del CRT se alcanza cuando el sweep de un rango de timeframe menor coincide con un nivel de timeframe mayor. Cuando el sweep de la vela de 4H ocurre exactamente en el PWH/PWL o en el PDH/PDL, la señal se multiplica.',
+rules:[
+{t:'Sweep de 4H que coincide con PDH/PDL = señal de muy alta probabilidad',ex:'<strong>Ejemplo:</strong> El PDH está en 1.0900. La última vela de 4H también tiene su máximo en 1.0902. El precio sube hasta 1.0905 barriendo ambos niveles simultáneamente. Esa doble liquidez swepeada al mismo tiempo genera una señal de venta de altísima probabilidad.'},
+{t:'Triple confluencia CRT: sweep de H1 + 4H + PDH/PDL = el setup más potente',ex:'<strong>Ejemplo:</strong> La vela de H1, H4 y el PDH están todos cerca de 1.0900. El precio sube hasta 1.0904 barriendo los 3 niveles a la vez. Cuando el precio revierte, tendrás confluencia de 3 rangos distintos respaldando tu operación corta. RR puede ser de 1:15 o más.'},
+{t:'Si los rangos no están alineados, la señal es menos clara — evita operar',ex:'<strong>Ejemplo:</strong> El máximo de 4H está en 1.0920 pero el PDH está en 1.0900. Si el precio barre solo el máximo de 4H en 1.0922, el PDH aún no fue barrido y puede actuar como resistencia al movimiento bajista. Señal ambigua — mejor esperar un setup más limpio.'},
+{t:'En alineación de rangos, los targets también se apilan: PDL, mínimo 4H, mínimo semanal',ex:'<strong>Ejemplo:</strong> Entrada corta tras sweep de PDH + máximo 4H. Target 1: mínimo de 4H. Target 2: PDL. Target 3: PWL (si la semana está siendo bajista). Tienes múltiples targets escalonados porque los rangos también se alinean hacia abajo.'}
+],tip:'<strong>La regla simple del Multi-TF CRT:</strong> Cuantos más rangos se barren simultáneamente, más potente la señal y mayor el movimiento esperado. Busca la alineación, no el sweep aislado.',chartFn:null}
+
+};
+
+const STRATS=[
+{id:'smc',icon:'🏦',label:'SMC',name:'Smart Money Concepts',sub:'El lenguaje secreto de los bancos e instituciones. Aprende a leer las huellas del dinero inteligente: dónde compran, dónde venden y cómo barren la liquidez antes de moverse.',
+info:[['Timeframe','M15 – H4'],['Mercados','Forex, Índices, Crypto'],['Dificultad','⭐⭐⭐⭐⭐']],
+tags:[['Institucional','blue'],['Order Blocks','green'],['Liquidez','purple'],['Alta precisión','amber']],
+concepts:[['🔵','Order Block (OB)','Última vela antes del movimiento institucional. Zona de órdenes pendientes.','smc.0'],['🔴','BOS y CHoCH','Confirma continuación o cambio de tendencia estructural.','smc.1'],['⚪','Fair Value Gap (FVG)','Desequilibrio de precio que el mercado tiende a rellenar.','smc.2'],['🌊','Liquidity Sweep','Los institucionales barren stops antes de moverse en la dirección real.','smc.3'],['⚖️','Premium & Discount','Compra barato (Discount), vende caro (Premium) como lo hacen los bancos.','smc.4'],['📊','Estructura de Mercado','Serie de HH-HL (alcista) o LH-LL (bajista). La base de todo análisis SMC.','smc.5']],
+quiz:[{q:'¿Qué es un Order Block alcista?',ctx:'En SMC, los Order Blocks representan zonas de órdenes institucionales pendientes.',opts:['La última vela bajista antes de un rally alcista','La primera vela alcista de una tendencia','Un bloque de resistencia fuerte','La zona de máxima liquidez del día'],ok:0,exp:'El OB alcista es la ÚLTIMA vela bajista antes de un movimiento explosivo al alza. Representa dónde los institucionales dejaron órdenes de compra pendientes.'},
+{q:'¿Qué ocurre primero en un Liquidity Sweep?',ctx:'Los institucionales necesitan liquidez (órdenes de otros traders) para ejecutar sus posiciones.',opts:['El precio baja hacia el soporte directamente','El precio perfora brevemente el nivel y revierte rápido','El precio consolida durante horas','El precio forma un Pin Bar'],ok:1,exp:'El sweep perfora brevemente el nivel de liquidez (activando stops de traders retail) y revierte inmediatamente. Esa perforación y vuelta rápida ES la señal.'},
+{q:'¿En qué zona se buscan compras según el principio Premium & Discount?',ctx:'El mercado se mueve entre zonas de precio "caro" (Premium) y "barato" (Discount).',opts:['En zona Premium (sobre el 50% del rango)','En zona de equilibrio exacto (50%)','En zona Discount (bajo el 50% del rango)','En la zona de mayor volumen'],ok:2,exp:'Se compra en Discount (precio "barato") y se vende en Premium (precio "caro"), replicando el comportamiento institucional de comprar bajo y vender alto.'}]},
+
+{id:'orb',icon:'🌅',label:'ORB',name:'Opening Range Breakout',sub:'Captura las rupturas del rango de los primeros 15 minutos del mercado. Simple, objetivo y con targets matemáticos claros. Ideal para acciones e índices.',
+info:[['Timeframe','M5 – M15'],['Mercados','Acciones, Índices (NY)'],['Dificultad','⭐⭐']],
+tags:[['Apertura de mercado','blue'],['Ruptura','green'],['Targets claros','amber']],
+concepts:[['📊','Opening Range Breakout','Ruptura del rango de los primeros 15 minutos con targets 1x y 2x.','orb.0'],['📈','Análisis del Gap Pre-Mercado','El gap de apertura define el sesgo del día: alcista o bajista.','orb.1'],['📦','Volumen y Catalizadores','El volumen en la ruptura determina si el movimiento es real o un fakeout.','orb.2'],['⚠️','Falsa Ruptura (Fakeout)','Cómo identificar y operar en la dirección contraria cuando el OR falla.','orb.3'],['🎯','Gestión de Posición y Targets','Cómo calcular targets 1x y 2x y gestionar el stop correctamente.','orb.4']],
+quiz:[{q:'¿Cómo se calcula el Target 2 del ORB?',ctx:'El ORB usa la amplitud del rango inicial para proyectar objetivos.',opts:['El doble del precio de apertura','2 veces la amplitud del OR desde el punto de ruptura','El máximo histórico del activo','La resistencia diaria anterior'],ok:1,exp:'Target 2 = punto de ruptura + 2x la amplitud del OR. Si el OR mide $10 y el precio rompe desde $450, Target 2 = $470.'},
+{q:'¿Qué señal confirma una ruptura válida del ORB?',ctx:'Muchas rupturas son falsas (fakeouts) en los primeros minutos.',opts:['El precio toca el extremo del OR brevemente','Una vela que CIERRA fuera del OR','Mucho volumen en la apertura','Noticias positivas del activo'],ok:1,exp:'Solo el CIERRE de una vela fuera del OR confirma la ruptura válida. Un simple toque (mecha) sin cierre es un fakeout muy común que atrapa traders impacientes.'}]},
+
+{id:'wyckoff',icon:'🎭',label:'Wyckoff',name:'Método Wyckoff',sub:'El método centenario para identificar cómo los grandes operadores acumulan y distribuyen posiciones. Richard Wyckoff lo describió en 1930 y sigue funcionando hoy.',
+info:[['Timeframe','D1 – W1'],['Mercados','Acciones, Crypto, Commodities'],['Dificultad','⭐⭐⭐⭐']],
+tags:[['Acumulación','green'],['Distribución','red'],['Volumen','blue'],['Largo plazo','purple']],
+concepts:[['📦','Acumulación de Wyckoff','Las 5 fases del proceso de acumulación institucional antes del markup.','wyckoff.0'],['📤','Distribución de Wyckoff','Cómo los institucionales venden sus posiciones al retail eufórico.','wyckoff.1'],['⚖️','Las 3 Leyes de Wyckoff','Oferta/Demanda, Causa/Efecto y Esfuerzo/Resultado: los principios atemporales.','wyckoff.2'],['🔄','Fases del Mercado','Acumulación, Mark-Up, Distribución y Mark-Down: el ciclo completo.','wyckoff.3'],['📊','Volumen como Confirmación','Cómo leer el volumen para identificar la actividad institucional real.','wyckoff.4']],
+quiz:[{q:'¿Qué es el Spring en Wyckoff?',ctx:'El Spring ocurre al final de la fase de acumulación, justo antes del markup.',opts:['El primer rebote tras la caída (PS)','Una falsa ruptura bajista del soporte que activa stops','El clímax de ventas con volumen máximo','El rally automático tras el clímax'],ok:1,exp:'El Spring es la trampa final: el precio rompe brevemente el soporte del rango, activa los stops de los compradores, genera pánico y vuelve rápidamente. Es la última sacudida antes del gran movimiento alcista.'},
+{q:'¿Cuál es la señal de mayor volumen en la acumulación de Wyckoff?',ctx:'El volumen es la clave para identificar cada fase del método.',opts:['El LPS (Last Point of Support)','El AR (Automatic Rally)','El SC (Selling Climax)','El Spring'],ok:2,exp:'El Selling Climax (SC) tiene el mayor volumen de todo el movimiento bajista. Es el punto de máximo pánico donde los institucionales absorben toda la venta del retail comprando masivamente.'}]},
+
+{id:'ict',icon:'🤖',label:'ICT',name:'Inner Circle Trader',sub:'El sistema de Michael J. Huddleston basado en cómo los algoritmos institucionales manipulan el mercado. Kill Zones, Judas Swings y conceptos que van más allá del análisis técnico tradicional.',
+info:[['Timeframe','M1 – H1'],['Mercados','Forex, Índices (NY, NQ)'],['Dificultad','⭐⭐⭐⭐⭐']],
+tags:[['Algoritmos','blue'],['Manipulación','red'],['Sesiones','green'],['Kill Zones','amber']],
+concepts:[['⏰','ICT Kill Zones','Las ventanas horarias donde los algoritmos están más activos.','ict.0'],['🃏','Judas Swing','El movimiento falso inicial que barre liquidez antes del movimiento real.','ict.1'],['🎯','Optimal Trade Entry (OTE)','La zona Fibonacci 62-79% donde el algoritmo entrega el precio.','ict.2'],['⚡','Fair Value Gap ICT','Desequilibrios de precio y cómo el algoritmo los usa para entregar precio.','ict.3'],['🔮','Market Maker Model','El ciclo completo: consolidación → manipulación → distribución.','ict.4']],
+quiz:[{q:'¿Qué es el Judas Swing en ICT?',ctx:'El Judas Swing ocurre frecuentemente al inicio de la sesión de Londres.',opts:['El movimiento real del día','Un movimiento falso en dirección contraria al trend del día','La consolidación de la sesión asiática','El cierre de la sesión de NY'],ok:1,exp:'El Judas Swing es un movimiento falso e intencional al INICIO de la sesión de Londres en dirección contraria a la tendencia real del día. Sirve para barrer liquidez antes del movimiento verdadero.'},
+{q:'¿En qué Kill Zone se forma el rango de liquidez que Londres y NY cazan?',ctx:'Cada sesión tiene un rol diferente en el ciclo diario del mercado.',opts:['New York Kill Zone','London Kill Zone','Asian Kill Zone','Transición entre sesiones'],ok:2,exp:'La sesión asiática (00:00-04:00 UTC) forma el rango estrecho del día. Los extremos de ese rango (máximo y mínimo asiático) son la liquidez que los algoritmos de Londres y NY barrerán al abrir.'}]},
+
+{id:'elliott',icon:'🌊',label:'Elliott',name:'Ondas de Elliott',sub:'La teoría que describe los ciclos repetitivos del mercado en 5 ondas de impulso y 3 de corrección. Cuando lo dominas, puedes anticipar movimientos antes de que ocurran.',
+info:[['Timeframe','H1 – D1'],['Mercados','Todos los mercados'],['Dificultad','⭐⭐⭐⭐']],
+tags:[['Ciclos','blue'],['Tendencia','green'],['Corrección','amber'],['Fractal','purple']],
+concepts:[['🌊','Ondas de Impulso','Las 3 reglas inquebrantables y cómo identificar cada onda del ciclo.','elliott.0'],['🔄','Ondas Correctivas ABC','Las 3 ondas de corrección que siguen al impulso y sus niveles clave.','elliott.1'],['📐','Reglas y Guías de Elliott','La diferencia entre reglas absolutas y guías de probabilidad.','elliott.2'],['🔗','Elliott + Fibonacci','Los ratios Fibonacci que validan y proyectan cada onda del ciclo.','elliott.3']],
+quiz:[{q:'¿Cuál de las ondas de impulso NUNCA puede ser la más corta?',ctx:'Elliott estableció 3 reglas inquebrantables para el conteo de ondas.',opts:['Onda 1','Onda 2','Onda 3','Onda 5'],ok:2,exp:'La Onda 3 NUNCA puede ser la más corta de las ondas de impulso (1, 3 y 5). Es la regla más importante de Elliott. Si tu Onda 3 es más corta que la 1 o la 5, el conteo es incorrecto.'},
+{q:'¿Hasta dónde puede retroceder la Onda 2 como máximo?',ctx:'Cada onda tiene límites específicos que definen si el conteo es válido.',opts:['38.2% de Onda 1','61.8% de Onda 1','100% de Onda 1 — pero sin superarlo','No tiene límite'],ok:2,exp:'La Onda 2 puede retroceder hasta el 100% de la Onda 1 pero NUNCA puede superarla. Si el precio baja del inicio de la Onda 1, el conteo es completamente inválido.'}]},
+
+{id:'sd',icon:'⚖️',label:'S&D',name:'Oferta y Demanda',sub:'Las zonas donde el desequilibrio entre compradores y vendedores crea niveles de precio que se respetan repetidamente. Más preciso que el soporte/resistencia tradicional porque busca la causa, no el efecto.',
+info:[['Timeframe','M15 – D1'],['Mercados','Forex, Acciones, Crypto'],['Dificultad','⭐⭐⭐']],
+tags:[['Zonas institucionales','blue'],['Retesteo','green'],['Confluencia','amber']],
+concepts:[['📦','Zona de Demanda','Cómo identificar zonas de demanda válidas y cuándo operarlas.','sd.0'],['📤','Zona de Oferta','El equivalente bajista: Rally-Base-Drop y cómo operarlo.','sd.1'],['🔭','Multi-Timeframe en S&D','Cómo combinar zonas de D1/H4 con entradas precisas en H1/M15.','sd.2'],['🧠','Gestión y Psicología del S&D','Stops, targets, tipos de entrada y el mindset correcto.','sd.3']],
+quiz:[{q:'¿Qué característica hace que una zona de S&D sea más potente?',ctx:'No todas las zonas son iguales. Algunas son mucho más confiables que otras.',opts:['Que haya sido testeada muchas veces','Que el impulso que la creó sea rápido y fuerte (pocas velas)','Que esté en un número redondo','Que sea visible en el gráfico de 1 minuto'],ok:1,exp:'Un impulso rápido y fuerte (pocas velas) indica urgencia institucional masiva. Esas órdenes quedaron pendientes en la zona base. Cuanto más explosivo el movimiento, más potente la zona.'},
+{q:'¿Cuántos retesteos puede aguantar una zona de S&D antes de debilitarse?',ctx:'Cada vez que el precio regresa a la zona, usa parte de las órdenes disponibles.',opts:['Ilimitados','Solo 1','2-3 máximo; después las órdenes se agotan','Depende del color de las velas'],ok:2,exp:'Generalmente 2-3 retesteos como máximo. En cada retesteo se ejecutan algunas de las órdenes institucionales pendientes. En el 3er o 4to retesteo, las órdenes suelen haberse agotado y la zona falla.'}]},
+
+{id:'pa',icon:'🕯️',label:'Price Action',name:'Price Action - Pin Bar',sub:'Lee el mercado directamente a través de las velas, sin indicadores. El Pin Bar es la señal de reversión más potente: su mecha larga revela dónde el precio fue rechazado con fuerza y en qué dirección irá.',
+info:[['Timeframe','H1 – D1'],['Mercados','Todos los mercados'],['Dificultad','⭐⭐']],
+tags:[['Sin indicadores','green'],['Reversión','amber'],['Velas japonesas','blue'],['Limpio','purple']],
+concepts:[['🕯️','Pin Bar','La anatomía del Pin Bar y cómo operarlo según el contexto.','pa.0'],['📊','Inside Bar','Compresión de precio antes de una ruptura explosiva.','pa.1'],['🔄','Engulfing Pattern','La vela que engulle a la anterior y señala cambio de control.','pa.2'],['📖','Análisis Multi-Vela','Leer la narrativa completa de las velas en contexto.','pa.3']],
+quiz:[{q:'¿Cuál es el requisito mínimo para que la mecha de un Pin Bar sea válida?',ctx:'La mecha es la característica más importante del Pin Bar.',opts:['Al menos 1/3 de la longitud total de la vela','Al menos 2/3 de la longitud total de la vela','Exactamente igual al cuerpo','Sin límite definido'],ok:1,exp:'La mecha debe medir al menos 2/3 de la longitud total de la vela (cuerpo + mecha). Menos que eso y el rechazo no fue suficientemente decisivo para ser una señal confiable.'},
+{q:'¿Dónde tiene más probabilidad de éxito un Pin Bar alcista?',ctx:'El contexto donde aparece el Pin Bar determina su calidad.',opts:['En cualquier zona del gráfico','En zonas de resistencia importantes','En zonas de soporte clave, zonas de demanda o Fibonacci 61.8%','En el medio de una tendencia bajista fuerte'],ok:2,exp:'Un Pin Bar alcista en zona de soporte clave, zona de demanda o nivel de Fibonacci 61.8% tiene probabilidad muy superior. El contexto multiplica la calidad de la señal — la misma vela en zona neutral vale mucho menos.'}]},
+
+{id:'fib',icon:'🌀',label:'Fibonacci',name:'Retrocesos de Fibonacci',sub:'Los niveles matemáticos que emergen de la naturaleza y se manifiestan en los mercados. El 61.8% (Golden Ratio) es el nivel más respetado — la mayoría de correcciones terminan aquí antes de retomar la tendencia.',
+info:[['Timeframe','H1 – D1'],['Mercados','Todos los mercados'],['Dificultad','⭐⭐⭐']],
+tags:[['Matemático','blue'],['Confluencia','green'],['Golden Ratio','amber'],['Universal','purple']],
+concepts:[['🌀','Retroceso de Fibonacci','Los 5 niveles clave y cómo usarlos para entradas de alta precisión.','fib.0'],['📡','Extensiones de Fibonacci','Proyecta targets precisos usando los niveles 127.2%, 161.8% y 261.8%.','fib.1'],['🔭','Fibonacci Multi-Timeframe','Clusters y confluencias de Fibonacci en distintos swings y timeframes.','fib.2']],
+quiz:[{q:'¿Desde dónde hasta dónde se traza el Fibonacci de retroceso en tendencia alcista?',ctx:'La dirección correcta del trazado es fundamental para que los niveles sean precisos.',opts:['Del máximo al mínimo del movimiento','Del mínimo (swing low) al máximo (swing high) del movimiento','Del precio actual al máximo histórico','Donde el trader lo considere conveniente'],ok:1,exp:'En tendencia alcista siempre de swing low (inicio del movimiento) a swing high (final del movimiento). Los niveles de retroceso aparecerán entre esos dos puntos mostrando dónde esperar que el precio pause.'},
+{q:'¿Qué significa que el precio supere el nivel 78.6% de Fibonacci?',ctx:'Los niveles de Fibonacci tienen implicaciones específicas para la tendencia.',opts:['La tendencia se acelerará pronto','El retroceso será hasta el 100% siempre','La tendencia probablemente ha cambiado; replantear el análisis','Es una señal de compra en ese nivel'],ok:2,exp:'Un retroceso mayor al 78.6% sugiere que la tendencia original se está debilitando o ha cambiado. El impulso que generó el movimiento original era insuficiente. Es momento de replantear el sesgo antes de entrar.'}]},
+
+{id:'ma',icon:'📊',label:'Medias',name:'Medias Móviles EMA',sub:'El cruce de EMA 50 y EMA 200 en timeframes altos es la brújula de la tendencia a largo plazo. Golden Cross para sesgo alcista, Death Cross para bajista. Simple pero devastadoramente efectivo en los grandes timeframes.',
+info:[['Timeframe','D1 – W1'],['Mercados','Todos los mercados'],['Dificultad','⭐']],
+tags:[['Tendencia','blue'],['Largo plazo','green'],['Sesgo','amber'],['Golden Cross','yellow']],
+concepts:[['📊','Golden & Death Cross','El cruce de EMA 50/200 para definir el sesgo del mercado a largo plazo.','ma.0'],['📉','EMA como Soporte y Resistencia','Las EMAs dinámicas donde el precio rebota en tendencias establecidas.','ma.1'],['🌈','Ribbon de Medias Móviles','El conjunto de EMAs que muestra la salud y fuerza de la tendencia.','ma.2']],
+quiz:[{q:'¿Qué es un Golden Cross?',ctx:'Los cruces de medias móviles son señales de cambio de tendencia a largo plazo.',opts:['La EMA 50 cruza hacia abajo la EMA 200','La EMA 200 cruza hacia arriba la EMA 50','La EMA 50 cruza hacia arriba la EMA 200','El precio toca la EMA 200 por primera vez'],ok:2,exp:'El Golden Cross es cuando la EMA 50 cruza HACIA ARRIBA la EMA 200. Señala el inicio de una tendencia alcista de largo plazo. En BTC en 2020 marcó el inicio del bull market que llevó a $65.000.'},
+{q:'Después de un Golden Cross, ¿qué suele ocurrir antes de continuar al alza?',ctx:'Los mercados raramente suben en línea recta después de una señal.',opts:['El precio explota inmediatamente al alza sin mirar atrás','El precio testea la zona del cruce (EMA 200) antes de continuar','El precio forma un rango lateral de 6 meses','La EMA 200 desaparece del gráfico'],ok:1,exp:'Después del Golden Cross, es muy común que el precio retroceda hacia la zona del cruce (testea la EMA 200). Eso NO es una señal de fallo — es la oportunidad de entrada. La EMA 200 actúa ahora como soporte.'}]},
+
+{id:'rsi',icon:'📉',label:'RSI Div',name:'Divergencia RSI',sub:'La herramienta para detectar que un movimiento está perdiendo fuerza interna antes de que sea visible en el precio. Cuando el precio y el RSI van en direcciones opuestas, el mercado está enviando una señal de alerta.',
+info:[['Timeframe','H1 – D1'],['Mercados','Todos los mercados'],['Dificultad','⭐⭐⭐']],
+tags:[['Divergencia','blue'],['Reversión','red'],['Agotamiento','amber'],['RSI','green']],
+concepts:[['📉','Divergencia RSI Clásica','Divergencia bajista y alcista: señales de posible reversión de tendencia.','rsi.0'],['⚡','Sobrecompra y Sobreventa','Cuándo actuar y cuándo ignorar los extremos del RSI.','rsi.1'],['🔍','Divergencia Oculta','Señal de continuación de tendencia que aparece en los retrocesos.','rsi.2']],
+quiz:[{q:'¿Qué indica una divergencia bajista entre precio y RSI?',ctx:'La divergencia muestra una desconexión entre el precio y el momentum interno.',opts:['El precio va a caer inmediatamente','El precio alcista está perdiendo fuerza interna (el rally se debilita)','El RSI está roto y no funciona bien','Es momento de comprar agresivamente'],ok:1,exp:'La divergencia bajista indica que aunque el precio sube, el momentum interno (medido por el RSI) está disminuyendo. El movimiento alcista está perdiendo fuerza. NO es señal de venta inmediata — espera confirmación con un patrón de vela.'},
+{q:'¿En qué zona del RSI es más potente una divergencia bajista?',ctx:'La ubicación del RSI al momento de la divergencia afecta su calidad.',opts:['RSI en 55 (zona neutral)','RSI en 35 (cercano a sobreventa)','RSI en 80+ (zona de sobrecompra)','RSI en 50 exacto'],ok:2,exp:'Una divergencia bajista con RSI por encima de 70-80 (sobrecompra) es mucho más potente. El mercado ya está "cansado" de subir y en el límite extremo. La divergencia en sobrecompra confirma el agotamiento total de los compradores.'}]},
+
+{id:'crt',icon:'⏱️',label:'CRT 4H',name:'CRT de 4 Horas',sub:'El Candle Range Theory aplicado a velas de 4 horas. El algoritmo tiende a barrer los extremos de la vela de 4H anterior antes de continuar. Una vez que entiendes el patrón, los targets se vuelven matemáticamente precisos.',
+info:[['Timeframe','M5 – M15 (para entrada)'],['Mercados','Forex, Índices'],['Dificultad','⭐⭐⭐']],
+tags:[['Algoritmos','blue'],['Targets precisos','green'],['Sweep','red'],['ICT','amber']],
+concepts:[['⏱️','CRT de 4 Horas','Las 5 reglas del CRT: sweep del extremo de la vela de 4H anterior.','crt.0'],['📅','CRT Diario (PDH/PDL)','Los rangos del día anterior como niveles de liquidez objetivo.','crt.1'],['📆','CRT Semanal (PWH/PWL)','Los rangos semanales y los movimientos de mayor magnitud del modelo.','crt.2'],['🔗','Multi-TF CRT','Cuando el sweep alinea múltiples rangos: la señal más potente del CRT.','crt.3']],
+quiz:[{q:'En el CRT de 4H, ¿qué significa que haya un "sweep del máximo"?',ctx:'El CRT se basa en que el algoritmo barre los extremos de velas previas.',opts:['El precio supera el máximo y continúa al alza con fuerza','El precio supera brevemente el máximo de la vela de 4H anterior y revierte','El precio forma una resistencia nueva en ese nivel','El volumen explota al superar el máximo'],ok:1,exp:'El sweep del máximo ocurre cuando el precio supera BREVEMENTE el máximo de la vela de 4H anterior y luego revierte inmediatamente hacia abajo. Esa perforación y vuelta rápida es la señal de venta, con target en el mínimo de esa misma vela de 4H.'},
+{q:'¿Cuándo tienen mayor calidad los setups de CRT?',ctx:'El timing es crucial en el CRT para maximizar la probabilidad.',opts:['A medianoche cuando hay poco volumen','En cualquier momento del día, el horario no importa','Durante las Kill Zones de ICT (máxima actividad algorítmica)','Los domingos cuando el mercado acaba de abrir'],ok:2,exp:'Los mejores CRTs ocurren durante las Kill Zones de ICT (apertura de Londres 8:00 UTC, apertura de NY 13:00 UTC). Es cuando el algoritmo está más activo y los movimientos son intencionales — sweeps claros y reversiones rápidas.'}]}
+];
+
+// ─── CHART FUNCTIONS ───────────────────────────────────────────────────────
+function svgWrap(content,h=220){return `<svg viewBox="0 0 560 ${h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:${h}px;background:#0d1117;display:block">${content}</svg>`;}
+function candle(x,y,h,w,bull,col){return `<rect x="${x-w/2}" y="${y}" width="${w}" height="${h}" fill="${bull?col:'#ef4444'}" rx="1"/>`;}
+function wick(x,top,bot,col){return `<line x1="${x}" y1="${top}" x2="${x}" y2="${bot}" stroke="${col}" stroke-width="1.5"/>`;}
+function lbl(x,y,txt,col='#8b949e',anchor='middle',size='11'){return `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${col}" font-size="${size}" font-family="monospace">${txt}</text>`;}
+function animPath(d,col,delay=0,dur=1.2,sw=2){const len=800;return `<path d="${d}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${len}" stroke-dashoffset="${len}" style="animation:drawSvg ${dur}s ${delay}s ease forwards"/>`;}
+
+function chartOB(){
+  const c='#3b82f6';
+  return svgWrap(`
+    ${wick(80,40,180,c)}${candle(80,60,100,18,false,c)}
+    ${wick(110,50,170,c)}${candle(110,70,90,18,false,c)}
+    ${wick(140,30,165,c)}${candle(140,45,110,18,false,'#ef4444')}
+    ${animPath('M140,155 L490,155',c,0.2,1)}
+    ${animPath('M140,45 L490,45','#30363d',0.3,0.8)}
+    <rect x="140" y="45" width="350" height="110" fill="rgba(59,130,246,0.08)" rx="2" style="animation:fadeUp 0.5s 0.4s ease both;opacity:0"/>
+    ${wick(180,80,180,c)}${candle(180,100,70,18,true,c)}
+    ${wick(220,50,130,c)}${candle(220,60,60,18,true,c)}
+    ${wick(270,55,140,'#ef4444')}${candle(270,65,60,18,false,'#ef4444')}
+    ${animPath('M270,125 L320,85 L360,90 L420,40 L480,30',c,0.5,1.5)}
+    ${lbl(310,175,'OB Alcista — Zona de Reentrada',c,'middle','12')}
+    ${lbl(80,200,'Caída','#8b949e')}
+    ${lbl(140,200,'↑ OB','#60a5fa')}
+    ${lbl(220,200,'Rally','#4ade80')}
+    ${lbl(350,200,'Precio Regresa','#8b949e')}
+  `);}
+
+function chartBOS(){
+  const c='#3b82f6';
+  return svgWrap(`
+    ${animPath('M50,160 L120,120 L180,140 L250,70 L310,100 L380,30',c,0,1.5,2)}
+    <circle cx="250" cy="70" r="5" fill="${c}" style="animation:fadeUp 0.3s 0.8s both;opacity:0"/>
+    <line x1="250" y1="70" x2="430" y2="70" stroke="${c}" stroke-width="1" stroke-dasharray="5,4" style="animation:drawSvg 0.8s 1s ease forwards;stroke-dashoffset:200"/>
+    ${lbl(320,65,'BOS — Ruptura del HH',c,'start','11')}
+    ${animPath('M380,30 L410,55 L450,140',c,1.5,0.8)}
+    <circle cx="410" cy="55" r="5" fill="#f97316" style="animation:pop 0.3s 2s both"/>
+    ${lbl(420,52,'CHoCH','#f97316','start','11')}
+    ${lbl(50,185,'Tendencia Alcista','#8b949e','start','11')}
+    ${lbl(430,185,'Posible reversión','#f97316','start','11')}
+  `);}
+
+function chartFVG(){
+  const c='#3b82f6';
+  return svgWrap(`
+    ${wick(100,80,180,c)}${candle(100,100,70,18,true,c)}
+    ${wick(140,30,100,c)}${candle(140,35,60,18,true,c)}
+    ${wick(180,50,120,c)}${candle(180,60,55,18,true,c)}
+    <rect x="95" y="85" width="90" height="1" fill="${c}" opacity="0.5"/>
+    <rect x="95" y="125" width="90" height="1" fill="${c}" opacity="0.5"/>
+    <rect x="95" y="86" width="90" height="39" fill="rgba(59,130,246,0.15)" rx="2" style="animation:fadeUp 0.4s 0.3s both;opacity:0"/>
+    ${lbl(140,170,'FVG','#60a5fa','middle','12')}
+    ${animPath('M180,60 L240,100 L290,95 L350,107 L400,88',c,0.3,1.5)}
+    <rect x="240" y="86" width="1" height="39" fill="${c}" style="animation:drawSvg 0.5s 1s ease forwards;stroke-dashoffset:50"/>
+    ${lbl(290,185,'Precio rellena el FVG','#8b949e','middle','11')}
+    ${lbl(440,105,'Continúa',c,'start','11')}
+  `);}
+
+function chartLQ(){
+  const c='#3b82f6';
+  return svgWrap(`
+    <line x1="50" y1="80" x2="530" y2="80" stroke="${c}" stroke-width="1" stroke-dasharray="6,4"/>
+    ${lbl(55,75,'Liquidez — Stops Acumulados',c,'start','10')}
+    ${animPath('M50,140 L150,100 L230,82 L250,60',c,0,1,2)}
+    <circle cx="250" cy="60" r="6" fill="#ef4444" opacity="0.8" style="animation:pop 0.3s 1s both"/>
+    ${lbl(260,58,'SWEEP','#ef4444','start','11')}
+    ${animPath('M250,60 L280,85 L320,95 L380,50 L440,30','#4ade80',1.1,1.5,2)}
+    ${lbl(390,45,'Reversión Real','#4ade80','start','11')}
+    ${lbl(150,190,'Precio sube hacia liquidez','#8b949e','start','11')}
+    ${lbl(280,190,'Sweep + Reversión','#4ade80','start','11')}
+  `);}
+
+function chartPD(){
+  const c='#3b82f6';
+  return svgWrap(`
+    <line x1="50" y1="60" x2="530" y2="60" stroke="${c}" stroke-width="1" stroke-dasharray="5,4"/>
+    <line x1="50" y1="130" x2="530" y2="130" stroke="#f97316" stroke-width="2"/>
+    <line x1="50" y1="195" x2="530" y2="195" stroke="${c}" stroke-width="1" stroke-dasharray="5,4"/>
+    <rect x="50" y="61" width="480" height="69" fill="rgba(239,68,68,0.05)" rx="2"/>
+    <rect x="50" y="131" width="480" height="64" fill="rgba(34,197,94,0.06)" rx="2"/>
+    ${lbl(280,55,'PREMIUM — Zona de Venta','#ef4444')}
+    ${lbl(280,125,'50% — Equilibrio','#f97316')}
+    ${lbl(280,210,'DISCOUNT — Zona de Compra','#4ade80')}
+    ${animPath('M100,190 L160,175 L210,180 L280,170 L330,165 L380,150','#4ade80',0.3,1.5)}
+    <circle cx="380" cy="150" r="5" fill="#4ade80" style="animation:pop 0.3s 1.8s both"/>
+    ${lbl(390,147,'Entrada Larga',c,'start','10')}
+    ${animPath('M380,150 L430,130 L470,70 L510,55',c,2,1)}
+    ${lbl(510,50,'Target','#f97316','end','11')}
+  `);}
+
+function chartOR(){
+  const c='#f59e0b';
+  return svgWrap(`
+    <rect x="50" y="85" width="110" height="70" fill="rgba(245,158,11,0.1)" rx="4"/>
+    <line x1="50" y1="85" x2="520" y2="85" stroke="${c}" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <line x1="50" y1="155" x2="520" y2="155" stroke="${c}" stroke-width="1.5" stroke-dasharray="6,4"/>
+    ${lbl(105,80,'Máx OR',c,'middle','10')}
+    ${lbl(105,168,'Mín OR',c,'middle','10')}
+    ${lbl(105,125,'Opening Range (15 min)','#8b949e','middle','11')}
+    ${wick(70,95,145,c)}${candle(70,105,40,14,true,c)}
+    ${wick(90,88,145,c)}${candle(90,95,50,14,false,'#ef4444')}
+    ${wick(110,90,150,c)}${candle(110,100,48,14,true,c)}
+    ${wick(140,80,140,c)}${candle(140,83,55,14,true,c)}
+    <line x1="165" y1="85" x2="165" y2="155" stroke="${c}" stroke-width="1.5"/>
+    ${lbl(165,75,'Ruptura','#4ade80','middle','10')}
+    ${animPath('M165,83 L220,65 L280,55 L350,42 L430,30','#4ade80',0.3,1.5)}
+    <line x1="350" y1="0" x2="350" y2="220" stroke="#4ade80" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+    ${lbl(360,30,'Target 2x','#4ade80','start','10')}
+    <line x1="260" y1="0" x2="260" y2="220" stroke="#4ade80" stroke-width="1" stroke-dasharray="4,4" opacity="0.3"/>
+    ${lbl(270,30,'Target 1x','#4ade80','start','10')}
+  `);}
+
+function chartWYACC(){
+  const c='#8b5cf6';
+  return svgWrap(`
+    ${animPath('M30,60 L90,130 L130,90 L170,160',c,0,1.5,2)}
+    <circle cx="170" cy="160" r="6" fill="${c}" style="animation:pop 0.3s 1.5s both"/>
+    ${lbl(175,158,'SC',c,'start','11')}
+    ${animPath('M170,160 L220,100 L260,120',c,1.5,0.8,2)}
+    <circle cx="220" cy="100" r="5" fill="#60a5fa" style="animation:pop 0.3s 2.4s both"/>
+    ${lbl(225,98,'AR','#60a5fa','start','11')}
+    ${animPath('M260,120 L300,130 L340,170 L360,185','#ef4444',2.3,0.8,2)}
+    <circle cx="360" cy="185" r="6" fill="#ef4444" style="animation:pop 0.3s 3.2s both"/>
+    ${lbl(365,185,'Spring','#ef4444','start','11')}
+    ${animPath('M360,185 L390,155 L420,160 L450,80 L520,20',c,3.2,1.5,2.5)}
+    <circle cx="420" cy="160" r="5" fill="#4ade80" style="animation:pop 0.3s 4.2s both"/>
+    ${lbl(425,158,'LPS','#4ade80','start','11')}
+    ${lbl(490,20,'Mark-Up ↑','#4ade80','end','12')}
+    <line x1="30" y1="175" x2="370" y2="175" stroke="${c}" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+    ${lbl(30,190,'Soporte del rango',c,'start','10')}
+  `);}
+
+function chartKZ(){
+  const c='#14b8a6';
+  return svgWrap(`
+    <rect x="30" y="20" width="110" height="190" fill="rgba(20,184,166,0.06)" rx="4"/>
+    <rect x="170" y="20" width="130" height="190" fill="rgba(59,130,246,0.06)" rx="4"/>
+    <rect x="330" y="20" width="130" height="190" fill="rgba(249,115,22,0.06)" rx="4"/>
+    ${lbl(85,205,'Asian 00-04 UTC','#8b949e','middle','10')}
+    ${lbl(235,205,'London 08-11 UTC',c,'middle','10')}
+    ${lbl(395,205,'NY 13-16 UTC','#f97316','middle','10')}
+    ${animPath('M40,100 L80,105 L110,98 L140,102',c,0,0.8)}
+    <line x1="40" y1="90" x2="140" y2="90" stroke="${c}" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+    <line x1="40" y1="115" x2="140" y2="115" stroke="${c}" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+    ${lbl(85,72,'Rango Asiático',c,'middle','10')}
+    ${animPath('M170,100 L200,118 L225,135 L250,80 L290,50',c,0.8,1.2,2)}
+    ${lbl(205,155,'Judas Swing','#ef4444','start','10')}
+    <circle cx="225" cy="135" r="5" fill="#ef4444" style="animation:pop 0.3s 1.6s both"/>
+    ${animPath('M330,90 L360,80 L400,60 L450,40','#f97316',2,1,2)}
+    ${lbl(400,35,'Continuación','#f97316','middle','10')}
+  `);}
+
+function chartEW(){
+  const c='#60a5fa';
+  return svgWrap(`
+    ${animPath('M40,175 L100,130',c,0,0.5,2)}
+    ${animPath('M100,130 L140,155',c,0.5,0.4,1.5)}
+    ${animPath('M140,155 L240,60','#4ade80',0.9,0.8,3)}
+    ${animPath('M240,60 L285,90',c,1.7,0.4,1.5)}
+    ${animPath('M285,90 L380,35',c,2.1,0.8,2)}
+    ${animPath('M380,35 L430,80 L470,140','#f97316',2.9,0.8)}
+    ${lbl(65,185,'①',c,'middle','18')}
+    ${lbl(120,165,'②',c,'middle','18')}
+    ${lbl(190,100,'③','#4ade80','middle','18')}
+    ${lbl(262,105,'④',c,'middle','18')}
+    ${lbl(332,75,'⑤',c,'middle','18')}
+    ${lbl(430,90,'a','#f97316','middle','16')}
+    ${lbl(460,150,'b','#f97316','middle','16')}
+    ${lbl(40,175,'Inicio','#6e7681','middle','10')}
+    ${lbl(380,30,'Fin onda 5','#8b949e','middle','10')}
+  `);}
+
+function chartSDB(){
+  const c='#f97316';
+  return svgWrap(`
+    <rect x="60" y="75" width="120" height="45" fill="rgba(239,68,68,0.1)" rx="4"/>
+    <rect x="60" y="155" width="120" height="45" fill="rgba(34,197,94,0.1)" rx="4"/>
+    ${lbl(120,70,'OFERTA','#ef4444','middle','11')}
+    ${lbl(120,212,'DEMANDA','#4ade80','middle','11')}
+    ${animPath('M40,180 L80,175 L120,185 L160,175',c,0,0.8)}
+    ${animPath('M160,175 L200,140 L240,95 L280,80 L320,70','#ef4444',0.8,1)}
+    ${animPath('M320,70 L360,90 L400,160 L430,178',c,1.8,1)}
+    ${animPath('M430,178 L450,160 L460,155',c,2.8,0.5)}
+    ${animPath('M460,155 L500,130 L540,80','#4ade80',3.3,0.8)}
+    <circle cx="460" cy="155" r="6" fill="#4ade80" style="animation:pop 0.3s 3.3s both"/>
+    ${lbl(480,145,'Rebote','#4ade80','start','11')}
+  `);}
+
+function chartPB(){
+  const c='#22c55e';
+  return svgWrap(`
+    <line x1="50" y1="130" x2="530" y2="130" stroke="${c}" stroke-width="1" stroke-dasharray="5,4"/>
+    ${lbl(50,124,'Soporte Clave',c,'start','10')}
+    ${wick(200,60,200,'#8b949e')}
+    <rect x="193" y="65" width="14" height="10" fill="#ef4444" rx="1"/>
+    <circle cx="200" cy="192" r="5" fill="${c}"/>
+    ${lbl(200,215,'Pin Bar Alcista',c,'middle','11')}
+    ${lbl(200,55,'Mecha larga','#8b949e','middle','10')}
+    ${lbl(200,80,'Cuerpo pequeño','#8b949e','middle','10')}
+    ${animPath('M220,130 L270,115 L320,100 L380,75 L450,50',c,0.5,1.5)}
+    ${lbl(460,48,'Target','#4ade80','start','11')}
+    ${wick(400,30,120,'#8b949e')}
+    <rect x="393" y="110" width="14" height="10" fill="#ef4444" rx="1"/>
+    ${lbl(400,215,'Shooting Star','#ef4444','middle','11')}
+    <line x1="350" y1="60" x2="530" y2="60" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,4"/>
+    ${lbl(360,55,'Resistencia','#ef4444','start','10')}
+  `);}
+
+function chartFIB(){
+  const c='#a78bfa';
+  const levels=[{y:30,pct:'0%',col:'#6e7681'},{y:65,pct:'23.6%',col:c},{y:95,pct:'38.2%',col:'#60a5fa'},{y:115,pct:'50%',col:'#f97316'},{y:140,pct:'61.8%',col:'#4ade80'},{y:165,pct:'78.6%',col:c},{y:195,pct:'100%',col:'#6e7681'}];
+  let lines='';
+  levels.forEach(l=>{lines+=`<line x1="60" y1="${l.y}" x2="530" y2="${l.y}" stroke="${l.col}" stroke-width="${l.pct==='61.8%'?2:1}" stroke-dasharray="${l.pct==='61.8%'?'none':'5,4'}" opacity="0.7"/><text x="535" y="${l.y+4}" fill="${l.col}" font-size="10" font-family="monospace">${l.pct}</text>`;});
+  return svgWrap(`
+    ${lines}
+    ${animPath('M60,195 L120,170 L180,150 L230,140 L270,138','#ef4444',0.3,1,2)}
+    <circle cx="270" cy="138" r="6" fill="#4ade80" style="animation:pop 0.3s 1.3s both"/>
+    ${animPath('M270,138 L330,115 L390,80 L460,45 L530,25',c,1.3,1.5,2)}
+    ${lbl(200,220,'Retroceso al 61.8%','#4ade80','middle','11')}
+    ${lbl(430,42,'Continuación','#a78bfa','middle','10')}
+    ${lbl(62,26,'Swing High','#6e7681','start','10')}
+    ${lbl(62,192,'Swing Low','#6e7681','start','10')}
+  `,210);}
+
+function chartGC(){
+  const c='#06b6d4';
+  return svgWrap(`
+    ${animPath('M30,170 L120,130 L200,90 L280,75 L360,65 L460,55 L540,45',c,0,1.5,2)}
+    ${animPath('M30,185 L100,165 L180,145 L260,110 L330,75 L400,55 L500,40 L540,38','#f97316',0.3,1.5,1.5)}
+    ${lbl(30,170,'EMA 50',c,'start','11')}
+    ${lbl(30,185,'EMA 200','#f97316','start','11')}
+    <circle cx="260" cy="92" r="8" fill="#4ade80" style="animation:pop 0.3s 1.5s both"/>
+    ${lbl(275,88,'Golden Cross','#4ade80','start','12')}
+    <line x1="260" y1="0" x2="260" y2="210" stroke="#4ade80" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+    ${animPath('M260,92 L310,108 L340,100',c,1.5,0.8)}
+    ${lbl(320,118,'Retesteo EMA 200','#8b949e','middle','10')}
+    ${animPath('M340,100 L400,70 L460,50 L530,35','#4ade80',2.3,1)}
+    ${lbl(500,32,'Mark-Up','#4ade80','end','11')}
+  `);}
+
+function chartRSIDIV(){
+  const c='#ef4444';
+  return svgWrap(`
+    ${animPath('M50,120 L120,80 L190,90 L260,55 L330,65',c,0,1.5,2)}
+    ${lbl(50,117,'Precio','#8b949e','start','10')}
+    <line x1="50" y1="150" x2="530" y2="150" stroke="#30363d" stroke-width="1"/>
+    ${animPath('M50,170 L120,155 L190,165 L260,158 L330,165',c,0.3,1.5,2)}
+    ${lbl(50,167,'RSI','#8b949e','start','10')}
+    <circle cx="260" cy="55" r="5" fill="${c}" style="animation:pop 0.3s 1.5s both"/>
+    <circle cx="330" cy="65" r="5" fill="${c}" style="animation:pop 0.3s 1.8s both"/>
+    <circle cx="260" cy="158" r="5" fill="#4ade80" style="animation:pop 0.3s 1.5s both"/>
+    <circle cx="330" cy="165" r="5" fill="#4ade80" style="animation:pop 0.3s 1.8s both"/>
+    <line x1="260" y1="55" x2="330" y2="65" stroke="${c}" stroke-width="2" stroke-dasharray="4,3"/>
+    <line x1="260" y1="158" x2="330" y2="165" stroke="#4ade80" stroke-width="2" stroke-dasharray="4,3"/>
+    ${lbl(290,48,'Precio sube',c,'middle','10')}
+    ${lbl(290,178,'RSI baja','#4ade80','middle','10')}
+    ${lbl(290,200,'DIVERGENCIA BAJISTA',c,'middle','12')}
+    ${animPath('M330,65 L380,90 L420,140 L460,175','#f97316',2,0.8,2)}
+    ${lbl(460,185,'Reversión','#f97316','end','11')}
+  `);}
+
+function chartCRT4H(){
+  const c='#eab308';
+  return svgWrap(`
+    ${wick(100,60,180,c)}
+    <rect x="88" y="85" width="24" height="80" fill="rgba(234,179,8,0.2)" rx="2" stroke="${c}" stroke-width="1.5"/>
+    ${lbl(100,55,'Vela 4H anterior',c,'middle','10')}
+    <line x1="60" y1="85" x2="520" y2="85" stroke="${c}" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <line x1="60" y1="165" x2="520" y2="165" stroke="${c}" stroke-width="1.5" stroke-dasharray="6,4"/>
+    ${lbl(380,80,'Máximo 4H',c,'start','10')}
+    ${lbl(380,178,'Mínimo 4H',c,'start','10')}
+    ${animPath('M200,130 L250,100 L290,87 L310,72','#ef4444',0.3,1,2)}
+    <circle cx="310" cy="72" r="6" fill="#ef4444" style="animation:pop 0.3s 1.3s both"/>
+    ${lbl(320,70,'Sweep','#ef4444','start','11')}
+    ${animPath('M310,72 L340,90 L380,110 L430,140 L470,165','#4ade80',1.3,1.2,2)}
+    <circle cx="470" cy="165" r="6" fill="#4ade80" style="animation:pop 0.3s 2.6s both"/>
+    ${lbl(475,165,'Target: Mín 4H','#4ade80','start','10')}
+    ${lbl(250,205,'Entry corto post-sweep → Target = Mínimo de la vela 4H',c,'middle','11')}
+  `);}
+
+const CHART_FNS={chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
+
+// ─── APP STATE ──────────────────────────────────────────────────────────────
+let curId=null, curTab='r', scores={}, done=new Set();
+let qIdx=0, qAnswered=false, qTotal=0, qRight=0;
+
+// ─── TAG COLORS ─────────────────────────────────────────────────────────────
+const TC={blue:'rgba(59,130,246,.15);color:#60a5fa;border-color:rgba(59,130,246,.35)',green:'rgba(34,197,94,.12);color:#86efac;border-color:rgba(34,197,94,.3)',red:'rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.3)',amber:'rgba(245,158,11,.12);color:#fcd34d;border-color:rgba(245,158,11,.3)',purple:'rgba(139,92,246,.12);color:#c4b5fd;border-color:rgba(139,92,246,.3)',yellow:'rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.3)'};
+function tagStyle(t){return TC[t]||TC.blue;}
+
+// ─── LOAD STRATEGY ──────────────────────────────────────────────────────────
+function loadStrat(id){
+  const s=STRATS.find(x=>x.id===id);if(!s)return;
+  curId=id;curTab='r';
+  document.documentElement.style.setProperty('--sc',sc(id));
+  document.documentElement.style.setProperty('--scr',sr(id));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('bot-screen').style.display='none';
+  const ss=document.getElementById('strat-screen');ss.style.display='block';
+  document.getElementById('sh-icon').textContent=s.icon;
+  document.getElementById('sh-name').textContent=s.name;
+  document.getElementById('sh-sub').textContent=s.sub;
+  document.getElementById('sh-tags').innerHTML=s.tags.map(([t,c])=>`<span class="tag" style="background:${tagStyle(c)}">${t}</span>`).join('');
+  document.getElementById('sh-meta').innerHTML=s.info.map(([k,v])=>`<div class="sh-chip"><span>${k}</span><span>${v}</span></div>`).join('');
+  document.getElementById('tb-title').textContent=s.name;
+  document.getElementById('tb-crumb').textContent=`Trading Academy Pro › ${s.label}`;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab==='r'));
+  document.getElementById('pane-r').style.display='block';
+  document.getElementById('pane-g').style.display='none';
+  document.getElementById('pane-q').style.display='none';
+  renderResumen(s);
+  renderChart(s);
+  initQuiz(s);
+  ss.classList.remove('fadeup');void ss.offsetWidth;ss.classList.add('fadeup');
 }
 
-function cartaImpulso(d){
-  const roc = d.indicadores.roc10;
-  if (typeof roc !== 'number') return '';
-  const pos = Math.max(-10, Math.min(10, roc));
-  const x = ((pos + 10) / 20 * 100).toFixed(2);
-  let lectura;
-  if (roc >= 5)       lectura = 'Impulso <b>fuerte alcista</b>: el mercado sube con velocidad inusual.';
-  else if (roc >= 2)  lectura = 'Impulso <b>alcista</b>: el mercado empuja con fuerza moderada.';
-  else if (roc > -2)  lectura = 'Impulso <b>neutro</b>: sin direcci&oacute;n clara estas dos semanas.';
-  else if (roc > -5)  lectura = 'Impulso <b>bajista</b>: presi&oacute;n vendedora moderada.';
-  else                lectura = 'Impulso <b>fuerte bajista</b>: ca&iacute;da r&aacute;pida en curso.';
-  return `
-  <div class="card">
-    <h2><span class="dot" style="background:var(--text)"></span>Impulso del mercado</h2>
-    <div class="riel-titulo" style="margin-top:12px"><span>ROC 10 d&iacute;as de QQQ</span><span class="num">${pctTxt(roc)}</span></div>
-    <div class="riel">
-      <div class="via"></div><div class="cero"></div>
-      <div class="marcador" style="left:${x}%"></div>
-    </div>
-    <div class="riel-leyenda"><span>&minus;10% fuerte bajista</span><span>0%</span><span>+10% fuerte alcista</span></div>
-    <div class="margen-texto">${lectura}</div>
-  </div>`;
-}
-
-function cartaGrafico(d){
-  return `
-  <div class="card">
-    <h2><span class="dot" style="background:var(--muted)"></span>Cazador SMC vs comprar y mantener</h2>
-    <div style="margin-top:12px"><canvas id="grafico"></canvas></div>
-    <div class="leyenda">
-      <span><i style="background:var(--violeta)"></i>Cazador SMC</span>
-      <span><i style="background:var(--muted)"></i>Comprar y mantener QQQ</span>
-    </div>
-  </div>`;
-}
-
-function dibujarGrafico(hist){
-  const cv = $('#grafico'); if(!cv || hist.length < 2) return;
-  const dpr = window.devicePixelRatio || 1;
-  const W = cv.clientWidth, H = 190;
-  cv.width = W * dpr; cv.height = H * dpr;
-  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-
-  const series = [
-    {k:'smc', color:'#B48CFF', w:2.2},
-    {k:'bh',  color:'#8A97AB', w:1.4},
-  ].filter(s => hist.some(h => typeof h[s.k] === 'number'));
-  const todos = hist.flatMap(h => series.map(s => h[s.k]).filter(v => typeof v === 'number'));
-  let min = Math.min(...todos), max = Math.max(...todos);
-  if(max - min < 1){ min -= 1; max += 1; }
-  const pad = (max - min) * 0.08; min -= pad; max += pad;
-  const px = i => 4 + (W-8) * i / (hist.length - 1);
-  const py = v => H - 18 - (H-30) * (v - min) / (max - min);
-
-  ctx.strokeStyle = 'rgba(34,48,74,.6)'; ctx.lineWidth = 1;
-  ctx.fillStyle = '#8A97AB'; ctx.font = '10px IBM Plex Mono, monospace';
-  [min+pad, (min+max)/2, max-pad].forEach(v=>{
-    const y = py(v);
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
-    ctx.fillText('$'+Math.round(v).toLocaleString('en-US'), 4, y-3);
+// ─── RENDER RESUMEN ─────────────────────────────────────────────────────────
+function renderResumen(s){
+  const el=document.getElementById('pane-r');
+  let html=`<div class="concept-grid">`;
+  s.concepts.forEach(([icon,title,desc,key])=>{
+    html+=`<div class="concept-card" onclick="showConceptDetail('${key}','${icon}')">
+      <div class="cc-row"><span class="cc-icon">${icon}</span>
+      <div><div class="cc-title">${title}</div><div class="cc-desc">${desc}</div></div></div>
+    </div>`;
   });
-  series.forEach(s=>{
-    ctx.strokeStyle = s.color; ctx.lineWidth = s.w; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    let ini = false;
-    hist.forEach((h,i)=>{
-      const v = h[s.k];
-      if (typeof v !== 'number') return;
-      const x=px(i), y=py(v);
-      if (ini) ctx.lineTo(x,y); else { ctx.moveTo(x,y); ini = true; }
-    });
-    ctx.stroke();
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+// ─── CONCEPT DETAIL MODAL ───────────────────────────────────────────────────
+function showConceptDetail(key,icon){
+  const d=CD[key];if(!d)return;
+  const stratId=key.split('.')[0];
+  const color=sc(stratId);
+  const rgb=sr(stratId);
+  document.documentElement.style.setProperty('--sc',color);
+  document.documentElement.style.setProperty('--scr',rgb);
+  const mi=document.getElementById('m-icon');
+  mi.textContent=icon||'📊';
+  mi.style.background=`rgba(${rgb},.15)`;
+  mi.style.border=`1px solid rgba(${rgb},.3)`;
+  document.getElementById('m-title').textContent=d.title;
+  document.getElementById('m-sub').textContent='Toca cada regla para ver un ejemplo práctico';
+  let html=`<div class="m-section">
+    <div class="m-stitle">¿Qué es?</div>
+    <div class="m-long">${d.long}</div>
+  </div>
+  <div class="m-section">
+    <div class="m-stitle">Reglas Clave — toca para ver ejemplo</div>
+    <ul class="m-rules">`;
+  d.rules.forEach((r,i)=>{
+    const rid=`rule-${key.replace('.','_')}-${i}`;
+    html+=`<li class="m-rule" id="${rid}">
+      <div class="m-rule-hdr" onclick="toggleRule('${rid}')">
+        <span>${r.t}</span>
+        <span class="m-rule-badge">Ejemplo ▶</span>
+      </div>
+      <div class="m-rule-body">
+        <div class="m-rule-ex">${r.ex}</div>
+      </div>
+    </li>`;
   });
-  ctx.fillStyle = '#8A97AB';
-  ctx.fillText(hist[0].fecha, 4, H-4);
-  const f = hist[hist.length-1].fecha;
-  ctx.fillText(f, W - ctx.measureText(f).width - 4, H-4);
-}
-
-function cartaOps(d){
-  const ops = (d.smc.operaciones || []).slice(0, 15);
-  const filas = ops.map(o => `
-    <tr>
-      <td class="num">${o.fecha}</td>
-      <td><b>${o.ticker}</b></td>
-      <td class="${o.tipo.startsWith('COMPRA')?'op-compra':'op-venta'}">${o.tipo.startsWith('COMPRA')?'Compra':'Venta'}</td>
-      <td class="der num">${dinero(o.precio)}</td>
-      <td class="der num">${o.pnl === '' ? '&mdash;' : `<span class="${o.pnl>=0?'pos':'neg'}">${o.pnl>=0?'+':''}${Number(o.pnl).toFixed(2)}</span>`}</td>
-    </tr>`).join('');
-  return `
-  <div class="card">
-    <h2><span class="dot" style="background:var(--muted)"></span>Cacer&iacute;as</h2>
-    ${ops.length ? `<div style="margin-top:10px; overflow-x:auto"><table>
-      <tr><th>Fecha</th><th>Ticker</th><th>Tipo</th><th class="der">Precio</th><th class="der">P&amp;L ($)</th></tr>
-      ${filas}</table></div>`
-    : '<div class="sin-ops">Sin cacer&iacute;as todav&iacute;a. El primer CHoCH alcista aparecer&aacute; solo.</div>'}
+  html+=`</ul></div>`;
+  if(d.chartFn && CHART_FNS[d.chartFn]){
+    html+=`<div class="m-section">
+      <div class="m-stitle">Gráfico Explicativo</div>
+      <div class="m-chart">${CHART_FNS[d.chartFn]()}</div>
+    </div>`;
+  }
+  html+=`<div class="m-section">
+    <div class="m-stitle">Tip de Entrada</div>
+    <div class="m-tip">${d.tip}</div>
   </div>`;
+  document.getElementById('m-body').innerHTML=html;
+  document.getElementById('modal').classList.add('open');
 }
 
-async function cargar(){
-  try{
-    const r = await fetch('data.json?t=' + Date.now(), {cache:'no-store'});
-    const d = await r.json();
-    if(!d.actualizado || d.version < 3){
-      $('#contenido').innerHTML = '<div class="aviso">Esperando la primera actualizaci&oacute;n del Cazador SMC. Lanza el workflow desde la pesta&ntilde;a Actions de GitHub o espera a la corrida diaria.</div>';
-      return;
+function toggleRule(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.toggle('open');
+}
+
+function closeModal(e){
+  if(e.target===document.getElementById('modal'))
+    document.getElementById('modal').classList.remove('open');
+}
+
+// ─── RENDER CHART ────────────────────────────────────────────────────────────
+function renderChart(s){
+  const el=document.getElementById('pane-g');
+  const con=s.concepts[0];const key=con[3];const icon=con[0];
+  const d=CD[key];
+  let html=`<div class="card">`;
+  if(d && d.chartFn && CHART_FNS[d.chartFn]){
+    html+=`<div class="m-stitle" style="margin-bottom:12px">📈 ${d.title}</div>`;
+    html+=`<div class="m-chart">${CHART_FNS[d.chartFn]()}</div>`;
+    if(s.concepts.length>1){
+      html+=`<div style="margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">`;
+      s.concepts.slice(1).forEach(([ic,t,dc,k])=>{
+        const cd2=CD[k];
+        if(cd2&&cd2.chartFn&&CHART_FNS[cd2.chartFn]){
+          html+=`<div style="cursor:pointer;border:1px solid var(--border);border-radius:8px;overflow:hidden" onclick="showConceptDetail('${k}','${ic}')">
+            <div style="background:var(--bg3);padding:6px 10px;font-size:.78rem;font-weight:600">${ic} ${cd2.title}</div>
+            ${CHART_FNS[cd2.chartFn]()}
+          </div>`;
+        }
+      });
+      html+=`</div>`;
     }
-    $('#precio').textContent = 'QQQ ' + dinero(d.precio_qqq);
-    $('#actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
-    $('#contenido').innerHTML = cartaSMC(d) + cartaImpulso(d) + cartaGrafico(d) + cartaOps(d);
-    dibujarGrafico(d.historial);
-  }catch(e){
-    $('#contenido').innerHTML = '<div class="aviso">No se pudieron cargar los datos. Revisa tu conexi&oacute;n e intenta de nuevo.</div>';
+  } else {html+=`<p style="color:var(--tx3);text-align:center;padding:40px">Gráfico no disponible</p>`;}
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+// ─── QUIZ ───────────────────────────────────────────────────────────────────
+function initQuiz(s){
+  qIdx=0;qAnswered=false;qTotal=s.quiz.length;qRight=0;
+  if(!scores[s.id])scores[s.id]={right:0,total:0};
+  renderQuestion(s);
+}
+
+function renderQuestion(s){
+  const el=document.getElementById('pane-q');
+  if(qIdx>=s.quiz.length){renderResult(s,el);return;}
+  const q=s.quiz[qIdx];
+  const prog=Math.round((qIdx/s.quiz.length)*100);
+  el.innerHTML=`<div class="q-card fadeup">
+    <div class="q-progress"><div class="q-bar" style="width:${prog}%"></div></div>
+    <p style="font-size:.75rem;color:var(--tx3);margin-bottom:10px">Pregunta ${qIdx+1} de ${s.quiz.length}</p>
+    ${q.ctx?`<div class="q-ctx">${q.ctx}</div>`:''}
+    <div class="q-text">${q.q}</div>
+    <div class="q-opts" id="q-opts"></div>
+    <div id="q-exp"></div>
+    <div id="q-next-wrap"></div>
+  </div>`;
+  const opts=document.getElementById('q-opts');
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='q-opt';btn.textContent=opt;
+    btn.addEventListener('click',()=>answerQ(i,q,s));
+    opts.appendChild(btn);
+  });
+}
+
+function answerQ(i,q,s){
+  if(qAnswered)return;qAnswered=true;
+  const opts=document.querySelectorAll('.q-opt');
+  const correct=i===q.ok;
+  opts[i].classList.add(correct?'q-correct':'q-wrong');
+  if(!correct)opts[q.ok].classList.add('q-correct');
+  else{qRight++;scores[s.id].right++;
+    launchConfetti();}
+  scores[s.id].total++;
+  if(!correct)opts[i].style.animation='shake 0.4s ease';
+  document.getElementById('q-exp').innerHTML=`<div class="q-exp"><strong style="color:var(--sc)">${correct?'✅ Correcto!':'❌ Incorrecto'}</strong><br>${q.exp}</div>`;
+  document.getElementById('q-next-wrap').innerHTML=`<button class="q-next" id="q-next-btn">Siguiente →</button>`;
+  document.getElementById('q-next-btn').addEventListener('click',()=>{
+    qIdx++;qAnswered=false;renderQuestion(s);
+  });
+  updateStats();
+}
+
+function renderResult(s,el){
+  const pct=Math.round((qRight/qTotal)*100);
+  const msg=pct>=80?'🏆 Excelente dominio!':pct>=60?'👍 Buen trabajo, sigue practicando':'📚 Repasa el material y vuelve a intentarlo';
+  if(pct>=80)launchConfetti();
+  el.innerHTML=`<div class="q-card"><div class="q-result">
+    <div style="font-size:3rem;margin-bottom:12px">${pct>=80?'🏆':pct>=60?'👍':'📚'}</div>
+    <div style="font-size:1.6rem;font-weight:800;color:var(--sc)">${pct}%</div>
+    <div style="font-size:.85rem;color:var(--tx2);margin:6px 0 18px">${qRight}/${qTotal} respuestas correctas</div>
+    <div style="font-size:.9rem;margin-bottom:22px">${msg}</div>
+    <button class="q-next" onclick="initQuiz(STRATS.find(x=>x.id==='${s.id}'))">Repetir Quiz</button>
+  </div></div>`;
+  if(pct>=60)done.add(s.id);
+  updateStats();
+  updateProgress();
+}
+
+function updateStats(){
+  let totalRight=0,totalDone=0;
+  Object.values(scores).forEach(sc=>{totalRight+=sc.right;totalDone+=sc.total;});
+  document.getElementById('st-done').textContent=done.size;
+  document.getElementById('st-pct').textContent=totalDone>0?Math.round((totalRight/totalDone)*100)+'%':'--';
+}
+
+function updateProgress(){
+  const pct=Math.round((done.size/STRATS.length)*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+}
+
+// ─── CONFETTI ────────────────────────────────────────────────────────────────
+function launchConfetti(){
+  const colors=['#3b82f6','#f59e0b','#8b5cf6','#22c55e','#ef4444','#a78bfa','#06b6d4'];
+  for(let i=0;i<18;i++){
+    const d=document.createElement('div');
+    d.style.cssText=`position:fixed;top:20%;left:${20+Math.random()*60}%;width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>.5?'50%':'2px'};pointer-events:none;z-index:99999;animation:confettiFall ${0.8+Math.random()*0.8}s ${Math.random()*0.4}s ease forwards`;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),1600);
   }
 }
 
-$('#refrescar').addEventListener('click', cargar);
-cargar();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+// ─── TABS ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const tab=btn.dataset.tab;curTab=tab;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b===btn));
+    ['r','g','q'].forEach(t=>{
+      document.getElementById('pane-'+t).style.display=t===tab?'block':'none';
+    });
+  });
+});
+
+// ─── BUILD NAV ───────────────────────────────────────────────────────────────
+function loadBot(){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.id==='__bot'));
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('strat-screen').style.display='none';
+  document.getElementById('bot-screen').style.display='block';
+  document.documentElement.style.setProperty('--sc','#B48CFF');
+  document.documentElement.style.setProperty('--scr','180,140,255');
+  document.getElementById('tb-title').textContent='Cazador SMC · Bot en Vivo';
+  document.getElementById('tb-crumb').textContent='Tu estrategia SMC operando sola en la nube (simulado)';
+}
+
+function buildNav(){
+  const nl=document.getElementById('nav-list');
+  const bot=document.createElement('button');
+  bot.className='nav-btn';
+  bot.dataset.id='__bot';
+  bot.style.cssText='border:1px solid rgba(180,140,255,.35);background:rgba(180,140,255,.08);margin-bottom:8px';
+  bot.innerHTML=`<span class="ni">\u{1F916}</span><div><div class="nl" style="color:#B48CFF">Bot en Vivo</div><div class="ns">Cazador SMC \u00b7 en la nube</div></div>`;
+  bot.addEventListener('click',loadBot);
+  nl.appendChild(bot);
+  STRATS.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='nav-btn';
+    btn.dataset.id=s.id;
+    btn.innerHTML=`<span class="ni">${s.icon}</span><div><div class="nl">${s.label}</div><div class="ns">${s.info[0][1]}</div></div>`;
+    btn.addEventListener('click',()=>loadStrat(s.id));
+    nl.appendChild(btn);
+  });
+}
+
+buildNav();
 </script>
 </body>
 </html>
