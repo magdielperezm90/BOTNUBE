@@ -173,12 +173,40 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   .strat-header::before{display:none}
 }
 
+
+/* ---- Panel Bot en Vivo (nativo) ---- */
+#bot-screen .bp-card{background:#131B29;border:1px solid #22304A;border-radius:14px;padding:16px;margin-bottom:14px}
+#bot-screen .bp-card h2{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:8px;color:#E7ECF3}
+#bot-screen .bp-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+#bot-screen .bp-num{font-family:ui-monospace,SFMono-Regular,monospace;font-variant-numeric:tabular-nums}
+#bot-screen .bp-fila{display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 4px}
+#bot-screen .bp-valor{font-size:1.7rem;font-weight:600;color:#E7ECF3}
+#bot-screen .bp-badge{font-size:.68rem;font-weight:600;letter-spacing:.08em;padding:4px 10px;border-radius:99px;border:1px solid #22304A;color:#8A97AB}
+#bot-screen .bp-badge.on{color:#B48CFF;border-color:rgba(180,140,255,.4);background:rgba(180,140,255,.08)}
+#bot-screen .bp-pos{color:#3DDC97}#bot-screen .bp-neg{color:#FF6B7A}
+#bot-screen .bp-muted{color:#8A97AB}
+#bot-screen table{width:100%;border-collapse:collapse;font-size:.76rem;color:#E7ECF3}
+#bot-screen th{color:#8A97AB;font-weight:500;text-align:left;padding:6px 4px;border-bottom:1px solid #22304A;font-size:.7rem}
+#bot-screen td{padding:7px 4px;border-bottom:1px solid rgba(34,48,74,.5)}
+#bot-screen td.der,#bot-screen th.der{text-align:right}
+#bot-screen .bp-riel{position:relative;height:34px;margin-bottom:4px}
+#bot-screen .bp-via{position:absolute;top:15px;left:0;right:0;height:4px;border-radius:2px;background:linear-gradient(90deg,rgba(255,107,122,.55),rgba(255,107,122,.15) 46%,rgba(138,151,171,.6) 50%,rgba(61,220,151,.15) 54%,rgba(61,220,151,.55))}
+#bot-screen .bp-cero{position:absolute;top:6px;left:50%;width:2px;height:22px;background:#8A97AB;transform:translateX(-1px);border-radius:1px}
+#bot-screen .bp-marca{position:absolute;top:10px;width:14px;height:14px;border-radius:50%;background:#E7ECF3;border:3px solid #0d1117;transform:translateX(-7px);box-shadow:0 0 0 1px #22304A}
+#bot-screen .bp-riel-tit{display:flex;justify-content:space-between;font-size:.7rem;color:#8A97AB;margin-bottom:6px}
+#bot-screen .bp-riel-ley{display:flex;justify-content:space-between;font-size:.62rem;color:#8A97AB}
+#bot-screen .bp-lectura{text-align:center;font-size:.74rem;color:#8A97AB;margin-top:8px}
+#bot-screen .bp-lectura b{color:#E7ECF3}
+#bot-screen canvas{width:100%;height:190px;display:block}
+#bot-screen .bp-leyenda{display:flex;gap:14px;font-size:.68rem;color:#8A97AB;margin-top:8px;flex-wrap:wrap}
+#bot-screen .bp-leyenda i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
 </style>
 </head>
 <body>
 <div id="app">
 <div id="sidebar">
-  <div class="sb-logo">
+  <div class="sb-logo" onclick="goHome()" style="cursor:pointer" title="Ir al inicio">
     <div class="sb-logo-icon">&#x1F4C8;</div>
     <div><div class="sb-logo-text">Trading Academy</div><div class="sb-logo-sub">11 estrategias pro</div></div>
   </div>
@@ -200,8 +228,14 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     </div>
   </div>
   <div id="content">
-    <div id="bot-screen" style="display:none;height:calc(100vh - 130px)">
-      <iframe src="bot.html" style="width:100%;height:100%;border:0;border-radius:14px;background:#0B1018" title="Cazador SMC en vivo"></iframe>
+    <div id="bot-screen" style="display:none;max-width:720px;margin:0 auto">
+      <div id="bp-cabecera" style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+        <div style="font-size:.75rem;color:var(--tx3);letter-spacing:.12em;text-transform:uppercase">Simulado &middot; Smart Money</div>
+        <div style="text-align:right"><span id="bp-precio" style="font-family:ui-monospace,monospace;font-weight:700;font-size:1.1rem">&mdash;</span><div id="bp-actualizado" style="font-size:.7rem;color:var(--tx3)">cargando&hellip;</div></div>
+      </div>
+      <div id="bp-contenido"></div>
+      <button id="bp-refrescar" style="display:block;width:100%;padding:12px;background:transparent;color:#B48CFF;border:1px solid rgba(180,140,255,.4);border-radius:12px;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;margin-top:4px">Actualizar datos</button>
+      <div style="margin-top:14px;text-align:center;color:var(--tx3);font-size:.72rem;line-height:1.6">Cartera simulada &middot; No es dinero real ni consejo financiero.<br>CHoCH alcista + bias SMA200 &middot; 20 tickers &middot; m&aacute;x. 5 posiciones &middot; vs comprar y mantener QQQ</div>
     </div>
     <div id="welcome">
       <div style="font-size:3.5rem;margin-bottom:16px">&#x1F4CA;</div>
@@ -1228,6 +1262,17 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 });
 
 // ─── BUILD NAV ───────────────────────────────────────────────────────────────
+function goHome(){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('strat-screen').style.display='none';
+  document.getElementById('bot-screen').style.display='none';
+  document.getElementById('welcome').style.display='flex';
+  document.documentElement.style.setProperty('--sc','#3b82f6');
+  document.documentElement.style.setProperty('--scr','59,130,246');
+  document.getElementById('tb-title').textContent='Trading Academy Pro';
+  document.getElementById('tb-crumb').textContent='Selecciona una estrategia para comenzar';
+}
+
 function loadBot(){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.id==='__bot'));
   document.getElementById('welcome').style.display='none';
@@ -1237,7 +1282,114 @@ function loadBot(){
   document.documentElement.style.setProperty('--scr','180,140,255');
   document.getElementById('tb-title').textContent='Cazador SMC · Bot en Vivo';
   document.getElementById('tb-crumb').textContent='Tu estrategia SMC operando sola en la nube (simulado)';
+  bpCargar();
 }
+
+/* ================= PANEL DEL BOT (nativo, lee data.json) ================= */
+const bpD = v => '$' + Number(v).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+const bpP = v => (v>=0?'+':'') + v.toFixed(2) + '%';
+
+function bpCartera(d){
+  const i = d.indicadores, smc = d.smc;
+  const tks = Object.keys(smc.posiciones || {});
+  const p = (i.valor_smc / d.capital_inicial - 1) * 100;
+  const filas = tks.map(tk=>{
+    const pos = smc.posiciones[tk];
+    const act = pos.precio_actual || pos.entrada;
+    const pnl = (act / pos.entrada - 1) * 100;
+    return `<tr><td><b>${tk}</b></td><td class="bp-num">${pos.fecha}</td><td class="der bp-num">${bpD(pos.entrada)}</td><td class="der bp-num">${bpD(act)}</td><td class="der bp-num ${pnl>=0?'bp-pos':'bp-neg'}">${bpP(pnl)}</td></tr>`;
+  }).join('');
+  return `<div class="bp-card" style="border-color:rgba(180,140,255,.3)">
+    <h2><span class="bp-dot" style="background:#B48CFF"></span>Cartera del Cazador</h2>
+    <div class="bp-fila"><div class="bp-valor bp-num">${bpD(i.valor_smc)}</div><div class="bp-badge ${tks.length?'on':''}">${tks.length}/5 POSICIONES</div></div>
+    <div style="font-size:.78rem;margin-bottom:12px"><span class="bp-num ${p>=0?'bp-pos':'bp-neg'}">${bpP(p)}</span> <span class="bp-muted">desde el inicio &middot; vs QQQ:</span> <span class="bp-num">${bpD(i.valor_bh)}</span></div>
+    ${tks.length ? `<div style="overflow-x:auto"><table><tr><th>Posici&oacute;n</th><th>Desde</th><th class="der">Entrada</th><th class="der">Actual</th><th class="der">P&amp;L</th></tr>${filas}</table></div>`
+    : '<div class="bp-muted" style="font-size:.78rem;padding:8px 0">Sin posiciones: esperando un CHoCH alcista con bias a favor en la lista de 20.</div>'}
+    <div class="bp-muted" style="font-size:.72rem;margin-top:10px;line-height:1.5">Estructura del mercado hoy: <b style="color:#E7ECF3">${i.tickers_alcistas} de ${i.tickers_total}</b> tickers en estructura alcista.</div>
+  </div>`;
+}
+
+function bpImpulso(d){
+  const roc = d.indicadores.roc10;
+  if (typeof roc !== 'number') return '';
+  const x = ((Math.max(-10, Math.min(10, roc)) + 10) / 20 * 100).toFixed(2);
+  let t;
+  if (roc >= 5) t = 'Impulso <b>fuerte alcista</b>: el mercado sube con velocidad inusual.';
+  else if (roc >= 2) t = 'Impulso <b>alcista</b>: el mercado empuja con fuerza moderada.';
+  else if (roc > -2) t = 'Impulso <b>neutro</b>: sin direcci&oacute;n clara estas dos semanas.';
+  else if (roc > -5) t = 'Impulso <b>bajista</b>: presi&oacute;n vendedora moderada.';
+  else t = 'Impulso <b>fuerte bajista</b>: ca&iacute;da r&aacute;pida en curso.';
+  return `<div class="bp-card"><h2><span class="bp-dot" style="background:#E7ECF3"></span>Impulso del mercado</h2>
+    <div class="bp-riel-tit" style="margin-top:12px"><span>ROC 10 d&iacute;as de QQQ</span><span class="bp-num">${bpP(roc)}</span></div>
+    <div class="bp-riel"><div class="bp-via"></div><div class="bp-cero"></div><div class="bp-marca" style="left:${x}%"></div></div>
+    <div class="bp-riel-ley"><span>&minus;10% fuerte bajista</span><span>0%</span><span>+10% fuerte alcista</span></div>
+    <div class="bp-lectura">${t}</div></div>`;
+}
+
+function bpGrafico(){
+  return `<div class="bp-card"><h2><span class="bp-dot" style="background:#8A97AB"></span>Cazador SMC vs comprar y mantener</h2>
+    <div style="margin-top:12px"><canvas id="bp-grafico"></canvas></div>
+    <div class="bp-leyenda"><span><i style="background:#B48CFF"></i>Cazador SMC</span><span><i style="background:#8A97AB"></i>Comprar y mantener QQQ</span></div></div>`;
+}
+
+function bpDibujar(hist){
+  const cv = document.getElementById('bp-grafico'); if(!cv || !hist || hist.length < 2) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth || 640, Hh = 190;
+  cv.width = W * dpr; cv.height = Hh * dpr;
+  const ctx = cv.getContext('2d'); if(!ctx) return;
+  ctx.scale(dpr, dpr);
+  const series = [{k:'smc',color:'#B48CFF',w:2.2},{k:'bh',color:'#8A97AB',w:1.4}]
+    .filter(s => hist.some(h => typeof h[s.k] === 'number'));
+  const todos = hist.flatMap(h => series.map(s => h[s.k]).filter(v => typeof v === 'number'));
+  let min = Math.min(...todos), max = Math.max(...todos);
+  if(max - min < 1){ min -= 1; max += 1; }
+  const pad = (max - min) * 0.08; min -= pad; max += pad;
+  const px = i => 4 + (W-8) * i / (hist.length - 1);
+  const py = v => Hh - 18 - (Hh-30) * (v - min) / (max - min);
+  ctx.strokeStyle = 'rgba(34,48,74,.6)'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#8A97AB'; ctx.font = '10px ui-monospace, monospace';
+  [min+pad,(min+max)/2,max-pad].forEach(v=>{const y=py(v);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.fillText('$'+Math.round(v).toLocaleString('en-US'),4,y-3);});
+  series.forEach(s=>{ctx.strokeStyle=s.color;ctx.lineWidth=s.w;ctx.lineJoin='round';ctx.beginPath();let ini=false;
+    hist.forEach((h,i)=>{const v=h[s.k];if(typeof v!=='number')return;const x=px(i),y=py(v);if(ini)ctx.lineTo(x,y);else{ctx.moveTo(x,y);ini=true;}});ctx.stroke();});
+  ctx.fillStyle = '#8A97AB';
+  ctx.fillText(hist[0].fecha, 4, Hh-4);
+  const f = hist[hist.length-1].fecha;
+  ctx.fillText(f, W - ctx.measureText(f).width - 4, Hh-4);
+}
+
+function bpOps(d){
+  const ops = (d.smc.operaciones || []).slice(0, 15);
+  const filas = ops.map(o => `<tr><td class="bp-num">${o.fecha}</td><td><b>${o.ticker}</b></td>
+    <td class="${o.tipo.startsWith('COMPRA')?'bp-pos':'bp-neg'}">${o.tipo.startsWith('COMPRA')?'Compra':'Venta'}</td>
+    <td class="der bp-num">${bpD(o.precio)}</td>
+    <td class="der bp-num">${o.pnl === '' ? '&mdash;' : `<span class="${o.pnl>=0?'bp-pos':'bp-neg'}">${o.pnl>=0?'+':''}${Number(o.pnl).toFixed(2)}</span>`}</td></tr>`).join('');
+  return `<div class="bp-card"><h2><span class="bp-dot" style="background:#8A97AB"></span>Cacer&iacute;as</h2>
+    ${ops.length ? `<div style="margin-top:10px;overflow-x:auto"><table><tr><th>Fecha</th><th>Ticker</th><th>Tipo</th><th class="der">Precio</th><th class="der">P&amp;L ($)</th></tr>${filas}</table></div>`
+    : '<div class="bp-muted" style="font-size:.78rem;padding:8px 0">Sin cacer&iacute;as todav&iacute;a. El primer CHoCH alcista aparecer&aacute; solo.</div>'}</div>`;
+}
+
+async function bpCargar(){
+  const cont = document.getElementById('bp-contenido');
+  try{
+    const r = await fetch('data.json?t=' + Date.now(), {cache:'no-store'});
+    const d = await r.json();
+    if(!d.actualizado || d.version < 3){
+      cont.innerHTML = '<div class="bp-card bp-muted" style="font-size:.8rem">Esperando la primera actualizaci&oacute;n del Cazador SMC (corre cada d&iacute;a h&aacute;bil despu&eacute;s del cierre del mercado).</div>';
+      return;
+    }
+    document.getElementById('bp-precio').textContent = 'QQQ ' + bpD(d.precio_qqq);
+    document.getElementById('bp-actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
+    cont.innerHTML = bpCartera(d) + bpImpulso(d) + bpGrafico() + bpOps(d);
+    bpDibujar(d.historial);
+  }catch(e){
+    cont.innerHTML = '<div class="bp-card bp-muted" style="font-size:.8rem">No se pudieron cargar los datos. Revisa tu conexi&oacute;n e intenta de nuevo.</div>';
+  }
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const b=document.getElementById('bp-refrescar');
+  if(b)b.addEventListener('click',bpCargar);
+});
 
 function buildNav(){
   const nl=document.getElementById('nav-list');
