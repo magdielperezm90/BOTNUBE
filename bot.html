@@ -70,6 +70,19 @@
     background:transparent; color:var(--violeta); border:1px solid rgba(180,140,255,.4);
     border-radius:var(--radius); font-family:inherit; font-size:14px; font-weight:600; cursor:pointer}
   .boton:active{background:rgba(180,140,255,.1)}
+  .click{cursor:pointer}
+  .click:hover td{background:rgba(180,140,255,.07)}
+  #bmodal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:999;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+  #bmodal.open{display:flex}
+  .bm-box{background:var(--card);border:1px solid rgba(180,140,255,.3);border-radius:16px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;padding:18px}
+  .bm-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+  .bm-title{font-size:15px;font-weight:700}
+  .bm-sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .bm-x{background:transparent;border:1px solid var(--line);border-radius:8px;width:30px;height:30px;color:var(--muted);cursor:pointer;font-size:14px;flex-shrink:0}
+  .bm-sec{margin-top:14px}
+  .bm-st{font-size:10px;font-weight:700;color:var(--violeta);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+  .bm-tx{font-size:13px;color:var(--muted);line-height:1.65}
+  .bm-tx b{color:var(--text)}
   footer{margin-top:16px; text-align:center; color:var(--muted); font-size:11px; line-height:1.6}
   @media (prefers-reduced-motion:no-preference){
     .card{animation:entrar .35s ease both}
@@ -99,6 +112,16 @@
   CHoCH alcista + bias SMA200 &middot; 20 tickers &middot; m&aacute;x. 5 posiciones &middot; vs comprar y mantener QQQ
 </footer>
 
+<div id="bmodal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="bm-box">
+    <div class="bm-hdr">
+      <div><div class="bm-title" id="bm-title"></div><div class="bm-sub" id="bm-sub"></div></div>
+      <button class="bm-x" onclick="document.getElementById('bmodal').classList.remove('open')">&#x2715;</button>
+    </div>
+    <div id="bm-body"></div>
+  </div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
 const dinero = v => '$' + Number(v).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
@@ -113,7 +136,7 @@ function cartaSMC(d){
     const pos = smc.posiciones[tk];
     const actual = pos.precio_actual || pos.entrada;
     const pnl = (actual / pos.entrada - 1) * 100;
-    return `<tr>
+    return `<tr class="click" onclick="informePos('${tk}')">
       <td><b>${tk}</b></td>
       <td class="num">${pos.fecha}</td>
       <td class="der num">${dinero(pos.entrada)}</td>
@@ -178,7 +201,8 @@ function dibujarGrafico(hist){
   const dpr = window.devicePixelRatio || 1;
   const W = cv.clientWidth, H = 190;
   cv.width = W * dpr; cv.height = H * dpr;
-  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const ctx = cv.getContext('2d'); if(!ctx) return;
+  ctx.scale(dpr, dpr);
 
   const series = [
     {k:'smc', color:'#B48CFF', w:2.2},
@@ -218,8 +242,8 @@ function dibujarGrafico(hist){
 
 function cartaOps(d){
   const ops = (d.smc.operaciones || []).slice(0, 15);
-  const filas = ops.map(o => `
-    <tr>
+  const filas = ops.map((o,i) => `
+    <tr class="click" onclick="abrirInforme(window.__d.smc.operaciones[${i}])">
       <td class="num">${o.fecha}</td>
       <td><b>${o.ticker}</b></td>
       <td class="${o.tipo.startsWith('COMPRA')?'op-compra':'op-venta'}">${o.tipo.startsWith('COMPRA')?'Compra':'Venta'}</td>
@@ -231,7 +255,7 @@ function cartaOps(d){
     <h2><span class="dot" style="background:var(--muted)"></span>Cacer&iacute;as</h2>
     ${ops.length ? `<div style="margin-top:10px; overflow-x:auto"><table>
       <tr><th>Fecha</th><th>Ticker</th><th>Tipo</th><th class="der">Precio</th><th class="der">P&amp;L ($)</th></tr>
-      ${filas}</table></div>`
+      ${filas}</table><div style="font-size:10px;color:var(--muted);margin-top:8px">Toca una cacer&iacute;a para ver su informe completo.</div></div>`
     : '<div class="sin-ops">Sin cacer&iacute;as todav&iacute;a. El primer CHoCH alcista aparecer&aacute; solo.</div>'}
   </div>`;
 }
@@ -246,11 +270,90 @@ async function cargar(){
     }
     $('#precio').textContent = 'QQQ ' + dinero(d.precio_qqq);
     $('#actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
+    window.__d = d;
     $('#contenido').innerHTML = cartaSMC(d) + cartaImpulso(d) + cartaGrafico(d) + cartaOps(d);
     dibujarGrafico(d.historial);
   }catch(e){
     $('#contenido').innerHTML = '<div class="aviso">No se pudieron cargar los datos. Revisa tu conexi&oacute;n e intenta de nuevo.</div>';
   }
+}
+
+function diasEntre(a, x){ return Math.max(0, Math.round((new Date(x) - new Date(a)) / 86400000)); }
+
+function textoInforme(d, op){
+  const ops = d.smc.operaciones || [];
+  const idx = ops.indexOf(op);
+  const esCompra = op.tipo.startsWith('COMPRA');
+  const mF = op.tipo.match(/CHoCH \+?([\d.]+)/);
+  const hoyStr = (d.ultima_vela || '').slice(0,10);
+  const sec = (t, c) => `<div class="bm-sec"><div class="bm-st">${t}</div><div class="bm-tx">${c}</div></div>`;
+  let s = '';
+  if (esCompra){
+    s += sec('Qu&eacute; detect&oacute; el bot',
+      `El <b>${op.fecha}</b>, <b>${op.ticker}</b> hizo un <b>CHoCH alcista</b>: su cierre rompi&oacute; el &uacute;ltimo swing high confirmado` +
+      (mF ? ` con una ruptura de <b>+${mF[1]}%</b>` : '') +
+      ` viniendo de estructura bajista, con el precio sobre su SMA200 (bias a favor). Se&ntilde;al v&aacute;lida: el bot compr&oacute;.`);
+    s += sec('Los n&uacute;meros de la entrada',
+      `Compr&oacute; <b>${op.unidades}</b> unidades a <b>$${op.precio}</b>, invirtiendo <b>$${op.valor}</b> (una de las 5 porciones del capital).`);
+    const pos = (d.smc.posiciones || {})[op.ticker];
+    const venta = ops.slice(0, Math.max(idx,0)).find(o => o.ticker === op.ticker && o.tipo.startsWith('VENTA'));
+    if (pos && pos.fecha === op.fecha && !venta){
+      const act = pos.precio_actual || pos.entrada;
+      const pct = (act / pos.entrada - 1) * 100;
+      const usd = (act - pos.entrada) * pos.unidades;
+      const dias = diasEntre(op.fecha, hoyStr);
+      const col = pct >= 0 ? 'var(--up)' : 'var(--down)';
+      s += sec('Estado actual (cacer&iacute;a EN CURSO)',
+        `Lleva <b>${dias} d&iacute;a${dias===1?'':'s'}</b> abierta. Precio actual: <b>$${act}</b> &middot; P&amp;L flotante: ` +
+        `<b style="color:${col}">${pct>=0?'+':''}${pct.toFixed(2)}% (${usd>=0?'+':''}$${usd.toFixed(2)})</b>.`);
+      s += sec('Qu&eacute; vigila el bot ahora',
+        `La vender&aacute; autom&aacute;ticamente si <b>${op.ticker}</b> hace un <b>CHoCH bajista</b> (cierre bajo su &uacute;ltimo swing low) ` +
+        `o si pierde su <b>SMA200</b>. Revisi&oacute;n: cada d&iacute;a h&aacute;bil a las 22:45 UTC.`);
+    } else if (venta){
+      const g = venta.pnl >= 0;
+      const col = g ? 'var(--up)' : 'var(--down)';
+      s += sec('C&oacute;mo termin&oacute;',
+        `Se cerr&oacute; el <b>${venta.fecha}</b> a <b>$${venta.precio}</b> (${diasEntre(op.fecha, venta.fecha)} d&iacute;as) con resultado de ` +
+        `<b style="color:${col}">${g?'+':''}$${Number(venta.pnl).toFixed(2)}</b>. Toca la fila de la venta para su informe.`);
+    }
+  } else {
+    const motivo = op.tipo.includes('SMA200') ?
+      'el precio perdi&oacute; su SMA200 (se rompi&oacute; el bias de fondo)' :
+      'la estructura se rompi&oacute; a la baja: CHoCH bajista (cierre bajo el &uacute;ltimo swing low)';
+    s += sec('Por qu&eacute; vendi&oacute;',
+      `El <b>${op.fecha}</b>, en <b>${op.ticker}</b>, ${motivo}. Regla de salida: el bot cerr&oacute; a <b>$${op.precio}</b> sin dudar.`);
+    const compra = ops.slice(idx + 1).find(o => o.ticker === op.ticker && o.tipo.startsWith('COMPRA'));
+    const g = op.pnl >= 0;
+    const col = g ? 'var(--up)' : 'var(--down)';
+    let extra = '';
+    if (compra){
+      const pct = compra.valor ? (op.pnl / compra.valor * 100) : null;
+      extra = `Hab&iacute;a entrado el <b>${compra.fecha}</b> a <b>$${compra.precio}</b>; dur&oacute; <b>${diasEntre(compra.fecha, op.fecha)} d&iacute;as</b>` +
+        (pct !== null ? ` (<b style="color:${col}">${g?'+':''}${pct.toFixed(2)}%</b>)` : '') + `. `;
+    }
+    s += sec('Resultado', extra +
+      `P&amp;L realizado: <b style="color:${col}">${g?'+':''}$${Number(op.pnl).toFixed(2)}</b>. ` +
+      (g ? 'Cacer&iacute;a ganadora: la estructura pag&oacute;.' : 'Cacer&iacute;a perdedora: parte normal del juego.'));
+  }
+  return s;
+}
+
+function abrirInforme(op){
+  const d = window.__d; if(!d || !op) return;
+  const esCompra = op.tipo.startsWith('COMPRA');
+  document.getElementById('bm-title').textContent = `${esCompra ? '\u{1F3AF}' : '\u{1F3C1}'} ${op.ticker} \u00b7 ${esCompra ? 'Compra' : 'Venta'} \u00b7 ${op.fecha}`;
+  document.getElementById('bm-sub').textContent = 'Informe de la cacer\u00eda (simulado)';
+  document.getElementById('bm-body').innerHTML = textoInforme(d, op);
+  document.getElementById('bmodal').classList.add('open');
+}
+
+function informePos(tk){
+  const d = window.__d; if(!d) return;
+  const op = (d.smc.operaciones || []).find(o => o.ticker === tk && o.tipo.startsWith('COMPRA'));
+  if (op){ abrirInforme(op); return; }
+  const pos = (d.smc.posiciones || {})[tk]; if(!pos) return;
+  abrirInforme({ tipo:'COMPRA (CHoCH)', ticker: tk, fecha: pos.fecha, precio: pos.entrada,
+                 unidades: pos.unidades, valor: pos.costo, pnl: '' });
 }
 
 $('#refrescar').addEventListener('click', cargar);

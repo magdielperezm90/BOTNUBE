@@ -197,6 +197,8 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #bot-screen .bp-riel-ley{display:flex;justify-content:space-between;font-size:.62rem;color:#8A97AB}
 #bot-screen .bp-lectura{text-align:center;font-size:.74rem;color:#8A97AB;margin-top:8px}
 #bot-screen .bp-lectura b{color:#E7ECF3}
+#bot-screen .bp-click{cursor:pointer;transition:background .15s}
+#bot-screen .bp-click:hover td{background:rgba(180,140,255,.07)}
 #bot-screen canvas{width:100%;height:190px;display:block}
 #bot-screen .bp-leyenda{display:flex;gap:14px;font-size:.68rem;color:#8A97AB;margin-top:8px;flex-wrap:wrap}
 #bot-screen .bp-leyenda i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
@@ -1297,7 +1299,7 @@ function bpCartera(d){
     const pos = smc.posiciones[tk];
     const act = pos.precio_actual || pos.entrada;
     const pnl = (act / pos.entrada - 1) * 100;
-    return `<tr><td><b>${tk}</b></td><td class="bp-num">${pos.fecha}</td><td class="der bp-num">${bpD(pos.entrada)}</td><td class="der bp-num">${bpD(act)}</td><td class="der bp-num ${pnl>=0?'bp-pos':'bp-neg'}">${bpP(pnl)}</td></tr>`;
+    return `<tr class="bp-click" onclick="bpInformePos('${tk}')"><td><b>${tk}</b></td><td class="bp-num">${pos.fecha}</td><td class="der bp-num">${bpD(pos.entrada)}</td><td class="der bp-num">${bpD(act)}</td><td class="der bp-num ${pnl>=0?'bp-pos':'bp-neg'}">${bpP(pnl)}</td></tr>`;
   }).join('');
   return `<div class="bp-card" style="border-color:rgba(180,140,255,.3)">
     <h2><span class="bp-dot" style="background:#B48CFF"></span>Cartera del Cazador</h2>
@@ -1360,12 +1362,12 @@ function bpDibujar(hist){
 
 function bpOps(d){
   const ops = (d.smc.operaciones || []).slice(0, 15);
-  const filas = ops.map(o => `<tr><td class="bp-num">${o.fecha}</td><td><b>${o.ticker}</b></td>
+  const filas = ops.map((o,i) => `<tr class="bp-click" onclick="bpInforme(${i})"><td class="bp-num">${o.fecha}</td><td><b>${o.ticker}</b></td>
     <td class="${o.tipo.startsWith('COMPRA')?'bp-pos':'bp-neg'}">${o.tipo.startsWith('COMPRA')?'Compra':'Venta'}</td>
     <td class="der bp-num">${bpD(o.precio)}</td>
     <td class="der bp-num">${o.pnl === '' ? '&mdash;' : `<span class="${o.pnl>=0?'bp-pos':'bp-neg'}">${o.pnl>=0?'+':''}${Number(o.pnl).toFixed(2)}</span>`}</td></tr>`).join('');
   return `<div class="bp-card"><h2><span class="bp-dot" style="background:#8A97AB"></span>Cacer&iacute;as</h2>
-    ${ops.length ? `<div style="margin-top:10px;overflow-x:auto"><table><tr><th>Fecha</th><th>Ticker</th><th>Tipo</th><th class="der">Precio</th><th class="der">P&amp;L ($)</th></tr>${filas}</table></div>`
+    ${ops.length ? `<div style="margin-top:10px;overflow-x:auto"><table><tr><th>Fecha</th><th>Ticker</th><th>Tipo</th><th class="der">Precio</th><th class="der">P&amp;L ($)</th></tr>${filas}</table><div class="bp-muted" style="font-size:.68rem;margin-top:8px">Toca una cacer&iacute;a para ver su informe completo.</div></div>`
     : '<div class="bp-muted" style="font-size:.78rem;padding:8px 0">Sin cacer&iacute;as todav&iacute;a. El primer CHoCH alcista aparecer&aacute; solo.</div>'}</div>`;
 }
 
@@ -1380,12 +1382,102 @@ async function bpCargar(){
     }
     document.getElementById('bp-precio').textContent = 'QQQ ' + bpD(d.precio_qqq);
     document.getElementById('bp-actualizado').textContent = 'vela ' + d.ultima_vela + ' \u00b7 ' + d.actualizado;
+    window.__bp = d;
     cont.innerHTML = bpCartera(d) + bpImpulso(d) + bpGrafico() + bpOps(d);
     bpDibujar(d.historial);
   }catch(e){
     cont.innerHTML = '<div class="bp-card bp-muted" style="font-size:.8rem">No se pudieron cargar los datos. Revisa tu conexi&oacute;n e intenta de nuevo.</div>';
   }
 }
+
+function bpDias(a, b){ return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000)); }
+
+function bpTextoInforme(d, op){
+  const ops = d.smc.operaciones || [];
+  const idx = ops.indexOf(op);
+  const esCompra = op.tipo.startsWith('COMPRA');
+  const mFuerza = op.tipo.match(/CHoCH \+?([\d.]+)/);
+  const fuerza = mFuerza ? mFuerza[1] : null;
+  const hoyStr = (d.ultima_vela || '').slice(0,10);
+  let s = '';
+
+  if (esCompra){
+    s += `<div class="m-section"><div class="m-stitle">Qu&eacute; detect&oacute; el bot</div><div class="m-long">
+      El <b>${op.fecha}</b>, <b>${op.ticker}</b> hizo un <b>CHoCH alcista</b>: su cierre rompi&oacute; el &uacute;ltimo swing high confirmado
+      ${fuerza ? `con una ruptura de <b>+${fuerza}%</b>` : ''} viniendo de estructura bajista, con el precio por encima de su SMA200
+      (bias de temporalidad mayor a favor). Se&ntilde;al v&aacute;lida de la estrategia: el bot compr&oacute;.</div></div>`;
+    s += `<div class="m-section"><div class="m-stitle">Los n&uacute;meros de la entrada</div><div class="m-long">
+      Compr&oacute; <b>${op.unidades}</b> unidades a <b>$${op.precio}</b>, invirtiendo <b>$${op.valor}</b> (una de las 5 porciones del capital).</div></div>`;
+
+    const pos = (d.smc.posiciones || {})[op.ticker];
+    const ventaPosterior = ops.slice(0, Math.max(idx,0)).find(o => o.ticker === op.ticker && o.tipo.startsWith('VENTA'));
+    if (pos && pos.fecha === op.fecha && !ventaPosterior){
+      const act = pos.precio_actual || pos.entrada;
+      const pnlPct = (act / pos.entrada - 1) * 100;
+      const pnlUsd = (act - pos.entrada) * pos.unidades;
+      const dias = bpDias(op.fecha, hoyStr);
+      s += `<div class="m-section"><div class="m-stitle">Estado actual (cacer&iacute;a EN CURSO)</div><div class="m-long">
+        Lleva <b>${dias} d&iacute;a${dias===1?'':'s'}</b> abierta. Precio actual: <b>$${act}</b> &middot;
+        P&amp;L flotante: <b style="color:${pnlPct>=0?'#3DDC97':'#FF6B7A'}">${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}% (${pnlUsd>=0?'+':''}$${pnlUsd.toFixed(2)})</b>.</div></div>`;
+      s += `<div class="m-section"><div class="m-stitle">Qu&eacute; vigila el bot ahora</div><div class="m-long">
+        La vender&aacute; autom&aacute;ticamente si <b>${op.ticker}</b> hace un <b>CHoCH bajista</b> (cierre bajo su &uacute;ltimo swing low)
+        o si pierde su <b>SMA200</b>. Revisi&oacute;n: cada d&iacute;a h&aacute;bil a las 22:45 UTC. Mientras ninguna de esas dos cosas pase, la deja correr.</div></div>`;
+    } else if (ventaPosterior){
+      const g = ventaPosterior.pnl >= 0;
+      s += `<div class="m-section"><div class="m-stitle">C&oacute;mo termin&oacute;</div><div class="m-long">
+        Esta cacer&iacute;a ya se cerr&oacute; el <b>${ventaPosterior.fecha}</b> a <b>$${ventaPosterior.precio}</b>
+        (${bpDias(op.fecha, ventaPosterior.fecha)} d&iacute;as) con un resultado de
+        <b style="color:${g?'#3DDC97':'#FF6B7A'}">${g?'+':''}$${Number(ventaPosterior.pnl).toFixed(2)}</b>.
+        Toca la fila de la venta para ver su informe.</div></div>`;
+    }
+  } else {
+    const motivo = op.tipo.includes('SMA200') || op.tipo.includes('sma') ?
+      'el precio perdi&oacute; su SMA200 (se rompi&oacute; el bias de fondo)' :
+      'la estructura se rompi&oacute; a la baja: CHoCH bajista (cierre bajo el &uacute;ltimo swing low)';
+    s += `<div class="m-section"><div class="m-stitle">Por qu&eacute; vendi&oacute;</div><div class="m-long">
+      El <b>${op.fecha}</b>, en <b>${op.ticker}</b>, ${motivo}. Regla de salida de la estrategia: el bot cerr&oacute; la posici&oacute;n
+      a <b>$${op.precio}</b> sin dudar &mdash; proteger el capital manda.</div></div>`;
+    const compra = ops.slice(idx + 1).find(o => o.ticker === op.ticker && o.tipo.startsWith('COMPRA'));
+    const g = op.pnl >= 0;
+    let extra = '';
+    if (compra){
+      const pct = compra.valor ? (op.pnl / compra.valor * 100) : null;
+      extra = `Hab&iacute;a entrado el <b>${compra.fecha}</b> a <b>$${compra.precio}</b>; la cacer&iacute;a dur&oacute;
+        <b>${bpDias(compra.fecha, op.fecha)} d&iacute;as</b>${pct !== null ? ` (<b style="color:${g?'#3DDC97':'#FF6B7A'}">${g?'+':''}${pct.toFixed(2)}%</b>)` : ''}. `;
+    }
+    s += `<div class="m-section"><div class="m-stitle">Resultado</div><div class="m-long">${extra}
+      P&amp;L realizado: <b style="color:${g?'#3DDC97':'#FF6B7A'}">${g?'+':''}$${Number(op.pnl).toFixed(2)}</b>.
+      ${g ? 'Cacer&iacute;a ganadora: la estructura pag&oacute;.' : 'Cacer&iacute;a perdedora: parte normal del juego &mdash; la estrategia gana por la suma, no por cada pieza.'}</div></div>`;
+  }
+  return s;
+}
+
+function bpAbrirInforme(op){
+  const d = window.__bp; if(!d || !op) return;
+  const esCompra = op.tipo.startsWith('COMPRA');
+  document.getElementById('m-icon').textContent = esCompra ? '\u{1F3AF}' : '\u{1F3C1}';
+  document.getElementById('m-icon').style.background = 'rgba(180,140,255,.15)';
+  document.getElementById('m-title').textContent = `${op.ticker} \u00b7 ${esCompra ? 'Compra' : 'Venta'} \u00b7 ${op.fecha}`;
+  document.getElementById('m-sub').textContent = 'Informe de la cacer\u00eda del Cazador SMC (simulado)';
+  document.getElementById('m-body').innerHTML = bpTextoInforme(d, op);
+  document.getElementById('modal').classList.add('open');
+}
+
+function bpInforme(i){
+  const d = window.__bp; if(!d) return;
+  const op = (d.smc.operaciones || [])[i];
+  bpAbrirInforme(op);
+}
+
+function bpInformePos(tk){
+  const d = window.__bp; if(!d) return;
+  const op = (d.smc.operaciones || []).find(o => o.ticker === tk && o.tipo.startsWith('COMPRA'));
+  if (op){ bpAbrirInforme(op); return; }
+  const pos = (d.smc.posiciones || {})[tk]; if(!pos) return;
+  bpAbrirInforme({ tipo:'COMPRA (CHoCH)', ticker: tk, fecha: pos.fecha, precio: pos.entrada,
+                   unidades: pos.unidades, valor: pos.costo, pnl: '' });
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   const b=document.getElementById('bp-refrescar');
   if(b)b.addEventListener('click',bpCargar);
