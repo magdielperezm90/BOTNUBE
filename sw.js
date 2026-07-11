@@ -1,6 +1,6 @@
 // Service worker: cachea la interfaz para que la PWA abra al instante.
 // data.json siempre se pide a la red primero (con respaldo en cache).
-const CACHE = 'bot-qqq-v5';
+const CACHE = 'bot-qqq-v6';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
