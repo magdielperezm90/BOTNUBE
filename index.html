@@ -222,6 +222,52 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .hero-btn.primary:hover{border-color:#a78bfa;box-shadow:0 6px 24px rgba(167,139,250,.2)}
 @media(max-width:560px){.hero-title{font-size:2rem}#globe{width:260px;height:260px}.hero-ticker{margin-top:90px}}
 
+
+/* ===== RECURSOS ===== */
+#recursos-screen{max-width:820px;margin:0 auto;padding-bottom:30px;animation:recIn .4s ease}
+@keyframes recIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rec-hero{display:flex;align-items:center;gap:16px;margin-bottom:26px;padding:20px;border-radius:16px;
+  background:radial-gradient(120% 140% at 0% 0%,rgba(180,140,255,.14),rgba(59,130,246,.06) 45%,transparent 70%),#131B29;
+  border:1px solid #22304A;box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)}
+.rec-hero-icon{font-size:2.4rem;filter:drop-shadow(0 4px 12px rgba(180,140,255,.4));flex-shrink:0}
+.rec-hero-title{font-size:1.7rem;font-weight:800;margin:0;background:linear-gradient(120deg,#60a5fa,#a78bfa 60%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.rec-hero-sub{color:#8b949e;font-size:.88rem;margin:6px 0 0;line-height:1.55;max-width:580px}
+.rec-cat{display:flex;align-items:center;gap:9px;margin:0 0 14px}
+.rec-cat-dot{width:9px;height:9px;border-radius:50%}
+.rec-cat-label{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:14px;margin-bottom:26px}
+.rec-card{position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;
+  background:linear-gradient(160deg,rgba(var(--rcr),.07),transparent 55%),#131B29;
+  border:1px solid #22304A;border-radius:14px;padding:16px;
+  box-shadow:0 6px 18px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.03);
+  transition:transform .22s cubic-bezier(.2,.8,.3,1),box-shadow .22s,border-color .22s}
+.rec-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--rc),transparent);opacity:.85}
+.rec-card::after{content:'';position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(var(--rcr),0);transition:box-shadow .22s}
+.rec-card:hover{transform:translateY(-4px);border-color:rgba(var(--rcr),.5);
+  box-shadow:0 16px 40px rgba(0,0,0,.4),0 0 24px rgba(var(--rcr),.18),inset 0 1px 0 rgba(255,255,255,.05)}
+.rec-card:hover::after{box-shadow:inset 0 0 0 1px rgba(var(--rcr),.4)}
+.rec-card:hover .rec-arrow{transform:translate(3px,-3px)}
+.rec-card:hover .rec-ico{transform:scale(1.08);box-shadow:0 0 20px rgba(var(--rcr),.5)}
+.rec-card.featured{border-color:rgba(var(--rcr),.4)}
+.rec-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+.rec-ico{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+  background:radial-gradient(circle at 30% 30%,rgba(var(--rcr),.28),rgba(var(--rcr),.1));
+  border:1px solid rgba(var(--rcr),.35);box-shadow:0 0 12px rgba(var(--rcr),.2);transition:transform .22s,box-shadow .22s}
+.rec-badge{font-size:.6rem;font-weight:700;letter-spacing:.06em;padding:4px 9px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+.rec-badge.free{background:rgba(34,197,94,.14);color:#86efac;border:1px solid rgba(34,197,94,.3)}
+.rec-badge.oficial{background:rgba(59,130,246,.14);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}
+.rec-badge.afin{background:rgba(180,140,255,.16);color:#c4b5fd;border:1px solid rgba(180,140,255,.4);box-shadow:0 0 12px rgba(180,140,255,.25)}
+.rec-name{font-weight:700;font-size:1rem;margin-bottom:6px}
+.rec-desc{color:#8b949e;font-size:.8rem;line-height:1.5;margin-bottom:14px}
+.rec-link{color:var(--rc);font-size:.76rem;font-weight:600;display:flex;align-items:center;gap:5px}
+.rec-arrow{display:inline-block;transition:transform .22s}
+.rec-nota{margin-top:6px;padding:13px 15px;border-radius:12px;color:#8b949e;font-size:.78rem;line-height:1.55;
+  background:radial-gradient(120% 160% at 100% 0%,rgba(180,140,255,.1),transparent 60%),rgba(180,140,255,.04);
+  border:1px solid rgba(180,140,255,.22)}
+@media(max-width:560px){.rec-hero{flex-direction:column;text-align:center}.rec-hero-title{font-size:1.4rem}}
+
 </style>
 </head>
 <body>
@@ -275,6 +321,82 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
           <div class="w-pill" style="background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.3)">Gesti&oacute;n de riesgo</div>
           <div class="w-pill" style="background:rgba(167,139,250,.1);color:#c4b5fd;border-color:rgba(167,139,250,.3)">Bot validado 4x</div>
         </div>
+      </div>
+    </div>
+    <div id="recursos-screen" style="display:none">
+      <div class="rec-hero">
+        <div class="rec-hero-icon">📚</div>
+        <div>
+          <h1 class="rec-hero-title">Recursos</h1>
+          <p class="rec-hero-sub">Fuentes externas gratuitas y verificables para seguir aprendiendo. Todas de instituciones o plataformas reales &mdash; nada de gur&uacute;s ni promesas m&aacute;gicas.</p>
+        </div>
+      </div>
+
+      <div class="rec-cat">
+        <span class="rec-cat-dot" style="background:#3b82f6;box-shadow:0 0 10px #3b82f6"></span>
+        <span class="rec-cat-label" style="color:#93c5fd">Aprender fundamentos</span>
+      </div>
+      <div class="rec-grid">
+        <a href="https://www.investopedia.com" target="_blank" rel="noopener" class="rec-card" style="--rc:#3b82f6;--rcr:59,130,246">
+          <div class="rec-card-top"><div class="rec-ico">📈</div><span class="rec-badge free">GRATIS</span></div>
+          <div class="rec-name">Investopedia</div>
+          <div class="rec-desc">La enciclopedia financiera del mundo. Tu diccionario para cualquier t&eacute;rmino de trading.</div>
+          <div class="rec-link">investopedia.com <span class="rec-arrow">&nearr;</span></div>
+        </a>
+        <a href="https://www.babypips.com/learn" target="_blank" rel="noopener" class="rec-card" style="--rc:#3b82f6;--rcr:59,130,246">
+          <div class="rec-card-top"><div class="rec-ico">🎓</div><span class="rec-badge free">GRATIS</span></div>
+          <div class="rec-name">BabyPips</div>
+          <div class="rec-desc">El curso de forex m&aacute;s popular del mundo. Estructurado por niveles, con quizzes.</div>
+          <div class="rec-link">babypips.com/learn <span class="rec-arrow">&nearr;</span></div>
+        </a>
+        <a href="https://www.cmegroup.com/education" target="_blank" rel="noopener" class="rec-card" style="--rc:#60a5fa;--rcr:96,165,250">
+          <div class="rec-card-top"><div class="rec-ico">🏛️</div><span class="rec-badge oficial">OFICIAL</span></div>
+          <div class="rec-name">CME Institute</div>
+          <div class="rec-desc">La bolsa de futuros ES/NQ. 60+ cursos gratis y simulador. La fuente original.</div>
+          <div class="rec-link">cmegroup.com/education <span class="rec-arrow">&nearr;</span></div>
+        </a>
+      </div>
+
+      <div class="rec-cat">
+        <span class="rec-cat-dot" style="background:#B48CFF;box-shadow:0 0 10px #B48CFF"></span>
+        <span class="rec-cat-label" style="color:#c4b5fd">Backtesting y evidencia</span>
+      </div>
+      <div class="rec-grid">
+        <a href="https://www.quantifiedstrategies.com" target="_blank" rel="noopener" class="rec-card featured" style="--rc:#B48CFF;--rcr:180,140,255">
+          <div class="rec-card-top"><div class="rec-ico">🔬</div><span class="rec-badge afin">★ AF&Iacute;N</span></div>
+          <div class="rec-name">QuantifiedStrategies</div>
+          <div class="rec-desc">Tu web hermana: 1000+ backtests reales, "sin opiniones, solo n&uacute;meros". Respalda tus hallazgos.</div>
+          <div class="rec-link">quantifiedstrategies.com <span class="rec-arrow">&nearr;</span></div>
+        </a>
+        <a href="https://www.pyquantnews.com" target="_blank" rel="noopener" class="rec-card" style="--rc:#a78bfa;--rcr:167,139,250">
+          <div class="rec-card-top"><div class="rec-ico">🐍</div><span class="rec-badge free">GRATIS</span></div>
+          <div class="rec-name">PyQuantNews</div>
+          <div class="rec-desc">Recursos de Python para backtesting (Backtrader, QuantConnect). El siguiente nivel.</div>
+          <div class="rec-link">pyquantnews.com <span class="rec-arrow">&nearr;</span></div>
+        </a>
+      </div>
+
+      <div class="rec-cat">
+        <span class="rec-cat-dot" style="background:#f59e0b;box-shadow:0 0 10px #f59e0b"></span>
+        <span class="rec-cat-label" style="color:#fdba74">Datos, calendario y pr&aacute;ctica</span>
+      </div>
+      <div class="rec-grid">
+        <a href="https://www.forexfactory.com" target="_blank" rel="noopener" class="rec-card" style="--rc:#f59e0b;--rcr:245,158,11">
+          <div class="rec-card-top"><div class="rec-ico">📅</div><span class="rec-badge free">GRATIS</span></div>
+          <div class="rec-name">Forex Factory</div>
+          <div class="rec-desc">El calendario econ&oacute;mico de referencia. Eventos de alto impacto para tu plan diario.</div>
+          <div class="rec-link">forexfactory.com <span class="rec-arrow">&nearr;</span></div>
+        </a>
+        <a href="https://www.tradingview.com" target="_blank" rel="noopener" class="rec-card" style="--rc:#22c55e;--rcr:34,197,94">
+          <div class="rec-card-top"><div class="rec-ico">📊</div><span class="rec-badge free">GRATIS</span></div>
+          <div class="rec-name">TradingView</div>
+          <div class="rec-desc">Gr&aacute;ficos, alertas y simulador. Donde ya corres tu PineScript del Cazador.</div>
+          <div class="rec-link">tradingview.com <span class="rec-arrow">&nearr;</span></div>
+        </a>
+      </div>
+
+      <div class="rec-nota">
+        <span style="color:#c4b5fd;font-weight:600">Nota:</span> Ninguna de estas fuentes vende "hazte rico". Son para aprender y verificar. Cualquier estrategia que encuentres, tr&aacute;ela a tu laboratorio y que los n&uacute;meros decidan.
       </div>
     </div>
     <div id="strat-screen">
@@ -1374,6 +1496,7 @@ function loadStrat(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
   document.getElementById('welcome').style.display='none';
   document.getElementById('bot-screen').style.display='none';
+  document.getElementById('recursos-screen').style.display='none';
   const ss=document.getElementById('strat-screen');ss.style.display='block';
   document.getElementById('sh-icon').textContent=s.icon;
   document.getElementById('sh-name').textContent=s.name;
@@ -1592,10 +1715,23 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 });
 
 // ─── BUILD NAV ───────────────────────────────────────────────────────────────
+function loadRecursos(){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.id==='__rec'));
+  document.getElementById('welcome').style.display='none';
+  document.getElementById('strat-screen').style.display='none';
+  document.getElementById('bot-screen').style.display='none';
+  document.getElementById('recursos-screen').style.display='block';
+  document.documentElement.style.setProperty('--sc','#B48CFF');
+  document.documentElement.style.setProperty('--scr','180,140,255');
+  document.getElementById('tb-title').textContent='Recursos';
+  document.getElementById('tb-crumb').textContent='Fuentes externas para seguir aprendiendo';
+}
+
 function goHome(){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('strat-screen').style.display='none';
   document.getElementById('bot-screen').style.display='none';
+  document.getElementById('recursos-screen').style.display='none';
   document.getElementById('welcome').style.display='flex';
   heroStart();
   document.documentElement.style.setProperty('--sc','#3b82f6');
@@ -1608,6 +1744,7 @@ function loadBot(){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.id==='__bot'));
   document.getElementById('welcome').style.display='none';
   document.getElementById('strat-screen').style.display='none';
+  document.getElementById('recursos-screen').style.display='none';
   document.getElementById('bot-screen').style.display='block';
   document.documentElement.style.setProperty('--sc','#B48CFF');
   document.documentElement.style.setProperty('--scr','180,140,255');
@@ -1916,6 +2053,13 @@ function buildNav(){
     btn.addEventListener('click',()=>loadStrat(s.id));
     nl.appendChild(btn);
   });
+  const rec=document.createElement('button');
+  rec.className='nav-btn';
+  rec.dataset.id='__rec';
+  rec.style.cssText='border:1px solid rgba(180,140,255,.28);background:rgba(180,140,255,.06);margin-top:8px';
+  rec.innerHTML=`<span class="ni">\u{1F4DA}</span><div><div class="nl" style="color:#c4b5fd">Recursos</div><div class="ns">Fuentes para aprender</div></div>`;
+  rec.addEventListener('click',loadRecursos);
+  nl.appendChild(rec);
 }
 
 buildNav();
