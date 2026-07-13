@@ -468,12 +468,37 @@ const SC={
   pa:{c:'#22c55e',r:'34,197,94'},fib:{c:'#a78bfa',r:'167,139,250'},
   ma:{c:'#06b6d4',r:'6,182,212'},rsi:{c:'#ef4444',r:'239,68,68'},
   crt:{c:'#eab308',r:'234,179,8'},
-  oflow:{c:'#ec4899',r:'236,72,153'}
+  oflow:{c:'#ec4899',r:'236,72,153'},
+  psico:{c:'#f472b6',r:'244,114,182'},
+  riesgo:{c:'#34d399',r:'52,211,153'},
+  ifvg:{c:'#2dd4bf',r:'45,212,191'},
+  cisd:{c:'#38bdf8',r:'56,189,248'}
 };
 function sc(id){return (SC[id]||SC.smc).c;}
 function sr(id){return (SC[id]||SC.smc).r;}
 
 const CD={
+'cisd.0':{title:'Qué es el CISD',long:'CISD significa Change in State of Delivery (cambio en el estado de entrega). Es un concepto de timing de la escuela ICT. La idea: cuando el mercado cae, esa caída la construyen una serie de velas bajistas consecutivas. El CISD ocurre cuando el precio CIERRA por encima de las aperturas de esa serie de velas (o por debajo, en el caso alcista→bajista). En ese momento, según ICT, el "estado de entrega" cambió de vendedor a comprador. Es una forma de detectar el giro leyendo los cuerpos de las velas en lugar de esperar a que se rompa un swing.',chartFn:'chartCISD',
+rules:[
+{t:'Identifica la serie de velas del último impulso',ex:'<strong>Ejemplo:</strong> El precio cae en 4 velas rojas seguidas. Esas 4 velas, con sus aperturas, forman "la serie". El nivel a vigilar es la apertura de la primera vela de esa serie bajista (la más alta de las aperturas).'},
+{t:'El CISD se dispara cuando una vela CIERRA cruzando esas aperturas',ex:'<strong>Ejemplo:</strong> Tras las 4 velas rojas, una vela verde cierra por encima de la apertura de la primera vela roja. Eso es un CISD alcista: el "estado de entrega" cambió. No basta con tocar el nivel — la vela debe CERRAR más allá.'},
+{t:'Marca un cambio de iniciativa vendedor→comprador',ex:'<strong>Ejemplo:</strong> Antes del CISD, cada vela entregaba precios más bajos (vendedores al mando). Tras el CISD, el cierre por encima de las aperturas dice que los compradores tomaron el control de la "entrega" del precio. Es la lógica ICT del cambio de carácter, pero medida en cuerpos.'}]},
+'cisd.1':{title:'CISD vs CHoCH — la diferencia clave',long:'Ambos detectan un cambio de carácter, pero miran referencias distintas. El CHoCH (el que usa tu bot Cazador) rompe un SWING estructural: un máximo o mínimo pivote del gráfico. El CISD rompe las APERTURAS de las velas del último impulso — es decir, los cuerpos. Como las aperturas suelen quedar más cerca que el swing, el CISD dispara ANTES. Por eso los ICT lo venden como "confirmación temprana". Pero esa ventaja de velocidad tiene un precio: más falsas alarmas.',chartFn:'chartCISDVS',
+rules:[
+{t:'CHoCH: rompe el swing (pivote estructural)',ex:'<strong>Ejemplo:</strong> Tu Cazador espera a que el cierre supere el último swing high confirmado (con fractal de 2 velas). Es más tardío pero más robusto — por eso funciona en diario y lo validamos 4 veces.'},
+{t:'CISD: rompe las aperturas de las velas (cuerpos)',ex:'<strong>Ejemplo:</strong> El CISD no espera al swing; se conforma con que el precio cierre más allá de las aperturas de la serie. Ese nivel está más cerca, así que la señal llega antes — a veces varias velas antes que el CHoCH.'},
+{t:'Antes = más rápido pero más ruidoso',ex:'<strong>Ejemplo real de tu MNQ del domingo:</strong> la vela blanca gigante de las 20:00 cerró sobre las aperturas de toda la serie bajista previa — CISD alcista de manual... que 30 minutos después falló. Ejemplo perfecto de por qué "más temprano" no siempre es "mejor".'}]},
+'cisd.2':{title:'El barrido primero',long:'Igual que el modelo IFVG, un CISD de calidad no llega solo: llega después de un barrido de liquidez. El precio primero perfora un máximo/mínimo obvio (recogiendo stops), revierte, y esa reversión es la que produce el CISD. Sin el barrido previo, el CISD es solo ruido de rango. Con el barrido, gana contexto: sabes qué liquidez alimentó el giro.',
+rules:[
+{t:'Secuencia ideal: barrido → reversión → CISD',ex:'<strong>Ejemplo:</strong> El precio barre el máximo de la sesión (toma liquidez), se da la vuelta, y al caer produce un CISD bajista cerrando bajo las aperturas de las velas alcistas previas. El barrido le da sentido al CISD.'},
+{t:'Sin barrido, el CISD es débil',ex:'<strong>Ejemplo:</strong> Un CISD en medio de un rango lateral, sin liquidez tomada, es casi siempre una trampa. La misma lección del IFVG: el contexto (liquidez obvia) es lo que separa la señal del ruido.'},
+{t:'Se combina con el IFVG como confluencia',ex:'<strong>Ejemplo:</strong> Muchos traders ICT buscan barrido + CISD + IFVG juntos: el barrido da el contexto, el CISD el timing temprano, y el IFVG la zona precisa de entrada. Más confluencias, pero también más subjetividad acumulada.'}]},
+'cisd.3':{title:'El veredicto honesto',long:'El CISD es un concepto de timing útil para ENTENDER cómo se lee un giro por los cuerpos de las velas — es un modelo mental interesante. Pero seamos claros, como con toda la familia ICT: no hay evidencia de backtest riguroso que demuestre que el CISD tiene ventaja. Sus reglas dependen de juicios subjetivos (¿cuáles velas forman "la serie"? ¿cuenta este cierre?), es más temprano y por tanto más ruidoso, y vive en el intradía — el terreno donde tus 15 backtests dieron profit factor menor a 1. Tu propio bot usa la versión robusta de esta idea (CHoCH en diario), no la temprana.',chartFn:'chartCISDVER',
+rules:[
+{t:'Sin backtest riguroso = sin ventaja demostrada',ex:'<strong>Ejemplo:</strong> "¿Cuáles velas forman la serie del impulso?" Cada trader las cuenta distinto. Sin una regla objetiva idéntica, no se puede programar ni backtestear — y sin backtest, el CISD es un testimonio, no una ventaja probada.'},
+{t:'Más temprano = más falsas señales',ex:'<strong>Ejemplo:</strong> El CISD te mete antes en los giros buenos, sí, pero también en los malos. Tu MNQ del domingo lo mostró en vivo: CISD alcista → fallo en 30 minutos. La velocidad tiene un costo en fiabilidad.'},
+{t:'Tu bot ya usa la versión robusta de esta idea',ex:'<strong>Ejemplo:</strong> El Cazador espera el CHoCH en diario (rompe el swing, no los cuerpos, y en marco diario). Es más tardío pero validado 4 veces con PF hasta 2.64. La lección: la robustez le gana a la velocidad cuando hay dinero de por medio.'},
+{t:'Cómo aprovecharlo con honestidad',ex:'<strong>Ejemplo:</strong> Estúdialo para entrenar el ojo a leer giros por los cuerpos de las velas (es un buen ejercicio de lectura), practícalo en paper gratis, y desconfía de operarlo con dinero real sin validarlo tú mismo. Es conocimiento útil, no una máquina de dinero.'}]},
 'psico.0':{title:'Tu cableado humano juega en contra',long:'Tu mente no está diseñada para operar: está diseñada para mantenerte vivo evitando el dolor y buscando recompensa inmediata. En la selva eso te salvaba; en el mercado te arruina. Cada vez que dejas que el instinto tome el control — huir del rojo, perseguir el verde — tomas la peor decisión posible en el peor momento posible. El primer paso no es aprender más setups: es reconocer que tu propio cerebro es el adversario.',
 rules:[
 {t:'El instinto de evitar dolor te hace cerrar ganadores temprano',ex:'<strong>Ejemplo:</strong> Vas +$200 en una operación. El cerebro susurra \"asegúralo antes de que desaparezca\" y cierras. La operación sigue +$800 sin ti. El miedo a perder la ganancia pequeña te costó la grande.'},
@@ -1071,7 +1096,15 @@ tags:[['ICT','purple'],['Liquidez','blue'],['Reversión','green'],['Discrecional
 concepts:[['🌊','Liquidity Sweep (barrido)','El precio perfora un máximo/mínimo para recoger stops, luego revierte.','ifvg.0'],['🔀','IFVG (Inversion FVG)','Un FVG que se invalida y se convierte en imán y zona de entrada de precisión.','ifvg.1'],['🎯','El contexto es todo','El barrido solo vale si toma liquidez OBVIA: high/low de sesión, día previo.','ifvg.2'],['📍','El gatillo de entrada','Entras al CIERRE de la vela desde dentro de la zona IFVG. Ni antes, ni después.','ifvg.3'],['⚖️','El veredicto honesto','Por qué este modelo, como toda la familia ICT, no se puede backtestear con rigor.','ifvg.4']],
 quiz:[{q:'¿Qué es un Liquidity Sweep (barrido de liquidez)?',ctx:'Es el primer componente del modelo IFVG.',opts:['Un error del mercado','El precio perfora un máximo/mínimo para recoger stops y luego revierte','Una vela de mucho volumen','El cierre de una sesión'],ok:1,exp:'El barrido es cuando el precio alcanza brevemente sobre un máximo (BSL) o bajo un mínimo (SSL) para activar las órdenes stop que descansan ahí — según ICT, las instituciones lo hacen para llenar sus órdenes. Luego el precio revierte.'},
 {q:'¿Dónde exactamente se entra en el modelo IFVG?',ctx:'El gatillo debe ser mecánico y preciso.',opts:['En cuanto se ve el barrido','Al cierre de la vela desde dentro de la zona IFVG','En el máximo del movimiento','Cuando el precio toca la media'],ok:1,exp:'La entrada es el CIERRE de una vela desde dentro de la zona IFVG, tras el barrido. Ese cierre confirma que el barrido fue real y la reversión está comenzando. Entrar antes es adivinar; entrar después es tarde.'},
-{q:'¿Por qué este modelo no se puede backtestear con rigor?',ctx:'La pregunta del laboratorio, otra vez.',opts:['Porque es demasiado nuevo','Porque el "contexto obvio" del barrido es subjetivo y cada trader lo dibuja distinto','Porque no hay datos de futuros','Porque solo funciona en crypto'],ok:1,exp:'Igual que toda la familia ICT/SMC intradía: depende de juicios subjetivos ("¿cuál máximo es OBVIO?", "¿este FVG cuenta?") que no se pueden convertir en reglas fijas. Sin reglas objetivas no hay backtest, y sin backtest no hay ventaja demostrada — solo la palabra de quien lo enseña.'}]}
+{q:'¿Por qué este modelo no se puede backtestear con rigor?',ctx:'La pregunta del laboratorio, otra vez.',opts:['Porque es demasiado nuevo','Porque el "contexto obvio" del barrido es subjetivo y cada trader lo dibuja distinto','Porque no hay datos de futuros','Porque solo funciona en crypto'],ok:1,exp:'Igual que toda la familia ICT/SMC intradía: depende de juicios subjetivos ("¿cuál máximo es OBVIO?", "¿este FVG cuenta?") que no se pueden convertir en reglas fijas. Sin reglas objetivas no hay backtest, y sin backtest no hay ventaja demostrada — solo la palabra de quien lo enseña.'}]},
+
+{id:'cisd',icon:'🔄',label:'CISD',name:'Change in State of Delivery',sub:'Un concepto de la escuela ICT, primo madrugador del CHoCH: en vez de esperar a que se rompa un swing estructural, detecta el giro antes — cuando el precio cierra más allá de las aperturas de la serie de velas que formaron el último impulso. Más temprano, pero más ruidoso.',
+info:[['Timeframe','M1 – M15'],['Mercados','Futuros ES/NQ'],['Dificultad','⭐⭐⭐⭐'],['Tipo','Reversión temprana']],
+tags:[['ICT','purple'],['Confirmación temprana','blue'],['Reversión','green'],['Discrecional','red']],
+concepts:[['🔄','Qué es el CISD','El precio cierra más allá de las aperturas de la serie de velas del último impulso.','cisd.0'],['⚔️','CISD vs CHoCH','La diferencia clave: rompe cuerpos de velas, no swings estructurales.','cisd.1'],['🌊','El barrido primero','El CISD válido llega tras un barrido de liquidez, igual que el IFVG.','cisd.2'],['⚖️','El veredicto honesto','Más temprano significa más señales falsas. Sin backtest riguroso, como toda la familia ICT.','cisd.3']],
+quiz:[{q:'¿Qué define exactamente un CISD (Change in State of Delivery)?',ctx:'Es un concepto de timing de la escuela ICT.',opts:['El precio rompe el último swing high o low','El precio cierra más allá de las aperturas de la serie de velas del último impulso','Una vela de mucho volumen','El cruce de dos medias móviles'],ok:1,exp:'El CISD ocurre cuando el precio cierra por encima (o por debajo) de las aperturas de las velas consecutivas que formaron el último tramo del movimiento. Marca un cambio en el "estado de entrega" de vendedor a comprador (o viceversa) según ICT.'},
+{q:'¿Cuál es la diferencia principal entre el CISD y el CHoCH?',ctx:'Ambos detectan giros, pero miran cosas distintas.',opts:['El CISD solo funciona en crypto','El CHoCH rompe swings estructurales; el CISD rompe las aperturas de las velas (cuerpos)','No hay diferencia real','El CISD necesita tres medias móviles'],ok:1,exp:'El CHoCH rompe un swing estructural (un pivote del gráfico). El CISD rompe las aperturas de las velas del último impulso — que suelen quedar más cerca que el swing. Por eso el CISD dispara ANTES que el CHoCH: es una confirmación más temprana.'},
+{q:'¿Cuál es la principal desventaja de que el CISD sea más "temprano"?',ctx:'El eterno trade-off del trading.',opts:['Que es más lento','Que genera más señales falsas (te mete antes en los giros buenos Y en los malos)','Que solo funciona de noche','Que necesita datos de pago'],ok:1,exp:'Más temprano = más ruidoso. El CISD te mete antes en los giros reales, pero también en todos los falsos. Es el eterno trade-off: velocidad contra fiabilidad. Y como toda la familia ICT, sus reglas dependen de juicios subjetivos ("¿cuáles velas forman la serie?") que impiden un backtest riguroso.'}]}
 ];
 
 // ─── CHART FUNCTIONS ───────────────────────────────────────────────────────
@@ -1353,6 +1386,54 @@ function chartCRT4H(){
     ${lbl(250,205,'Entry corto post-sweep → Target = Mínimo de la vela 4H',c,'middle','11')}
   `);}
 
+// ─── CISD CHARTS ────────────────────────────────────────────────────────────
+function chartCISD(){
+  let velas='';
+  const rojas=[[110,50,55],[160,80,60],[210,115,55],[260,145,50]];
+  rojas.forEach(v=>{velas+=wick(v[0],v[1]-8,v[1]+v[2]+8,'#ef4444')+candle(v[0],v[1],v[2],18,false,'#ef4444');});
+  velas+=wick(310,45,175,'#22c55e')+candle(310,55,95,18,true,'#22c55e');
+  const ny=50;
+  return svgWrap(`<line x1="95" y1="${ny}" x2="360" y2="${ny}" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="5"/>
+    ${lbl(100,ny-6,'apertura de la 1ª vela de la serie','#38bdf8','start','10')}
+    ${velas}
+    <circle cx="310" cy="${ny}" r="7" fill="none" stroke="#22c55e" stroke-width="2"/>
+    ${lbl(310,190,'CISD: cierre sobre','#22c55e','middle','10')}
+    ${lbl(310,203,'las aperturas','#22c55e','middle','10')}
+    ${lbl(180,205,'serie bajista (4 velas)','#ef4444','middle','10')}`,220);
+}
+
+function chartCISDVS(){
+  let velas='';
+  const rojas=[[120,50,55],[165,78,58],[210,110,55]];
+  rojas.forEach(v=>{velas+=wick(v[0],v[1]-6,v[1]+v[2]+6,'#ef4444')+candle(v[0],v[1],v[2],16,false,'#ef4444');});
+  velas+=wick(255,48,175,'#22c55e')+candle(255,58,90,16,true,'#22c55e');
+  velas+=wick(300,40,150,'#22c55e')+candle(300,50,80,16,true,'#22c55e');
+  return svgWrap(`${lbl(280,16,'La misma reversión, dos señales en momentos distintos','#c9d1d9','middle','11')}
+    <line x1="100" y1="50" x2="340" y2="50" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="5"/>
+    ${lbl(105,44,'CISD (aperturas) — dispara ANTES','#38bdf8','start','10')}
+    <line x1="100" y1="105" x2="340" y2="105" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5"/>
+    ${lbl(105,120,'CHoCH (swing) — dispara DESPUÉS','#f59e0b','start','10')}
+    ${velas}
+    <circle cx="255" cy="50" r="6" fill="none" stroke="#38bdf8" stroke-width="2"/>
+    <circle cx="300" cy="50" r="6" fill="none" stroke="#f59e0b" stroke-width="2"/>
+    ${lbl(280,208,'El CISD (cuerpos) llega antes que el CHoCH (swing). Antes = más rápido pero más ruidoso','#8b949e','middle','10')}`,220);
+}
+
+function chartCISDVER(){
+  return svgWrap(`${lbl(280,26,'MÁS TEMPRANO ≠ MEJOR','#e7ecf3','middle','13')}
+    ${lbl(280,46,'El eterno trade-off: velocidad contra fiabilidad','#8b949e','middle','10')}
+    <rect x="70" y="70" width="200" height="46" rx="8" fill="rgba(56,189,248,.1)" stroke="#38bdf8" stroke-width="1.5"/>
+    ${lbl(170,90,'CISD (temprano)','#38bdf8','middle','12')}
+    ${lbl(170,107,'+ rápido · + señales falsas','#8b949e','middle','10')}
+    <rect x="300" y="70" width="200" height="46" rx="8" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-width="1.5"/>
+    ${lbl(400,90,'CHoCH diario (tu bot)','#f59e0b','middle','12')}
+    ${lbl(400,107,'+ tardío · validado 4× · PF 2.64','#8b949e','middle','10')}
+    <path d="M270,93 L300,93" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arC)"/>
+    <defs><marker id="arC" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#8b949e"/></marker></defs>
+    ${lbl(280,150,'Cuando hay dinero de por medio, la robustez le gana a la velocidad','#f59e0b','middle','11')}
+    ${lbl(280,175,'Tu Cazador usa la versión robusta de esta idea. Por eso funciona.','#8b949e','middle','10')}`,220);
+}
+
 // ─── IFVG CHARTS ────────────────────────────────────────────────────────────
 function chartSWEEP(){
   let velas='';
@@ -1504,7 +1585,7 @@ function chartABS(){
     ${lbl(280,18,'ABSORCION: un comprador pasivo gigante se traga toda la agresion','#22c55e','middle','11')}`,220);
 }
 
-const CHART_FNS={chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
+const CHART_FNS={chartCISD,chartCISDVS,chartCISDVER,chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
 
 // ─── APP STATE ──────────────────────────────────────────────────────────────
 let curId=null, curTab='r', scores={}, done=new Set();
