@@ -291,12 +291,44 @@ const SC={
   elliott:{c:'#60a5fa',r:'96,165,250'},sd:{c:'#f97316',r:'249,115,22'},
   pa:{c:'#22c55e',r:'34,197,94'},fib:{c:'#a78bfa',r:'167,139,250'},
   ma:{c:'#06b6d4',r:'6,182,212'},rsi:{c:'#ef4444',r:'239,68,68'},
-  crt:{c:'#eab308',r:'234,179,8'}
+  crt:{c:'#eab308',r:'234,179,8'},
+  oflow:{c:'#ec4899',r:'236,72,153'}
 };
 function sc(id){return (SC[id]||SC.smc).c;}
 function sr(id){return (SC[id]||SC.smc).r;}
 
 const CD={
+'oflow.0':{title:'DOM / Level 2 — el libro de órdenes',long:'El DOM (Depth of Market) muestra las órdenes límite PASIVAS que esperan en cada nivel de precio: a la izquierda los compradores (bids), a la derecha los vendedores (asks). Es el inventario visible de intenciones del mercado. Los tamaños grandes forman muros que pueden frenar el precio... o desaparecer en milisegundos (spoofing). El precio solo se mueve cuando órdenes A MERCADO consumen las órdenes límite de un nivel.',chartFn:'chartDOM',
+rules:[
+{t:'Bids = compradores pasivos esperando abajo; Asks = vendedores pasivos esperando arriba',ex:'<strong>Ejemplo:</strong> En el MNQ ves 850 contratos de compra esperando en 20,000 y 120 de venta en 20,001. El lado comprador es 7 veces más grueso: hay más interés pasivo defendiendo abajo que ofreciendo arriba.'},
+{t:'Un muro gigante frena el precio... mientras exista',ex:'<strong>Ejemplo:</strong> Aparecen 1,200 contratos de compra en 19,980 cuando lo normal son 100 por nivel. El precio cae, toca 19,981 y rebota tres veces: el muro sostiene. Pero ojo — si el muro se cancela de golpe (spoofing), el piso desaparece y el precio lo atraviesa.'},
+{t:'El precio se mueve consumiendo el libro, no por magia',ex:'<strong>Ejemplo:</strong> Para que el MNQ suba de 20,000 a 20,005, los compradores a mercado deben COMERSE todos los contratos de venta de 20,001, 20,002, 20,003 y 20,004. Si hay poco inventario (libro fino), el mismo dinero mueve el precio mucho más: por eso los movimientos nocturnos son tan bruscos.'}]},
+'oflow.1':{title:'Time & Sales — la cinta',long:'La cinta es el registro en vivo de cada transacción ejecutada: hora, precio, tamaño, y si golpeó el ask (compra agresiva) o el bid (venta agresiva). Es el dato más crudo que existe — todo lo demás (delta, footprint, CVD) se construye a partir de ella. Los lectores de cinta clásicos, desde Jesse Livermore, buscaban lo mismo que hoy: tamaños anormales y ráfagas de agresión.',
+rules:[
+{t:'Transacción al ASK = comprador agresivo; al BID = vendedor agresivo',ex:'<strong>Ejemplo:</strong> El MNQ cotiza 19,999 x 20,000. Pasa una orden de 50 contratos a 20,000: alguien tuvo tanta prisa por comprar que pagó el precio del vendedor. Eso es agresión compradora. Si hubiera vendido a 19,999, sería agresión vendedora.'},
+{t:'Los tamaños anormales delatan a los jugadores grandes',ex:'<strong>Ejemplo:</strong> La cinta imprime lotes de 1-5 contratos todo el día y de pronto pasan 200, 180 y 250 en segundos, todos al ask. Un jugador grande está acumulando con urgencia — la huella que el retail no puede fingir.'},
+{t:'Ráfagas de velocidad = evento; goteo lento = ruido',ex:'<strong>Ejemplo:</strong> A las 8:30 (dato de inflación) la cinta pasa de 3 transacciones por segundo a 300. La velocidad de la cinta ES el termómetro del interés real en ese instante.'}]},
+'oflow.2':{title:'Footprint — la vela por dentro',long:'El footprint abre cada vela y muestra, nivel por nivel de precio, cuánto volumen se ejecutó comprando agresivo (columna derecha) y vendiendo agresivo (columna izquierda). Una vela verde puede esconder distribución; una roja puede esconder acumulación. El footprint revela la batalla real que el color de la vela resume demasiado.',chartFn:'chartFP',
+rules:[
+{t:'Formato clásico: ventas x compras en cada nivel',ex:'<strong>Ejemplo:</strong> En 20,010 lees 320 x 45: se vendieron 320 contratos agresivos contra solo 45 comprados. Ese nivel fue dominio vendedor, aunque la vela haya cerrado verde.'},
+{t:'Imbalance: un lado supera al otro por 3x o más en diagonal',ex:'<strong>Ejemplo:</strong> Compras de 480 contra ventas de 60 en el nivel diagonal (relación 8:1). Los imbalances apilados en la parte alta de una vela alcista muestran convicción real; un solo imbalance aislado es ruido.'},
+{t:'Volumen gigante en el extremo de la vela = posible giro',ex:'<strong>Ejemplo:</strong> Una vela roja termina su caída con 2,000 contratos negociados justo en su mínimo, y la siguiente vela es verde. Ese volumen en el low frecuentemente es el comprador grande recibiendo todo el pánico: agotamiento vendedor.'}]},
+'oflow.3':{title:'Delta y CVD — el pulso de la agresión',long:'Delta = compras a mercado menos ventas a mercado de cada vela. CVD (Cumulative Volume Delta) = la suma acumulada de todos los deltas: la línea que dibuja quién lleva la iniciativa a lo largo de la sesión. Su lectura más famosa es la DIVERGENCIA: cuando el precio y el CVD dejan de contarse la misma historia.',chartFn:'chartDELTA',
+rules:[
+{t:'Delta positivo = mandan los compradores agresivos; negativo = los vendedores',ex:'<strong>Ejemplo:</strong> Una vela negocia 5,000 contratos: 3,400 al ask y 1,600 al bid. Delta = +1,800. La iniciativa fue claramente compradora, independientemente del tamaño de la vela.'},
+{t:'Divergencia: precio hace nuevo máximo, CVD no lo acompaña',ex:'<strong>Ejemplo:</strong> El MNQ marca un máximo nuevo en 20,100, pero el CVD queda por debajo de su pico anterior. Traducción: el nuevo máximo se hizo con MENOS agresión compradora — la subida está hueca. Aviso clásico de techo (aunque no garantía).'},
+{t:'Delta gigante SIN movimiento de precio = alguien absorbe',ex:'<strong>Ejemplo:</strong> Delta de -2,500 en una vela... que cierra plana. Miles de contratos vendidos con agresión y el precio ni se inmutó: un comprador pasivo enorme se los tragó todos. Conecta directo con el concepto de absorción.'}]},
+'oflow.4':{title:'Volume Profile — el mapa por precio',long:'El Volume Profile gira el histograma de volumen 90 grados: en vez de mostrar cuánto se negoció cada DÍA, muestra cuánto se negoció en cada PRECIO. Los niveles con mucho volumen (HVN) son zonas de consenso que atraen y frenan al precio; los de poco volumen (LVN) son vacíos que el precio cruza rápido. El POC es el precio con más volumen de todos: el imán mayor.',chartFn:'chartVP',
+rules:[
+{t:'POC (Point of Control): el precio más negociado, actúa como imán',ex:'<strong>Ejemplo:</strong> El POC de la semana del MNQ está en 19,950. El precio se aleja a 20,100, pierde fuerza, y en dos días regresa exactamente a 19,950. Los precios con historia gravitan.'},
+{t:'HVN = zonas pegajosas; LVN = túneles rápidos',ex:'<strong>Ejemplo:</strong> Entre 19,900 y 19,950 se negociaron millones de contratos (HVN): el precio se atasca ahí horas. Entre 20,050 y 20,080 casi no hubo negocio (LVN): cuando el precio entra a ese vacío, lo cruza en minutos. Nadie tiene posiciones que defender en un vacío.'},
+{t:'El value area (70% del volumen) define lo aceptado',ex:'<strong>Ejemplo:</strong> Si el precio abre FUERA del value area de ayer y no logra volver a entrar en la primera hora, el mercado está aceptando precios nuevos: sesgo de tendencia para el día. Si reingresa, sesgo de rotación hacia el POC.'}]},
+'oflow.5':{title:'Absorción, agotamiento... y el veredicto honesto',long:'La absorción es la joya del order flow: agresión masiva contra un nivel que NO logra moverlo, porque un jugador pasivo gigante la recibe entera. El agotamiento es su gemelo: la agresión se queda sin combustible tras un clímax. Son huellas reales de jugadores grandes — pero leerlas es un OFICIO discrecional, no una fórmula. Y aquí el veredicto del laboratorio: el order flow es información legítima (datos reales, no dibujos), pero vive en el intradía — el territorio donde los costos y los HFT devoran la ventaja del retail — sus datos cuestan $100-200 al mes, y sus conceptos no se pueden backtestear con rigor porque son interpretación. Estúdialo para ENTENDER el mercado por dentro; desconfía de quien lo venda como sistema de señales.',chartFn:'chartABS',
+rules:[
+{t:'Absorción: volumen agresivo enorme + precio quieto = muro pasivo',ex:'<strong>Ejemplo:</strong> Tres velas seguidas martillan el soporte 19,900 con deltas de -1,800, -2,200 y -2,600... y las tres cierran con el mínimo casi idéntico. Alguien compró TODO eso sin dejar caer el precio. Cuando el último vendedor se rinde, el rebote es violento.'},
+{t:'Agotamiento: clímax de volumen en el extremo + reversión inmediata',ex:'<strong>Ejemplo:</strong> Tras una caída de 2 horas, la última vela roja negocia el triple de volumen que cualquier otra y la siguiente abre verde. El pánico final fue la gasolina del giro: los que tenían que vender, ya vendieron.'},
+{t:'La honestidad del laboratorio: lectura sí, sistema no',ex:'<strong>Ejemplo real de este proyecto:</strong> Se backtestearon 15 estrategias con metodología rigurosa. TODAS las intradía (donde vive el order flow) dieron profit factor menor a 1. Las únicas ganadoras fueron diarias y sistemáticas. El order flow puede afinar la ejecución de quien ya tiene ventaja — no puede crear ventaja donde la matemática de costos la niega.'},
+{t:'Cómo practicarlo gratis y sin riesgo',ex:'<strong>Ejemplo:</strong> En TradingView agrega Volume Profile y un indicador de CVD (aproximaciones gratuitas), abre el MNQ en M5 y dedica sesiones SOLO a observar: anota cada absorción o divergencia que creas ver y qué pasó después. Veinte anotaciones honestas valen más que cualquier curso de $500.'}]},
 'smc.0':{title:'Order Block (OB)',long:'El Order Block es la última vela antes de un movimiento institucional explosivo. Representa zonas donde bancos e instituciones dejaron órdenes pendientes sin ejecutar. Cuando el precio regresa a esa zona, esas órdenes se activan generando un rebote poderoso.',
 rules:[
 {t:'La última vela BAJISTA antes de un rally alcista = OB alcista',ex:'<strong>Ejemplo:</strong> El precio cae con 5 velas rojas. La última vela roja cierra en $1.200. De repente viene una explosión alcista fuerte. Esa última vela roja a $1.200 es tu OB alcista — cuando el precio regrese a esa zona, espera compra.'},
@@ -745,7 +777,16 @@ info:[['Timeframe','M5 – M15 (para entrada)'],['Mercados','Forex, Índices'],[
 tags:[['Algoritmos','blue'],['Targets precisos','green'],['Sweep','red'],['ICT','amber']],
 concepts:[['⏱️','CRT de 4 Horas','Las 5 reglas del CRT: sweep del extremo de la vela de 4H anterior.','crt.0'],['📅','CRT Diario (PDH/PDL)','Los rangos del día anterior como niveles de liquidez objetivo.','crt.1'],['📆','CRT Semanal (PWH/PWL)','Los rangos semanales y los movimientos de mayor magnitud del modelo.','crt.2'],['🔗','Multi-TF CRT','Cuando el sweep alinea múltiples rangos: la señal más potente del CRT.','crt.3']],
 quiz:[{q:'En el CRT de 4H, ¿qué significa que haya un "sweep del máximo"?',ctx:'El CRT se basa en que el algoritmo barre los extremos de velas previas.',opts:['El precio supera el máximo y continúa al alza con fuerza','El precio supera brevemente el máximo de la vela de 4H anterior y revierte','El precio forma una resistencia nueva en ese nivel','El volumen explota al superar el máximo'],ok:1,exp:'El sweep del máximo ocurre cuando el precio supera BREVEMENTE el máximo de la vela de 4H anterior y luego revierte inmediatamente hacia abajo. Esa perforación y vuelta rápida es la señal de venta, con target en el mínimo de esa misma vela de 4H.'},
-{q:'¿Cuándo tienen mayor calidad los setups de CRT?',ctx:'El timing es crucial en el CRT para maximizar la probabilidad.',opts:['A medianoche cuando hay poco volumen','En cualquier momento del día, el horario no importa','Durante las Kill Zones de ICT (máxima actividad algorítmica)','Los domingos cuando el mercado acaba de abrir'],ok:2,exp:'Los mejores CRTs ocurren durante las Kill Zones de ICT (apertura de Londres 8:00 UTC, apertura de NY 13:00 UTC). Es cuando el algoritmo está más activo y los movimientos son intencionales — sweeps claros y reversiones rápidas.'}]}
+{q:'¿Cuándo tienen mayor calidad los setups de CRT?',ctx:'El timing es crucial en el CRT para maximizar la probabilidad.',opts:['A medianoche cuando hay poco volumen','En cualquier momento del día, el horario no importa','Durante las Kill Zones de ICT (máxima actividad algorítmica)','Los domingos cuando el mercado acaba de abrir'],ok:2,exp:'Los mejores CRTs ocurren durante las Kill Zones de ICT (apertura de Londres 8:00 UTC, apertura de NY 13:00 UTC). Es cuando el algoritmo está más activo y los movimientos son intencionales — sweeps claros y reversiones rápidas.'}]},
+
+{id:'oflow',icon:'📡',label:'Order Flow',name:'Order Flow y Volumen',sub:'El microscopio del mercado: en vez de mirar solo lo que el precio hizo, lees las órdenes reales que lo mueven — quién compra, quién vende, con cuánta agresión y en qué nivel. Es la herramienta de ejecución de las mesas profesionales.',
+info:[['Timeframe','Tick – M5 (lectura)'],['Mercados','Futuros CME, Crypto'],['Dificultad','⭐⭐⭐⭐⭐'],['Coste de datos','~$100-200/mes (Level 2)']],
+tags:[['Datos reales','blue'],['Microestructura','purple'],['Intradía','amber'],['Discrecional','red']],
+concepts:[['📖','DOM / Level 2 (el libro)','Las órdenes límite PASIVAS esperando en cada precio: los muros de compradores y vendedores.','oflow.0'],['🧾','Time & Sales (la cinta)','Cada transacción ejecutada en vivo: precio, tamaño y quién fue el agresor.','oflow.1'],['👣','Footprint Chart','La vela por dentro: volumen comprador vs vendedor ejecutado en cada nivel de precio.','oflow.2'],['⚡','Delta y CVD','Compras agresivas menos ventas agresivas. El pulso de la agresión del mercado.','oflow.3'],['🧲','Volume Profile','Cuánto volumen se negoció en cada PRECIO (no en cada fecha). Nodos que actúan como imanes.','oflow.4'],['🛡️','Absorción y Agotamiento','Cuando la agresión choca contra un muro pasivo gigante... y el precio no se mueve.','oflow.5']],
+quiz:[{q:'¿Qué mide exactamente el Delta de una vela?',ctx:'El delta es el dato central del order flow moderno.',opts:['El volumen total negociado en la vela','Compras a mercado MENOS ventas a mercado (agresores)','La diferencia entre el máximo y el mínimo','El número de órdenes límite pendientes'],ok:1,exp:'Delta = volumen ejecutado contra el ASK (compradores agresivos) menos volumen ejecutado contra el BID (vendedores agresivos). Mide quién tiene la iniciativa, no cuánto se negoció en total.'},
+{q:'El precio empuja hacia abajo contra un nivel con ventas agresivas enormes... pero el precio NO baja. ¿Qué está pasando?',ctx:'Este es el fenómeno más buscado por los lectores de order flow.',opts:['El mercado está cerrado','Absorción: un comprador pasivo gigante está tragándose toda la venta','Un error del gráfico','Falta volumen para moverse'],ok:1,exp:'Eso es ABSORCIÓN: alguien con órdenes límite de compra enormes absorbe toda la agresión vendedora sin dejar caer el precio. Cuando los vendedores se agotan, el rebote suele ser violento. Es la huella de un jugador institucional defendiendo un nivel.'},
+{q:'¿Cuál es la diferencia fundamental entre el order flow y el análisis técnico clásico?',ctx:'Ambos miran el mismo mercado, pero desde ángulos distintos.',opts:['El order flow usa más indicadores','El técnico clásico analiza lo que el precio HIZO; el order flow analiza las ÓRDENES que lo mueven','El order flow solo sirve para acciones','No hay diferencia real'],ok:1,exp:'El análisis técnico estudia la sombra (el precio pasado); el order flow estudia la mano que la proyecta (las transacciones y órdenes reales). Es información más cruda y directa — aunque también más rápida, ruidosa y difícil de interpretar.'},
+{q:'¿Por qué es tan difícil backtestear el order flow con rigor?',ctx:'La pregunta del laboratorio: sin backtest, no hay ventaja demostrada.',opts:['Los datos históricos de Level 2 son caros y pesados','Conceptos como la absorción son interpretación discrecional, no reglas fijas','Vive en el intradía, donde los costos y los HFT devoran los márgenes','Todas las anteriores'],ok:3,exp:'Las tres a la vez: datos caros, definiciones subjetivas (¿cuántos contratos son un muro?) y el terreno intradía donde la evidencia muestra que la ventaja del retail muere. Por eso el order flow es una habilidad de EJECUCIÓN discrecional, no una estrategia backtesteable — estúdialo como lectura del mercado, no como sistema.'}]}
 ];
 
 // ─── CHART FUNCTIONS ───────────────────────────────────────────────────────
@@ -1027,7 +1068,92 @@ function chartCRT4H(){
     ${lbl(250,205,'Entry corto post-sweep → Target = Mínimo de la vela 4H',c,'middle','11')}
   `);}
 
-const CHART_FNS={chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
+// ─── ORDER FLOW CHARTS ──────────────────────────────────────────────────────
+function chartDOM(){
+  let rows='';
+  const libro=[[20005,'',210],[20004,'',95],[20003,'',140],[20002,'',80],[20001,'',115],
+               [20000,130,''],[19999,90,''],[19998,160,''],[19997,1240,''],[19996,105,'']];
+  libro.forEach((r,i)=>{
+    const y=28+i*17;
+    rows+=`<text x="280" y="${y+12}" text-anchor="middle" font-size="11" fill="#c9d1d9" font-family="monospace">${r[0].toLocaleString()}</text>`;
+    if(r[1]!==''){const w=Math.min(190,r[1]/7);const muro=r[1]>1000;
+      rows+=`<rect x="${248-w}" y="${y}" width="${w}" height="15" rx="2" fill="${muro?'#22c55e':'rgba(34,197,94,.45)'}"/>`;
+      rows+=`<text x="${242-w}" y="${y+12}" text-anchor="end" font-size="10" fill="${muro?'#22c55e':'#8b949e'}" font-family="monospace">${r[1].toLocaleString()}</text>`;
+      if(muro)rows+=`<text x="60" y="${y-4}" font-size="10" fill="#22c55e" font-weight="700">MURO de compra</text>`;}
+    if(r[2]!==''){const w=Math.min(190,r[2]/7);
+      rows+=`<rect x="312" y="${y}" width="${w}" height="15" rx="2" fill="rgba(239,68,68,.45)"/>`;
+      rows+=`<text x="${318+w}" y="${y+12}" font-size="10" fill="#8b949e" font-family="monospace">${r[2]}</text>`;}
+  });
+  return svgWrap(`${lbl(150,16,'BIDS (compradores pasivos)','#22c55e')}${lbl(410,16,'ASKS (vendedores pasivos)','#ef4444')}
+    <line x1="248" y1="22" x2="248" y2="200" stroke="#30363d"/><line x1="312" y1="22" x2="312" y2="200" stroke="#30363d"/>
+    ${rows}${lbl(280,212,'El precio solo se mueve cuando ordenes A MERCADO consumen un nivel del libro','#8b949e','middle','10')}`,220);
+}
+
+function chartFP(){
+  const niveles=[[20014,60,480,1],[20012,85,390,1],[20010,320,45,0],[20008,150,180,0],[20006,240,110,0],[20004,410,95,0]];
+  let filas='';
+  niveles.forEach((n,i)=>{
+    const y=40+i*24;
+    const imb=n[3]===1;
+    filas+=`<text x="255" y="${y+6}" text-anchor="end" font-size="12" font-family="monospace" fill="${n[1]>n[2]*3?'#ef4444':'#8b949e'}">${n[1]}</text>`;
+    filas+=`<text x="280" y="${y+6}" text-anchor="middle" font-size="10" fill="#484f58">x</text>`;
+    filas+=`<text x="305" y="${y+6}" font-size="12" font-family="monospace" fill="${imb?'#22c55e':'#8b949e'}" font-weight="${imb?'700':'400'}">${n[2]}</text>`;
+    filas+=`<text x="195" y="${y+6}" text-anchor="end" font-size="10" fill="#484f58" font-family="monospace">${n[0].toLocaleString()}</text>`;
+    if(imb)filas+=`<rect x="292" y="${y-10}" width="52" height="20" rx="4" fill="none" stroke="#22c55e" stroke-width="1.5"/><text x="360" y="${y+5}" font-size="10" fill="#22c55e">imbalance 8:1</text>`;
+  });
+  return svgWrap(`<rect x="230" y="26" width="120" height="150" rx="4" fill="rgba(34,197,94,.08)" stroke="#22c55e" stroke-width="1.5"/>
+    <line x1="290" y1="10" x2="290" y2="26" stroke="#22c55e" stroke-width="2"/><line x1="290" y1="176" x2="290" y2="196" stroke="#22c55e" stroke-width="2"/>
+    ${lbl(120,16,'ventas x compras','#8b949e','middle','10')}${filas}
+    ${lbl(280,212,'Una sola vela verde, abierta por dentro: la batalla nivel por nivel','#8b949e','middle','10')}`,220);
+}
+
+function chartDELTA(){
+  const precio='M20,90 L90,55 L150,75 L230,38 L310,62 L400,30 L520,55';
+  const cvd='M20,175 L90,148 L150,162 L230,140 L310,158 L400,152 L520,170';
+  return svgWrap(`${lbl(50,20,'PRECIO','#c9d1d9','start')}<path d="${precio}" fill="none" stroke="#c9d1d9" stroke-width="2"/>
+    <circle cx="230" cy="38" r="4" fill="#ec4899"/><circle cx="400" cy="30" r="4" fill="#ec4899"/>
+    <line x1="230" y1="38" x2="400" y2="30" stroke="#ec4899" stroke-width="1" stroke-dasharray="4"/>
+    ${lbl(415,24,'maximo MAS ALTO','#ec4899','start','10')}
+    <line x1="20" y1="115" x2="540" y2="115" stroke="#30363d"/>
+    ${lbl(50,132,'CVD (delta acumulado)','#f59e0b','start','10')}<path d="${cvd}" fill="none" stroke="#f59e0b" stroke-width="2"/>
+    <circle cx="230" cy="140" r="4" fill="#ec4899"/><circle cx="400" cy="152" r="4" fill="#ec4899"/>
+    <line x1="230" y1="140" x2="400" y2="152" stroke="#ec4899" stroke-width="1" stroke-dasharray="4"/>
+    ${lbl(415,148,'pico MAS BAJO','#ec4899','start','10')}
+    ${lbl(280,208,'DIVERGENCIA: el precio sube a maximos nuevos con MENOS agresion compradora — subida hueca','#ec4899','middle','10')}`,220);
+}
+
+function chartVP(){
+  const perfil=[[30,55],[46,95],[62,150],[78,196],[94,120],[110,70],[126,42],[142,88],[158,60]];
+  let barras='';
+  perfil.forEach((p,i)=>{
+    const poc=p[1]===196;
+    barras+=`<rect x="${540-p[1]}" y="${p[0]}" width="${p[1]}" height="12" rx="2" fill="${poc?'#ec4899':'rgba(236,72,153,.35)'}"/>`;
+    if(poc)barras+=`<text x="${532-p[1]}" y="${p[0]+10}" text-anchor="end" font-size="10" fill="#ec4899" font-weight="700">POC (iman)</text>`;
+  });
+  return svgWrap(`<path d="M20,150 L70,120 L110,135 L160,80 L210,100 L260,78 L310,95 L350,88" fill="none" stroke="#c9d1d9" stroke-width="2"/>
+    ${barras}
+    <text x="352" y="52" font-size="10" fill="#8b949e">LVN: vacio, se cruza rapido</text>
+    <text x="398" y="132" font-size="10" fill="#8b949e">HVN: zona pegajosa</text>
+    ${lbl(280,212,'Volumen por PRECIO (horizontal): los niveles con historia atraen; los vacios se atraviesan','#8b949e','middle','10')}`,220);
+}
+
+function chartABS(){
+  let velas='';
+  const bajistas=[[80,40,60],[140,55,70],[200,70,80],[260,85,90]];
+  bajistas.forEach(v=>{velas+=wick(v[0],v[1],158,'#ef4444')+candle(v[0],v[1]+8,v[2],18,false,'#ef4444');});
+  const deltas=[['-1,800',80],['-2,200',140],['-2,600',200],['-2,900',260]];
+  let dl='';deltas.forEach(d=>{dl+=`<text x="${d[1]}" y="192" text-anchor="middle" font-size="10" fill="#ef4444" font-family="monospace">${d[0]}</text>`;});
+  return svgWrap(`<line x1="30" y1="160" x2="530" y2="160" stroke="#22c55e" stroke-width="2" stroke-dasharray="6"/>
+    ${velas}${dl}
+    ${wick(330,70,160,'#22c55e')}${candle(330,74,84,18,true,'#22c55e')}
+    ${wick(392,30,120,'#22c55e')}${candle(392,34,84,18,true,'#22c55e')}
+    ${lbl(300,178,'soporte 19,900','#22c55e','start','10')}
+    ${lbl(170,210,'delta vendedor creciente... y el precio NO cae','#ef4444','middle','10')}
+    ${lbl(420,210,'los vendedores se agotan: rebote','#22c55e','middle','10')}
+    ${lbl(280,18,'ABSORCION: un comprador pasivo gigante se traga toda la agresion','#22c55e','middle','11')}`,220);
+}
+
+const CHART_FNS={chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
 
 // ─── APP STATE ──────────────────────────────────────────────────────────────
 let curId=null, curTab='r', scores={}, done=new Set();
