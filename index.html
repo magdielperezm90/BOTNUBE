@@ -268,6 +268,33 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   border:1px solid rgba(180,140,255,.22)}
 @media(max-width:560px){.rec-hero{flex-direction:column;text-align:center}.rec-hero-title{font-size:1.4rem}}
 
+
+/* ===== TICKER DE PRECIOS EN VIVO ===== */
+.live-ticker{position:relative;z-index:2;margin-top:118px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:44px;align-items:center}
+.lt-loading{font-family:ui-monospace,monospace;font-size:.72rem;color:#5b6b8c;letter-spacing:.08em}
+.lt-chip{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:11px;
+  background:linear-gradient(160deg,rgba(var(--ltr),.1),rgba(19,27,41,.9));
+  border:1px solid rgba(var(--ltr),.28);
+  box-shadow:0 4px 14px rgba(0,0,0,.3),0 0 16px rgba(var(--ltr),.1),inset 0 1px 0 rgba(255,255,255,.04);
+  animation:ltIn .5s ease both;transition:transform .2s}
+.lt-chip:hover{transform:translateY(-2px)}
+@keyframes ltIn{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
+.lt-ico{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;
+  background:radial-gradient(circle at 30% 30%,rgba(var(--ltr),.35),rgba(var(--ltr),.12));
+  border:1px solid rgba(var(--ltr),.4);color:#fff;flex-shrink:0}
+.lt-body{display:flex;flex-direction:column;line-height:1.1}
+.lt-sym{font-size:.62rem;font-weight:700;letter-spacing:.06em;color:#c9d1d9}
+.lt-price{font-family:ui-monospace,monospace;font-size:.82rem;font-weight:600;color:#fff}
+.lt-chg{font-family:ui-monospace,monospace;font-size:.66rem;font-weight:600;margin-left:2px}
+.lt-up{color:#3DDC97}.lt-down{color:#FF6B7A}
+.lt-flash-up{animation:flashUp .6s ease}.lt-flash-down{animation:flashDown .6s ease}
+@keyframes flashUp{0%{background:rgba(61,220,151,.25)}100%{background:transparent}}
+@keyframes flashDown{0%{background:rgba(255,107,122,.25)}100%{background:transparent}}
+.lt-live{display:inline-flex;align-items:center;gap:5px;font-size:.58rem;color:#8b949e;letter-spacing:.1em;text-transform:uppercase}
+.lt-dot{width:6px;height:6px;border-radius:50%;background:#3DDC97;box-shadow:0 0 8px #3DDC97;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media(max-width:560px){.live-ticker{margin-top:88px}}
+
 </style>
 </head>
 <body>
@@ -307,7 +334,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <div id="welcome">
       <div class="hero">
         <canvas id="globe" width="340" height="340" aria-hidden="true"></canvas>
-        <div class="hero-ticker" id="hero-ticker"></div>
+        <div class="live-ticker" id="live-ticker"><span class="lt-loading">Cargando precios en vivo&hellip;</span></div>
         <h1 class="hero-title">Trading <span class="grad">Academy Pro</span></h1>
         <div class="hero-quote" id="hero-quote"></div>
         <p class="hero-sub">14 m&oacute;dulos: estrategias, psicolog&iacute;a y gesti&oacute;n de riesgo &mdash; con gr&aacute;ficos, ejemplos y quizzes. Y un bot real cazando en la nube.</p>
@@ -1963,19 +1990,12 @@ let heroQi = 0, heroTimer = null, globeRAF = null;
 
 function heroRotate(){
   const q = document.getElementById('hero-quote');
-  const t = document.getElementById('hero-ticker');
   if(!q) return;
   q.style.opacity = 0;
   setTimeout(()=>{
     heroQi = (heroQi + 1) % HERO_QUOTES.length;
     q.textContent = HERO_QUOTES[heroQi];
     q.style.opacity = 1;
-    if(t){
-      const tk = HERO_TICKS[Math.floor(Math.random()*HERO_TICKS.length)];
-      const up = Math.random() > .5;
-      const pct = (Math.random()*2).toFixed(2);
-      t.innerHTML = `SE\u00d1AL DE MERCADO &middot; <span style="color:${up?'#3DDC97':'#FF6B7A'}">${tk} ${up?'\u25B2':'\u25BC'} ${pct}%</span> &middot; SIMULADO`;
-    }
   }, 500);
 }
 
@@ -2023,10 +2043,87 @@ function drawGlobe(){
   frame();
 }
 
+/* ===== TICKER DE PRECIOS EN VIVO (fuentes gratuitas sin clave) ===== */
+const LT_PREV = {};
+let ltTimer = null;
+
+// Cada activo con su(s) fuente(s). Se intenta en orden hasta que una responda.
+const LT_ASSETS = [
+  { sym:'BTC',  ico:'\u20BF', rgb:'247,147,26',
+    fetch: async () => {
+      const r = await fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot');
+      const j = await r.json(); return parseFloat(j.data.amount);
+    }},
+  { sym:'ETH',  ico:'\u039E', rgb:'129,140,248',
+    fetch: async () => {
+      const r = await fetch('https://api.coinbase.com/v2/prices/ETH-USD/spot');
+      const j = await r.json(); return parseFloat(j.data.amount);
+    }},
+  { sym:'ORO',  ico:'Au', rgb:'234,179,8', label:'XAU',
+    fetch: async () => {
+      // PAXG (oro tokenizado) \u2248 precio de 1 onza de oro, via Coinbase
+      const r = await fetch('https://api.coinbase.com/v2/prices/PAXG-USD/spot');
+      const j = await r.json(); return parseFloat(j.data.amount);
+    }},
+  { sym:'SOL',  ico:'\u25CE', rgb:'20,241,149',
+    fetch: async () => {
+      const r = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot');
+      const j = await r.json(); return parseFloat(j.data.amount);
+    }},
+];
+
+function ltFormat(sym, price){
+  if (price >= 1000) return '$' + price.toLocaleString('en-US', {maximumFractionDigits:0});
+  if (price >= 1)    return '$' + price.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return '$' + price.toFixed(4);
+}
+
+async function ltUpdate(){
+  const cont = document.getElementById('live-ticker');
+  if(!cont) { ltTimer && clearInterval(ltTimer); ltTimer = null; return; }
+  const resultados = await Promise.all(LT_ASSETS.map(async a => {
+    try { const p = await a.fetch(); return (isFinite(p) && p > 0) ? {a, p} : null; }
+    catch(e){ return null; }
+  }));
+  const validos = resultados.filter(Boolean);
+  if(!validos.length){
+    if(!cont.querySelector('.lt-chip'))
+      cont.innerHTML = '<span class="lt-loading">Precios no disponibles ahora mismo.</span>';
+    return;
+  }
+  let html = '<span class="lt-live"><span class="lt-dot"></span>En vivo</span>';
+  for(const {a, p} of validos){
+    const prev = LT_PREV[a.sym];
+    let flash = '', chg = '';
+    if(prev != null){
+      const diff = (p/prev - 1) * 100;
+      if(Math.abs(diff) > 0.0001){
+        flash = p > prev ? 'lt-flash-up' : 'lt-flash-down';
+      }
+      const up = p >= prev;
+      chg = `<span class="lt-chg ${up?'lt-up':'lt-down'}">${up?'\u25B2':'\u25BC'}</span>`;
+    }
+    LT_PREV[a.sym] = p;
+    html += `<div class="lt-chip ${flash}" style="--ltr:${a.rgb}">
+      <div class="lt-ico">${a.ico}</div>
+      <div class="lt-body">
+        <span class="lt-sym">${a.sym}</span>
+        <span class="lt-price">${ltFormat(a.sym, p)}${chg}</span>
+      </div></div>`;
+  }
+  cont.innerHTML = html;
+}
+
+function ltStart(){
+  ltUpdate();
+  if(!ltTimer) ltTimer = setInterval(ltUpdate, 10000);  // refresco cada 10s
+}
+
 function heroStart(){
   const q = document.getElementById('hero-quote');
   if(q && !q.textContent) q.textContent = HERO_QUOTES[0];
   drawGlobe();
+  ltStart();
   if(!heroTimer) heroTimer = setInterval(heroRotate, 5000);
 }
 
