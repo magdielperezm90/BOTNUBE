@@ -203,6 +203,25 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 #bot-screen .bp-leyenda{display:flex;gap:14px;font-size:.68rem;color:#8A97AB;margin-top:8px;flex-wrap:wrap}
 #bot-screen .bp-leyenda i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
 
+
+/* ===== HERO / BIENVENIDA ===== */
+#welcome{align-items:center;justify-content:flex-start;text-align:center;overflow-y:auto}
+.hero{position:relative;width:100%;max-width:640px;margin:0 auto;padding:24px 16px 40px;display:flex;flex-direction:column;align-items:center}
+#globe{position:absolute;top:-10px;left:50%;transform:translateX(-50%);opacity:.55;pointer-events:none;filter:drop-shadow(0 0 30px rgba(96,165,250,.25))}
+.hero-ticker{position:relative;z-index:2;font-family:ui-monospace,monospace;font-size:.72rem;letter-spacing:.08em;color:#5b6b8c;margin-top:120px;min-height:16px;text-transform:uppercase}
+.hero-title{position:relative;z-index:2;font-size:2.6rem;font-weight:800;margin:14px 0 0;letter-spacing:-.02em;line-height:1.05}
+.hero-title .grad{background:linear-gradient(120deg,#60a5fa,#a78bfa 55%,#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero-quote{position:relative;z-index:2;font-size:1.02rem;color:#c9d1d9;font-weight:500;margin:18px auto 6px;max-width:440px;min-height:48px;line-height:1.5;font-style:italic;transition:opacity .5s}
+.hero-quote::before{content:'\201C';color:var(--sc);font-weight:700}
+.hero-quote::after{content:'\201D';color:var(--sc);font-weight:700}
+.hero-sub{position:relative;z-index:2;font-size:.92rem;color:#8b949e;max-width:460px;margin:10px auto 0;line-height:1.6}
+.hero-cta{position:relative;z-index:2;display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:24px 0 8px}
+.hero-btn{padding:12px 22px;border-radius:12px;font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:#c9d1d9;transition:transform .15s,border-color .15s}
+.hero-btn:hover{transform:translateY(-2px);border-color:#8b949e}
+.hero-btn.primary{background:linear-gradient(120deg,rgba(96,165,250,.16),rgba(167,139,250,.16));border-color:rgba(167,139,250,.45);color:#e7ecf3}
+.hero-btn.primary:hover{border-color:#a78bfa;box-shadow:0 6px 24px rgba(167,139,250,.2)}
+@media(max-width:560px){.hero-title{font-size:2rem}#globe{width:260px;height:260px}.hero-ticker{margin-top:90px}}
+
 </style>
 </head>
 <body>
@@ -240,14 +259,22 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       <div style="margin-top:14px;text-align:center;color:var(--tx3);font-size:.72rem;line-height:1.6">Cartera simulada &middot; No es dinero real ni consejo financiero.<br>CHoCH alcista + bias SMA200 &middot; 20 tickers &middot; m&aacute;x. 5 posiciones &middot; vs comprar y mantener QQQ</div>
     </div>
     <div id="welcome">
-      <div style="font-size:3.5rem;margin-bottom:16px">&#x1F4CA;</div>
-      <h1>Trading Academy Pro</h1>
-      <p>11 estrategias con resumenes, graficos animados, quiz y <strong style="color:var(--sc)">ejemplos practicos expandibles para cada regla</strong>.</p>
-      <div class="w-pills">
-        <div class="w-pill" style="background:rgba(59,130,246,.1);color:#93c5fd;border-color:rgba(59,130,246,.3)">&#x1F4DA; Resumenes</div>
-        <div class="w-pill" style="background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.3)">&#x1F4C9; Graficos</div>
-        <div class="w-pill" style="background:rgba(167,139,250,.1);color:#c4b5fd;border-color:rgba(167,139,250,.3)">&#x1F3AE; Quiz</div>
-        <div class="w-pill" style="background:rgba(249,115,22,.1);color:#fdba74;border-color:rgba(249,115,22,.3)">&#x1F4A1; Ejemplos por regla</div>
+      <div class="hero">
+        <canvas id="globe" width="340" height="340" aria-hidden="true"></canvas>
+        <div class="hero-ticker" id="hero-ticker"></div>
+        <h1 class="hero-title">Trading <span class="grad">Academy Pro</span></h1>
+        <div class="hero-quote" id="hero-quote"></div>
+        <p class="hero-sub">14 m&oacute;dulos: estrategias, psicolog&iacute;a y gesti&oacute;n de riesgo &mdash; con gr&aacute;ficos, ejemplos y quizzes. Y un bot real cazando en la nube.</p>
+        <div class="hero-cta">
+          <button class="hero-btn primary" onclick="loadBot()">&#x1F916; Ver el Bot en Vivo</button>
+          <button class="hero-btn" onclick="loadStrat('psico')">&#x1F9E0; Empezar por la Mente</button>
+        </div>
+        <div class="w-pills">
+          <div class="w-pill" style="background:rgba(59,130,246,.1);color:#93c5fd;border-color:rgba(59,130,246,.3)">12 estrategias</div>
+          <div class="w-pill" style="background:rgba(236,72,153,.1);color:#f9a8d4;border-color:rgba(236,72,153,.3)">Psicolog&iacute;a</div>
+          <div class="w-pill" style="background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.3)">Gesti&oacute;n de riesgo</div>
+          <div class="w-pill" style="background:rgba(167,139,250,.1);color:#c4b5fd;border-color:rgba(167,139,250,.3)">Bot validado 4x</div>
+        </div>
       </div>
     </div>
     <div id="strat-screen">
@@ -298,6 +325,91 @@ function sc(id){return (SC[id]||SC.smc).c;}
 function sr(id){return (SC[id]||SC.smc).r;}
 
 const CD={
+'psico.0':{title:'Tu cableado humano juega en contra',long:'Tu mente no está diseñada para operar: está diseñada para mantenerte vivo evitando el dolor y buscando recompensa inmediata. En la selva eso te salvaba; en el mercado te arruina. Cada vez que dejas que el instinto tome el control — huir del rojo, perseguir el verde — tomas la peor decisión posible en el peor momento posible. El primer paso no es aprender más setups: es reconocer que tu propio cerebro es el adversario.',
+rules:[
+{t:'El instinto de evitar dolor te hace cerrar ganadores temprano',ex:'<strong>Ejemplo:</strong> Vas +$200 en una operación. El cerebro susurra \"asegúralo antes de que desaparezca\" y cierras. La operación sigue +$800 sin ti. El miedo a perder la ganancia pequeña te costó la grande.'},
+{t:'El instinto de recompensa te hace arriesgar de más',ex:'<strong>Ejemplo:</strong> Dos operaciones ganadoras seguidas y el cerebro grita \"estás en racha, dobla el tamaño\". La tercera, con el doble de riesgo, borra las dos anteriores. La euforia es tan peligrosa como el miedo.'},
+{t:'Reconocer el patrón es la mitad de la solución',ex:'<strong>Ejemplo:</strong> Cuando sientas la urgencia de actuar (miedo o codicia), esa sensación misma es la señal de alarma. Los traders consistentes aprenden a notar \"esto es mi instinto hablando\" y a no obedecerlo.'}]},
+'psico.1':{title:'Rojo = Miedo',long:'Cuando una vela se pone roja, tu cerebro registra peligro literal — la misma química que ante una amenaza física. Quiere que salgas, que muevas el stop, que hagas lo que sea para detener el dolor. Y ese es exactamente el momento en que la mayoría de traders toma su peor decisión: cerrar en el punto de máximo miedo, que suele ser justo antes del rebote.',
+rules:[
+{t:'El rojo dispara química de supervivencia, no lógica',ex:'<strong>Ejemplo:</strong> Tu operación va -$50 y el corazón se acelera. Ese pulso no es información sobre el mercado: es tu amígdala reaccionando al color. El precio no sabe ni le importa dónde entraste.'},
+{t:'El miedo te hace mover el stop \"solo esta vez\"',ex:'<strong>Ejemplo:</strong> El precio se acerca a tu stop. \"Le doy un poco más de aire, seguro rebota.\" Acabas de convertir una pérdida planificada de $50 en una de $300. El stop existía por una razón.'},
+{t:'La solución: decide en frío, ejecuta en caliente',ex:'<strong>Ejemplo:</strong> Si tu stop y tu target están puestos ANTES de entrar, cuando llegue el miedo no hay ninguna decisión que tomar — el plan ya decidió. Le quitas el volante a tu amígdala.'}]},
+'psico.2':{title:'Verde = Codicia',long:'La vela verde se siente bien — demasiado bien. El cerebro quiere más: añadir tamaño, ignorar el objetivo, quedarse \"un poco más\". La codicia es tan destructiva como el miedo, solo que disfrazada de éxito. Es la razón por la que traders devuelven en una operación lo que ganaron en diez.',
+rules:[
+{t:'La codicia te hace ignorar tu propio objetivo',ex:'<strong>Ejemplo:</strong> Tu plan decía salir en +$300. Llegas ahí y \"esto sigue subiendo, aguanto\". El precio revierte y sales en +$40. La codicia se comió el 87% de tu ganancia planeada.'},
+{t:'Sentirte bien es una señal de peligro, no de seguridad',ex:'<strong>Ejemplo:</strong> Justo cuando te sientes invencible tras varias ganancias es cuando bajas la guardia, subes el tamaño y rompes reglas. Los mejores traders desconfían de la euforia tanto como del pánico.'},
+{t:'La solución: el objetivo es sagrado',ex:'<strong>Ejemplo:</strong> Define el target antes de entrar y respétalo. Si quieres capturar tendencias largas, usa una regla mecánica (como hace tu Cazador con la estructura), no el impulso del momento.'}]},
+'psico.3':{title:'Revenge Trading',long:'Tomas una pérdida e inmediatamente entras en otra operación para recuperarla. Esta es, sin exagerar, la forma más rápida de reventar una cuenta. La pérdida hirió tu ego, y ahora operas desde la herida y no desde una señal. Una mala operación lleva a otra peor, y en una tarde borras un mes de trabajo.',
+rules:[
+{t:'La pérdida hiere el ego, y el ego quiere venganza inmediata',ex:'<strong>Ejemplo:</strong> Pierdes $100 y sientes rabia. Entras de nuevo sin señal válida, solo para \"recuperarlo\". Pierdes $150 más. Ahora estás -$250 y furioso, entrando por tercera vez. Así se revienta una cuenta.'},
+{t:'Las pérdidas son parte del negocio, no un insulto personal',ex:'<strong>Ejemplo:</strong> Los mejores traders del mundo pierden el 40-50% de sus operaciones. Una pérdida no significa que te equivocaste ni que el mercado te debe algo. Es una estadística, no una afrenta.'},
+{t:'La solución: tras una pérdida dura, apágate',ex:'<strong>Ejemplo:</strong> Si una pérdida te descoloca emocionalmente, cierra la plataforma. Camina. Vuelve mañana. Ninguna operación vale más que tu disciplina, y el mercado seguirá ahí.'}]},
+'psico.4':{title:'FOMO y Overtrading',long:'FOMO (miedo a perderse algo): ves un movimiento que ya corrió 10 puntos y saltas tarde esperando 2 más — casi nunca funciona. Overtrading: ya cumpliste tu objetivo del día pero sigues operando por aburrimiento o euforia. Ambos nacen de la misma raíz: la incapacidad de quedarte quieto. Y la quietud es una de las armas más poderosas del trader.',
+rules:[
+{t:'FOMO: perseguir un tren que ya salió',ex:'<strong>Ejemplo:</strong> El NQ ya subió 40 puntos. \"¡Me lo estoy perdiendo!\" Entras tarde, y justo ahí revierte. Perseguir movimientos maduros es comprar caro el entusiasmo de otros. Siempre hay otra oportunidad. Siempre.'},
+{t:'Overtrading: más operaciones no es más dinero',ex:'<strong>Ejemplo:</strong> Cumpliste tu meta a las 10am. Pero sigues \"porque me siento bien\". Las siguientes 5 operaciones, tomadas sin setups reales, devuelven lo ganado. Más clics = más costos + más errores.'},
+{t:'La solución: la paciencia es una posición',ex:'<strong>Ejemplo:</strong> No operar ES una decisión de trading, y a menudo la mejor. Tu Cazador pasa la mayoría de los días sin comprar nada — espera el CHoCH válido. Esa disciplina de no-acción es su ventaja.'}]},
+'psico.5':{title:'Proceso, no dinero',long:'El cambio de mentalidad que lo cambia todo: deja de pensar en el dinero y empieza a pensar en el proceso. Tu único trabajo es ejecutar tu plan correctamente. Si haces eso de forma consistente, el dinero es la consecuencia inevitable. Si te enfocas en el dinero primero, tomarás decisiones emocionales en cada operación. El trading es un negocio: los negocios tienen días malos, semanas malas, incluso meses malos — lo que NO hacen es abandonar sus procedimientos por una mala racha.',
+rules:[
+{t:'Enfócate en ejecutar bien, no en el resultado de hoy',ex:'<strong>Ejemplo:</strong> Una operación perfecta que termina en pérdida es un ÉXITO de proceso. Una operación imprudente que termina en ganancia es un FRACASO de proceso (te enseñó a apostar). Juzga tus decisiones, no solo sus resultados.'},
+{t:'El trading es un negocio, no una lotería',ex:'<strong>Ejemplo:</strong> Un restaurante no cierra por un día de pocas ventas. Tiene procedimientos y los sigue en días buenos y malos. Tu plan de trading es tu procedimiento operativo: se respeta siempre, no solo cuando ganas.'},
+{t:'El dinero llega como consecuencia, no como objetivo',ex:'<strong>Ejemplo:</strong> Todo este proyecto es la prueba viva: no buscamos \"hazme rico\", buscamos un proceso validado (15 backtests, 4 validaciones). El Cazador no piensa en dinero — ejecuta reglas. Por eso funciona.'}]},
+'riesgo.0':{title:'Las 5 preguntas del plan diario',long:'La razón por la que la mayoría pierde no es la estrategia: es la ausencia de un plan. Un plan elimina la emoción porque cada decisión se toma ANTES de abrir el mercado, no en el calor del momento. Antes de cada sesión, responde estas cinco preguntas por escrito. Si no puedes responderlas, no operas ese día.',
+rules:[
+{t:'1. Instrumento y 2. Sesgo',ex:'<strong>Ejemplo:</strong> \"Hoy opero MNQ. Según la acción de anoche y los niveles clave, mi sesgo es alcista mientras se mantenga sobre 20,000.\" Sin sesgo definido, cada vela te empuja en una dirección distinta.'},
+{t:'3. Niveles clave y 4. Gatillo de entrada',ex:'<strong>Ejemplo:</strong> \"Vigilo 20,000 (soporte) y 20,100 (máximo previo). Entro SOLO si una vela cierra sobre 20,100 con retest.\" El gatillo específico evita entradas por impulso.'},
+{t:'5. Reglas de riesgo (la más importante)',ex:'<strong>Ejemplo:</strong> \"Máxima pérdida hoy: $100. Al tocarla, cierro la plataforma. Máximo 1 contrato.\" Esta pregunta es la que salva cuentas — se decide en frío y se respeta en caliente.'}]},
+'riesgo.1':{title:'Límite de pérdida diario',long:'Fija un límite de pérdida diario duro y respétalo sin excepción. Para un principiante en MES, un buen punto de partida es $50-100 máximo por día. Cuando lo tocas, terminaste — sin excepciones, sin revenge trading, cierra la sesión. Este único hábito separa a los que sobreviven de los que revientan la cuenta, porque evita que un mal día se convierta en un desastre irreversible.',
+rules:[
+{t:'Un tope duro, decidido antes de operar',ex:'<strong>Ejemplo:</strong> \"Mi límite es $80. Punto.\" No es \"veré cómo me siento\" ni \"depende del día\". Es un número fijo escrito antes de abrir el mercado, cuando tu mente está fría y racional.'},
+{t:'Al tocarlo: se apaga TODO, sin negociar',ex:'<strong>Ejemplo:</strong> Vas -$80 a las 10am. El cerebro dice \"una más y recupero\". NO. Cierras la plataforma. El límite existe precisamente para protegerte del tú de las 10am que quiere venganza.'},
+{t:'Por qué funciona: acota el desastre',ex:'<strong>Ejemplo:</strong> Sin límite, una mala mañana + revenge trading puede borrar semanas de ganancias en horas. Con límite, tu peor día posible es conocido y sobrevivible. Vives para operar mañana.'}]},
+'riesgo.2':{title:'Position Sizing',long:'Empieza con 1 contrato en MES (o el mínimo de tu mercado). Eso es todo. Domina la consistencia antes de siquiera pensar en añadir tamaño. Aumentar el tamaño amplifica tanto las ganancias como los errores — y mientras te estás desarrollando, los errores dominan. El tamaño es lo último que se aumenta, no lo primero.',
+rules:[
+{t:'1 contrato hasta que seas consistente',ex:'<strong>Ejemplo:</strong> No importa que la cuenta permita 10 contratos. Si aún no eres rentable con 1, con 10 solo pierdes 10 veces más rápido. El tamaño no arregla una estrategia; multiplica lo que ya haces.'},
+{t:'El tamaño amplifica todo, incluidos los errores',ex:'<strong>Ejemplo:</strong> Con 1 contrato, un error emocional cuesta $50. Con 5, cuesta $250 y el pánico es 5 veces mayor, lo que provoca MÁS errores. El tamaño grande y las emociones son mala combinación.'},
+{t:'Sube tamaño solo con consistencia probada',ex:'<strong>Ejemplo:</strong> Cuando tengas meses de resultados consistentes con 1 contrato, sube a 2 — no a 10. El escalado es gradual y se gana con datos, igual que validamos el Cazador antes de \"confiar\" en él.'}]},
+'riesgo.3':{title:'Niveles clave antes de abrir',long:'Antes de cada sesión, marca estos niveles en tu gráfico: máximo y mínimo del día previo, máximo y mínimo del overnight, máximo y mínimo del premarket, y los números redondos (niveles psicológicos grandes como 20,000 o 20,500). El precio respeta estos niveles porque TODOS los están mirando. Cuando el precio se acerca a uno, baja el ritmo y presta atención.',
+rules:[
+{t:'Los niveles del día previo y overnight',ex:'<strong>Ejemplo:</strong> El máximo de ayer fue 20,080. Hoy el precio sube y se frena justo ahí tres veces. No es casualidad: miles de traders pusieron órdenes en ese nivel obvio. Los niveles marcados de antemano te dicen dónde habrá batalla.'},
+{t:'Los números redondos son imanes psicológicos',ex:'<strong>Ejemplo:</strong> 20,000 en el NQ atrae al precio como un imán y suele generar reacción. No tiene magia técnica: es que el cerebro humano ancla en números redondos y pone órdenes ahí.'},
+{t:'Cerca de un nivel clave: baja el ritmo',ex:'<strong>Ejemplo:</strong> Cuando el precio se acerca a uno de tus niveles marcados, es zona de decisión: puede rebotar o romper. Ahí observas con atención en vez de entrar a ciegas. El nivel te dice DÓNDE mirar.'}]},
+'riesgo.4':{title:'Checklist pre-trade',long:'Antes de cada operación, corre esta lista mental. Si cualquier respuesta es \"no\", no entras. Es la barrera final entre una decisión de trading y un impulso emocional. Toma 10 segundos y te ahorra las peores operaciones de tu vida.',
+rules:[
+{t:'¿Esta operación coincide con mi plan?',ex:'<strong>Ejemplo:</strong> Si tu plan decía \"solo largos sobre 20,000\" y estás a punto de vender en corto en 19,950, la respuesta es NO. No operas. El plan se hizo en frío por buenas razones.'},
+{t:'¿Sé dónde está mi stop y mi target ANTES de entrar?',ex:'<strong>Ejemplo:</strong> Si no puedes decir \"stop en 19,980, target en 20,060\" antes de apretar el botón, no estás listo para entrar. Entrar sin stop definido es la receta del desastre.'},
+{t:'¿Entro por una señal real o por FOMO?',ex:'<strong>Ejemplo:</strong> \"¿Es esto un setup de mi plan, o me da miedo perderme el movimiento?\" Si es FOMO, no operas. Y si ya tocaste tu límite de pérdida del día: no operas, sin importar qué tan bueno se vea.'}]},
+'riesgo.5':{title:'Journaling',long:'Después de cada operación: captura de pantalla (entrada, salida, resultado), regístrala en tu diario de inmediato, y escribe qué hiciste bien y qué harías diferente. El journal es cómo conviertes operaciones sueltas en datos, y datos en mejora. Sin él, repites los mismos errores para siempre porque no los ves. Es la versión personal del backtesting: generas tu propia base de datos.',
+rules:[
+{t:'Captura y registra cada operación al instante',ex:'<strong>Ejemplo:</strong> Screenshot con entrada, salida y resultado, anotada apenas cierras. En caliente recuerdas por qué entraste; una semana después, no. El registro inmediato preserva la verdad.'},
+{t:'Escribe qué hiciste bien y qué cambiarías',ex:'<strong>Ejemplo:</strong> \"Bien: respeté mi stop. Mal: entré 5 min tarde por dudar.\" Una frase por operación. Tras 50 operaciones, los patrones de tus errores saltan a la vista — y eso es oro.'},
+{t:'El journal es tu backtesting personal',ex:'<strong>Ejemplo:</strong> Igual que probamos 15 estrategias con datos, tu diario prueba TU ejecución con datos. Es exactamente lo que Marci Silfrain (2ª del mundo) predica: sin datos propios, vuelas a ciegas.'}]},
+'ifvg.0':{title:'Liquidity Sweep (barrido de liquidez)',long:'El barrido es el primer componente del modelo. El mercado alcanza brevemente por encima de un máximo (Buy Side Liquidity, BSL) o por debajo de un mínimo (Sell Side Liquidity, SSL) para activar las órdenes stop que descansan en esos niveles. Según ICT, esto no es aleatorio: las instituciones necesitan esa liquidez (las órdenes de otros) para llenar sus posiciones grandes. Tras el barrido, el precio revierte.',chartFn:'chartSWEEP',
+rules:[
+{t:'BSL: liquidez sobre los máximos; SSL: bajo los mínimos',ex:'<strong>Ejemplo:</strong> Sobre el máximo del día hay stops de vendedores y órdenes de ruptura de compradores. El precio los \"barre\" tocando ahí un instante, activa esas órdenes, y usa esa liquidez para el movimiento real — que suele ser el opuesto.'},
+{t:'El barrido es una trampa: perfora y revierte rápido',ex:'<strong>Ejemplo:</strong> El precio rompe el máximo por 3 puntos, los compradores de ruptura entran eufóricos... y el precio se desploma. Esos compradores tardíos son el combustible. Reconocer la perforación-y-vuelta es la clave.'},
+{t:'\"Pregúntate: ¿quién acaba de quedar atrapado?\"',ex:'<strong>Ejemplo:</strong> Cuando ves el barrido, identifica qué traders acaban de ser activados (stops y rupturas) — porque ellos tendrán que cerrar en tu dirección, alimentando el movimiento. Esa es la lógica del modelo.'}]},
+'ifvg.1':{title:'IFVG (Inversion Fair Value Gap)',long:'Un FVG (Fair Value Gap) es un hueco de precio: tres velas donde la del medio se mueve tan rápido que deja un desequilibrio sin negociar. Un IFVG es un FVG que se INVALIDA — el precio lo atraviesa por completo — y entonces esa zona se invierte: de hueco pasa a imán y zona de entrada de precisión. Es tu confirmación de que el barrido fue real y el movimiento comienza.',chartFn:'chartIFVG',
+rules:[
+{t:'Un FVG es un desequilibrio que el precio tiende a rellenar',ex:'<strong>Ejemplo:</strong> Tres velas: si entre la primera y la tercera queda un hueco que la del medio no cubrió, ese vacío es un FVG. El mercado suele volver a \"rellenarlo\" porque representa precio no negociado de forma justa.'},
+{t:'Se \"invierte\" cuando el precio lo atraviesa del todo',ex:'<strong>Ejemplo:</strong> Un FVG alcista que el precio rompe hacia abajo queda invalidado como soporte. Ahora esa misma zona actúa como resistencia/imán: se convirtió en IFVG. El rol se dio vuelta.'},
+{t:'El IFVG se forma al revertir tras el barrido = tu entrada',ex:'<strong>Ejemplo:</strong> Barrido del máximo → el precio cae y crea/retesta un IFVG a la baja → entras. La combinación barrido+IFVG es lo que da al modelo su precisión, según sus practicantes.'}]},
+'ifvg.2':{title:'El contexto es todo',long:'Este es el matiz que separa el modelo de un simple garabato: el barrido SOLO vale si toma liquidez con contexto — un máximo/mínimo OBVIO que todos ven y que no ha sido tomado aún. No cualquier maximito sirve. Los buenos: máximo/mínimo del día previo, High/Low de la sesión de Londres, Asia o Nueva York, o cualquier liquidez obvia sin tocar. Sin contexto, el barrido es ruido.',
+rules:[
+{t:'Liquidez OBVIA, no cualquier micro-máximo',ex:'<strong>Ejemplo:</strong> El máximo de la sesión de Londres, marcado y sin tocar, es liquidez con contexto. Un maximito de hace 3 velas en medio de un rango no lo es. El modelo funciona en los niveles que TODOS vigilan.'},
+{t:'Los mejores: High/Low de sesión y día previo',ex:'<strong>Ejemplo:</strong> London High, Asia Low, máximo del día previo, mínimo del premarket. Estos concentran liquidez real porque son referencias globales. Barrer uno de estos tiene peso; barrer ruido no.'},
+{t:'Sin contexto claro, no hay operación',ex:'<strong>Ejemplo:</strong> Si no puedes nombrar QUÉ liquidez obvia se barrió, no es el setup. Y aquí está el problema que verás en el veredicto: \"obvio\" es subjetivo — lo que para uno es obvio, para otro no existe.'}]},
+'ifvg.3':{title:'El gatillo de entrada',long:'La entrada es mecánica y precisa: el CIERRE de una vela desde dentro de la zona IFVG, tras el barrido. Ni antes (estarías adivinando), ni después (llegarías tarde). Ese cierre confirma que el precio respetó la zona invertida y que la reversión está en marcha. Stop del otro lado del barrido; objetivo, la liquidez opuesta.',chartFn:'chartIFVGENTRY',
+rules:[
+{t:'Entrada: cierre de vela desde dentro del IFVG',ex:'<strong>Ejemplo:</strong> Tras el barrido, el precio regresa a la zona IFVG y una vela CIERRA dentro de ella en la dirección de la reversión. Ese cierre es tu gatillo. Un simple toque sin cierre no cuenta — es la misma disciplina del ORB.'},
+{t:'Stop del otro lado del barrido',ex:'<strong>Ejemplo:</strong> Si barriste un máximo y entras corto, tu stop va justo por encima de ese máximo barrido. Si el precio vuelve ahí, el setup falló y sales pequeño. Riesgo definido antes de entrar.'},
+{t:'Objetivo: la liquidez del lado opuesto',ex:'<strong>Ejemplo:</strong> Entraste corto tras barrer arriba; tu objetivo es la liquidez de abajo (un mínimo obvio sin tocar). El precio tiende a viajar de una piscina de liquidez a la otra. Ahí llevas el target.'}]},
+'ifvg.4':{title:'El veredicto honesto del laboratorio',long:'El modelo IFVG es elegante y sus practicantes reportan buenos resultados — pero hay que ser honesto sobre lo que sabemos y lo que no. Este es contenido de una mentoría de pago (Discord con alertas), del tipo educativo-decente que insiste en paper trading y disciplina, lo cual está bien. PERO el modelo comparte el problema de toda la familia ICT/SMC intradía: no se puede backtestear con rigor, porque sus reglas dependen de juicios subjetivos. Y vive en el intradía de futuros — el terreno donde tus 15 backtests dieron profit factor menor a 1.',chartFn:'chartIFVGVER',
+rules:[
+{t:'El "contexto obvio" es subjetivo = no hay reglas fijas',ex:'<strong>Ejemplo:</strong> \"¿Cuál máximo es OBVIO?\" \"¿Este FVG cuenta o no?\" \"¿El barrido fue suficiente?\" Cada trader responde distinto. Sin reglas objetivas idénticas, no se puede programar un backtest — y sin backtest, no hay ventaja demostrada, solo testimonios.'},
+{t:'Vive en el intradía, donde la evidencia es dura',ex:'<strong>Ejemplo real de este proyecto:</strong> Probamos ICT/CHoCH+FVG en 5 minutos → profit factor 0.90. ORB intradía → 0.42. EMA en 1h → 0.84. TODAS las intradía perdieron. El IFVG es primo de estas. La geometría bonita no cambia la matemática de costos + HFT.'},
+{t:'Cómo aprovecharlo con honestidad',ex:'<strong>Ejemplo:</strong> Estúdialo para ENTENDER cómo se mueve la liquidez (es un modelo mental valioso), practícalo en paper gratis, y desconfía de operarlo con dinero real sin haberlo validado tú mismo. La disciplina que enseña la mentoría (plan, journal, paciencia) vale más que el setup en sí.'}]},
 'oflow.0':{title:'DOM / Level 2 — el libro de órdenes',long:'El DOM (Depth of Market) muestra las órdenes límite PASIVAS que esperan en cada nivel de precio: a la izquierda los compradores (bids), a la derecha los vendedores (asks). Es el inventario visible de intenciones del mercado. Los tamaños grandes forman muros que pueden frenar el precio... o desaparecer en milisegundos (spoofing). El precio solo se mueve cuando órdenes A MERCADO consumen las órdenes límite de un nivel.',chartFn:'chartDOM',
 rules:[
 {t:'Bids = compradores pasivos esperando abajo; Asks = vendedores pasivos esperando arriba',ex:'<strong>Ejemplo:</strong> En el MNQ ves 850 contratos de compra esperando en 20,000 y 120 de venta en 20,001. El lado comprador es 7 veces más grueso: hay más interés pasivo defendiendo abajo que ofreciendo arriba.'},
@@ -786,7 +898,31 @@ concepts:[['📖','DOM / Level 2 (el libro)','Las órdenes límite PASIVAS esper
 quiz:[{q:'¿Qué mide exactamente el Delta de una vela?',ctx:'El delta es el dato central del order flow moderno.',opts:['El volumen total negociado en la vela','Compras a mercado MENOS ventas a mercado (agresores)','La diferencia entre el máximo y el mínimo','El número de órdenes límite pendientes'],ok:1,exp:'Delta = volumen ejecutado contra el ASK (compradores agresivos) menos volumen ejecutado contra el BID (vendedores agresivos). Mide quién tiene la iniciativa, no cuánto se negoció en total.'},
 {q:'El precio empuja hacia abajo contra un nivel con ventas agresivas enormes... pero el precio NO baja. ¿Qué está pasando?',ctx:'Este es el fenómeno más buscado por los lectores de order flow.',opts:['El mercado está cerrado','Absorción: un comprador pasivo gigante está tragándose toda la venta','Un error del gráfico','Falta volumen para moverse'],ok:1,exp:'Eso es ABSORCIÓN: alguien con órdenes límite de compra enormes absorbe toda la agresión vendedora sin dejar caer el precio. Cuando los vendedores se agotan, el rebote suele ser violento. Es la huella de un jugador institucional defendiendo un nivel.'},
 {q:'¿Cuál es la diferencia fundamental entre el order flow y el análisis técnico clásico?',ctx:'Ambos miran el mismo mercado, pero desde ángulos distintos.',opts:['El order flow usa más indicadores','El técnico clásico analiza lo que el precio HIZO; el order flow analiza las ÓRDENES que lo mueven','El order flow solo sirve para acciones','No hay diferencia real'],ok:1,exp:'El análisis técnico estudia la sombra (el precio pasado); el order flow estudia la mano que la proyecta (las transacciones y órdenes reales). Es información más cruda y directa — aunque también más rápida, ruidosa y difícil de interpretar.'},
-{q:'¿Por qué es tan difícil backtestear el order flow con rigor?',ctx:'La pregunta del laboratorio: sin backtest, no hay ventaja demostrada.',opts:['Los datos históricos de Level 2 son caros y pesados','Conceptos como la absorción son interpretación discrecional, no reglas fijas','Vive en el intradía, donde los costos y los HFT devoran los márgenes','Todas las anteriores'],ok:3,exp:'Las tres a la vez: datos caros, definiciones subjetivas (¿cuántos contratos son un muro?) y el terreno intradía donde la evidencia muestra que la ventaja del retail muere. Por eso el order flow es una habilidad de EJECUCIÓN discrecional, no una estrategia backtesteable — estúdialo como lectura del mercado, no como sistema.'}]}
+{q:'¿Por qué es tan difícil backtestear el order flow con rigor?',ctx:'La pregunta del laboratorio: sin backtest, no hay ventaja demostrada.',opts:['Los datos históricos de Level 2 son caros y pesados','Conceptos como la absorción son interpretación discrecional, no reglas fijas','Vive en el intradía, donde los costos y los HFT devoran los márgenes','Todas las anteriores'],ok:3,exp:'Las tres a la vez: datos caros, definiciones subjetivas (¿cuántos contratos son un muro?) y el terreno intradía donde la evidencia muestra que la ventaja del retail muere. Por eso el order flow es una habilidad de EJECUCIÓN discrecional, no una estrategia backtesteable — estúdialo como lectura del mercado, no como sistema.'}]},
+
+{id:'psico',icon:'🧠',label:'Psicología',name:'Psicología del Trading',sub:'La sección que casi todos los cursos saltan — y la razón por la que la mayoría nunca es rentable. Tu mente no está diseñada para operar: está diseñada para evitar el dolor. Aquí aprendes a domar al enemigo interno.',
+info:[['Aplica a','TODAS las estrategias'],['Dificultad','⭐⭐⭐⭐⭐'],['Importancia','La #1']],
+tags:[['Disciplina','purple'],['Miedo y codicia','red'],['Fundamental','blue'],['Sin esto no hay edge','amber']],
+concepts:[['🧠','Tu cableado humano juega en contra','El cerebro busca evitar dolor; en el mercado ese instinto te cuesta dinero.','psico.0'],['🔴','Rojo = Miedo','La vela roja grita \"peligro\" y te empuja a las peores decisiones.','psico.1'],['🟢','Verde = Codicia','La vela verde quiere más: añadir tamaño, ignorar el plan, quedarte de más.','psico.2'],['🩸','Revenge Trading','Pierdes y entras de inmediato a recuperarlo: la vía rápida a reventar la cuenta.','psico.3'],['🏃','FOMO y Overtrading','Perseguir el movimiento perdido y operar de más por aburrimiento o euforia.','psico.4'],['🎯','Proceso, no dinero','Tu único trabajo es ejecutar el plan bien. El dinero es la consecuencia.','psico.5']],
+quiz:[{q:'¿Por qué tu cerebro juega en tu contra al operar?',ctx:'La psicología del trading parte de entender cómo estamos cableados.',opts:['Porque no eres suficientemente inteligente','Porque está diseñado para evitar el dolor, no para operar','Porque te falta información del mercado','Porque no tienes buenas herramientas'],ok:1,exp:'Tu mente evolucionó para evitar el dolor y buscar recompensa inmediata. En el mercado ese instinto te hace cerrar ganadores temprano, mover stops y perseguir precios — exactamente lo contrario de lo que funciona.'},
+{q:'¿Qué es el "revenge trading" y por qué es tan peligroso?',ctx:'Es uno de los errores que más cuentas destruye.',opts:['Operar muchos mercados a la vez','Entrar de inmediato tras una pérdida para recuperarla','Usar demasiado apalancamiento','Operar solo en la apertura'],ok:1,exp:'El revenge trading es entrar impulsivamente tras una pérdida, movido por la emoción y no por una señal. Es la forma más rápida de reventar una cuenta: una pérdida lleva a una operación mala, que lleva a otra peor.'},
+{q:'Según la mentalidad correcta, ¿en qué debes enfocarte?',ctx:'El cambio de mentalidad que lo cambia todo.',opts:['En cuánto dinero ganas cada día','En ejecutar tu plan correctamente (el proceso)','En operar la mayor cantidad posible','En recuperar pérdidas rápido'],ok:1,exp:'Enfócate en ejecutar bien tu plan, no en el dinero. Si te enfocas primero en el dinero, tomarás decisiones emocionales cada vez. El dinero es el resultado de un proceso correcto repetido, no el objetivo del momento.'}]},
+
+{id:'riesgo',icon:'📋',label:'Plan y Riesgo',name:'Plan y Gestión de Riesgo',sub:'La razón por la que la mayoría pierde no es la estrategia: es la ausencia de un plan. Un plan elimina la emoción porque cada decisión se toma ANTES de abrir el mercado. Este módulo es tu escudo contra ti mismo.',
+info:[['Aplica a','TODAS las estrategias'],['Dificultad','⭐⭐⭐'],['Importancia','Crítica']],
+tags:[['Plan de trading','blue'],['Límite de pérdida','red'],['Position sizing','green'],['Checklist','purple']],
+concepts:[['📝','Las 5 preguntas del plan diario','Instrumento, sesgo, niveles, gatillo de entrada y reglas de riesgo.','riesgo.0'],['🛑','Límite de pérdida diario','Un tope duro que se respeta sin excepción. Al tocarlo: se apaga todo.','riesgo.1'],['📏','Position Sizing','Empieza con 1 contrato. Domina la consistencia antes de añadir tamaño.','riesgo.2'],['📐','Niveles clave antes de abrir','Máximos/mínimos del día previo, overnight, premarket y números redondos.','riesgo.3'],['✅','Checklist pre-trade','¿Coincide con mi plan? ¿Sé dónde está mi stop y mi target ANTES de entrar?','riesgo.4'],['📓','Journaling','Captura cada operación: entrada, salida, qué hiciste bien y qué cambiarías.','riesgo.5']],
+quiz:[{q:'¿Cuál es la verdadera razón por la que la mayoría de traders pierde?',ctx:'No es lo que la mayoría cree.',opts:['Eligen la estrategia equivocada','La ausencia de un plan de trading','No tienen suficiente capital','El mercado está manipulado'],ok:1,exp:'La razón principal no es la estrategia sino la falta de un plan. Un plan elimina la emoción porque cada decisión (qué operar, dónde entrar, dónde salir, cuánto arriesgar) se toma antes de abrir el mercado, no en el calor del momento.'},
+{q:'¿Qué debes hacer cuando alcanzas tu límite de pérdida diario?',ctx:'La regla de oro de la supervivencia.',opts:['Aumentar el tamaño para recuperar','Detenerte por completo: se acabó el día','Cambiar de estrategia','Operar otro instrumento'],ok:1,exp:'Al tocar tu límite de pérdida diario: se acabó, sin excepciones, sin revenge trading, cierra la plataforma. Ese límite es lo que evita que un mal día se convierta en un desastre que borre semanas de ganancias.'},
+{q:'¿Con cuánto tamaño debe empezar un principiante?',ctx:'La disciplina antes que la ambición.',opts:['Con el máximo que permita la cuenta','Con 1 contrato (o el mínimo), dominando la consistencia primero','Con la mitad de la cuenta','Depende de cuánta confianza tengas'],ok:1,exp:'Empieza con 1 contrato (o el mínimo posible). Domina la consistencia antes de siquiera pensar en añadir tamaño. Aumentar tamaño amplifica tanto las ganancias como los errores — y al principio, los errores dominan.'}]},
+
+{id:'ifvg',icon:'🔀',label:'IFVG',name:'Liquidity Sweep + IFVG',sub:'Un modelo de entrada de la escuela ICT: el precio barre liquidez (stops) sobre un máximo o bajo un mínimo con contexto, deja un Fair Value Gap que se invalida, y esa zona invertida se vuelve tu entrada de precisión. Popular entre traders de futuros.',
+info:[['Timeframe','M1 – M15'],['Mercados','Futuros ES/NQ'],['Dificultad','⭐⭐⭐⭐'],['Tipo','Reversión']],
+tags:[['ICT','purple'],['Liquidez','blue'],['Reversión','green'],['Discrecional','red']],
+concepts:[['🌊','Liquidity Sweep (barrido)','El precio perfora un máximo/mínimo para recoger stops, luego revierte.','ifvg.0'],['🔀','IFVG (Inversion FVG)','Un FVG que se invalida y se convierte en imán y zona de entrada de precisión.','ifvg.1'],['🎯','El contexto es todo','El barrido solo vale si toma liquidez OBVIA: high/low de sesión, día previo.','ifvg.2'],['📍','El gatillo de entrada','Entras al CIERRE de la vela desde dentro de la zona IFVG. Ni antes, ni después.','ifvg.3'],['⚖️','El veredicto honesto','Por qué este modelo, como toda la familia ICT, no se puede backtestear con rigor.','ifvg.4']],
+quiz:[{q:'¿Qué es un Liquidity Sweep (barrido de liquidez)?',ctx:'Es el primer componente del modelo IFVG.',opts:['Un error del mercado','El precio perfora un máximo/mínimo para recoger stops y luego revierte','Una vela de mucho volumen','El cierre de una sesión'],ok:1,exp:'El barrido es cuando el precio alcanza brevemente sobre un máximo (BSL) o bajo un mínimo (SSL) para activar las órdenes stop que descansan ahí — según ICT, las instituciones lo hacen para llenar sus órdenes. Luego el precio revierte.'},
+{q:'¿Dónde exactamente se entra en el modelo IFVG?',ctx:'El gatillo debe ser mecánico y preciso.',opts:['En cuanto se ve el barrido','Al cierre de la vela desde dentro de la zona IFVG','En el máximo del movimiento','Cuando el precio toca la media'],ok:1,exp:'La entrada es el CIERRE de una vela desde dentro de la zona IFVG, tras el barrido. Ese cierre confirma que el barrido fue real y la reversión está comenzando. Entrar antes es adivinar; entrar después es tarde.'},
+{q:'¿Por qué este modelo no se puede backtestear con rigor?',ctx:'La pregunta del laboratorio, otra vez.',opts:['Porque es demasiado nuevo','Porque el "contexto obvio" del barrido es subjetivo y cada trader lo dibuja distinto','Porque no hay datos de futuros','Porque solo funciona en crypto'],ok:1,exp:'Igual que toda la familia ICT/SMC intradía: depende de juicios subjetivos ("¿cuál máximo es OBVIO?", "¿este FVG cuenta?") que no se pueden convertir en reglas fijas. Sin reglas objetivas no hay backtest, y sin backtest no hay ventaja demostrada — solo la palabra de quien lo enseña.'}]}
 ];
 
 // ─── CHART FUNCTIONS ───────────────────────────────────────────────────────
@@ -1068,6 +1204,72 @@ function chartCRT4H(){
     ${lbl(250,205,'Entry corto post-sweep → Target = Mínimo de la vela 4H',c,'middle','11')}
   `);}
 
+// ─── IFVG CHARTS ────────────────────────────────────────────────────────────
+function chartSWEEP(){
+  let velas='';
+  const alcistas=[[100,120,60],[140,105,55]];
+  alcistas.forEach(v=>{velas+=wick(v[0],v[1]-8,v[1]+v[2]+8,'#22c55e')+candle(v[0],v[1],v[2],16,true,'#22c55e');});
+  // vela que barre (mecha larga arriba)
+  velas+=wick(200,40,150,'#ef4444')+candle(200,95,45,16,false,'#ef4444');
+  const bajistas=[[250,110,70],[300,140,80],[350,175,60]];
+  bajistas.forEach(v=>{velas+=wick(v[0],v[1]-6,v[1]+v[2]+6,'#ef4444')+candle(v[0],v[1],v[2],16,false,'#ef4444');});
+  return svgWrap(`<line x1="60" y1="52" x2="420" y2="52" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5"/>
+    ${lbl(70,46,'BSL — liquidez sobre el máximo (stops esperando)','#3b82f6','start','10')}
+    <circle cx="200" cy="40" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
+    ${lbl(215,36,'barrido: perfora y revierte','#f59e0b','start','10')}
+    ${velas}
+    <path d="M360,175 L390,175" stroke="#ef4444" stroke-width="2" marker-end="url(#ar)"/>
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#ef4444"/></marker></defs>
+    ${lbl(280,208,'El precio barre la liquidez del máximo... y revierte a la baja','#8b949e','middle','10')}`,220);
+}
+
+function chartIFVG(){
+  return svgWrap(`${lbl(280,18,'FVG → IFVG: el hueco se invierte cuando el precio lo atraviesa','#2dd4bf','middle','11')}
+    <rect x="140" y="70" width="120" height="34" fill="rgba(34,197,94,.14)" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4"/>
+    ${lbl(200,62,'FVG alcista (hueco sin negociar)','#22c55e','middle','10')}
+    ${wick(160,40,110,'#22c55e')}${candle(160,45,60,16,true,'#22c55e')}
+    ${wick(210,55,120,'#22c55e')}${candle(210,60,55,16,true,'#22c55e')}
+    <path d="M280,90 L320,90" stroke="#8b949e" stroke-width="1.5" marker-end="url(#ar2)"/>
+    <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#8b949e"/></marker></defs>
+    <rect x="340" y="70" width="120" height="34" fill="rgba(45,212,191,.16)" stroke="#2dd4bf" stroke-width="2"/>
+    ${lbl(400,128,'IFVG: ahora es imán','#2dd4bf','middle','10')}
+    ${lbl(400,142,'y zona de entrada','#2dd4bf','middle','10')}
+    ${wick(370,90,175,'#ef4444')}${candle(370,100,70,16,false,'#ef4444')}
+    ${wick(415,75,150,'#ef4444')}${candle(415,88,55,16,false,'#ef4444')}
+    ${lbl(280,208,'El precio atraviesa el FVG: de soporte pasa a resistencia de precisión','#8b949e','middle','10')}`,220);
+}
+
+function chartIFVGENTRY(){
+  let velas='';
+  velas+=wick(120,55,150,'#ef4444')+candle(120,95,45,16,false,'#ef4444');
+  velas+=wick(165,70,160,'#ef4444')+candle(165,110,50,16,false,'#ef4444');
+  // vela que cierra dentro del IFVG (entrada)
+  velas+=wick(210,60,120,'#22c55e')+candle(210,72,42,16,true,'#22c55e');
+  const sube=[[255,90,60],[300,60,70],[345,40,55]];
+  sube.forEach(v=>{velas+=wick(v[0],v[1]-6,v[1]+v[2]+6,'#22c55e')+candle(v[0],v[1],v[2],16,true,'#22c55e');});
+  return svgWrap(`<rect x="90" y="72" width="340" height="26" fill="rgba(45,212,191,.14)" stroke="#2dd4bf" stroke-width="1.5"/>
+    ${lbl(100,66,'zona IFVG','#2dd4bf','start','10')}
+    ${velas}
+    <circle cx="210" cy="72" r="7" fill="none" stroke="#22c55e" stroke-width="2"/>
+    ${lbl(210,182,'ENTRADA: cierre','#22c55e','middle','10')}
+    ${lbl(210,195,'dentro del IFVG','#22c55e','middle','10')}
+    <line x1="90" y1="55" x2="200" y2="55" stroke="#ef4444" stroke-width="1" stroke-dasharray="3"/>
+    ${lbl(140,50,'stop','#ef4444','middle','9')}
+    ${lbl(360,30,'target: liquidez opuesta','#3b82f6','middle','9')}
+    ${lbl(280,212,'Entras al CIERRE de la vela desde dentro del IFVG. Stop arriba, target abajo','#8b949e','middle','10')}`,220);
+}
+
+function chartIFVGVER(){
+  return svgWrap(`${lbl(280,26,'LA MATEMÁTICA NO MIENTE','#e7ecf3','middle','13')}
+    ${lbl(280,46,'Estrategias intradía backtesteadas en este proyecto','#8b949e','middle','10')}
+    <rect x="120" y="70" width="${0.42*260}" height="22" rx="3" fill="#ef4444"/>${lbl(115,86,'ORB 0.42','#8b949e','end','11')}
+    <rect x="120" y="100" width="${0.84*130}" height="22" rx="3" fill="#ef4444"/>${lbl(115,116,'EMA 1h 0.84','#8b949e','end','11')}
+    <rect x="120" y="130" width="${0.90*140}" height="22" rx="3" fill="#ef4444"/>${lbl(115,146,'ICT 5m 0.90','#8b949e','end','11')}
+    <line x1="${120+0.5*260}" y1="60" x2="${120+0.5*260}" y2="165" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4"/>
+    ${lbl(120+0.5*260,178,'PF 1.0 (punto de equilibrio)','#22c55e','middle','9')}
+    ${lbl(280,205,'Todas las intradía (familia del IFVG) por debajo de 1.0. El IFVG es primo de estas.','#f59e0b','middle','10')}`,220);
+}
+
 // ─── ORDER FLOW CHARTS ──────────────────────────────────────────────────────
 function chartDOM(){
   let rows='';
@@ -1153,7 +1355,7 @@ function chartABS(){
     ${lbl(280,18,'ABSORCION: un comprador pasivo gigante se traga toda la agresion','#22c55e','middle','11')}`,220);
 }
 
-const CHART_FNS={chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
+const CHART_FNS={chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
 
 // ─── APP STATE ──────────────────────────────────────────────────────────────
 let curId=null, curTab='r', scores={}, done=new Set();
@@ -1395,6 +1597,7 @@ function goHome(){
   document.getElementById('strat-screen').style.display='none';
   document.getElementById('bot-screen').style.display='none';
   document.getElementById('welcome').style.display='flex';
+  heroStart();
   document.documentElement.style.setProperty('--sc','#3b82f6');
   document.documentElement.style.setProperty('--scr','59,130,246');
   document.getElementById('tb-title').textContent='Trading Academy Pro';
@@ -1604,7 +1807,94 @@ function bpInformePos(tk){
                    unidades: pos.unidades, valor: pos.costo, pnl: '' });
 }
 
+/* ===== HERO: globo de puntos + frases motivacionales ===== */
+const HERO_QUOTES = [
+  "El mercado transfiere dinero del impaciente al paciente.",
+  "No predices hacia d\u00f3nde va el precio: esperas a que muestre su mano.",
+  "Los mejores traders del mundo pierden el 40-50% de sus operaciones.",
+  "Piensa en el proceso, no en el dinero. El dinero es la consecuencia.",
+  "Tu plan se hace antes de abrir el mercado, no en el calor del momento.",
+  "Mover el stop convierte una p\u00e9rdida peque\u00f1a en una catastr\u00f3fica.",
+  "Sin backtesting, vuelas a ciegas. Con datos, al menos tienes un mapa.",
+  "El ego y el apalancamiento son los dos \u00fanicos enemigos del trader.",
+  "Una estrategia validada aburrida vale m\u00e1s que diez emocionantes sin probar.",
+  "Siempre hay otra oportunidad. Siempre.",
+];
+const HERO_TICKS = ["ES","NQ","QQQ","SPY","NVDA","BTC","MNQ","GC","AAPL","MSFT","AMD","META"];
+
+let heroQi = 0, heroTimer = null, globeRAF = null;
+
+function heroRotate(){
+  const q = document.getElementById('hero-quote');
+  const t = document.getElementById('hero-ticker');
+  if(!q) return;
+  q.style.opacity = 0;
+  setTimeout(()=>{
+    heroQi = (heroQi + 1) % HERO_QUOTES.length;
+    q.textContent = HERO_QUOTES[heroQi];
+    q.style.opacity = 1;
+    if(t){
+      const tk = HERO_TICKS[Math.floor(Math.random()*HERO_TICKS.length)];
+      const up = Math.random() > .5;
+      const pct = (Math.random()*2).toFixed(2);
+      t.innerHTML = `SE\u00d1AL DE MERCADO &middot; <span style="color:${up?'#3DDC97':'#FF6B7A'}">${tk} ${up?'\u25B2':'\u25BC'} ${pct}%</span> &middot; SIMULADO`;
+    }
+  }, 500);
+}
+
+function drawGlobe(){
+  const cv = document.getElementById('globe');
+  if(!cv){ globeRAF = null; return; }
+  const ctx = cv.getContext('2d');
+  if(!ctx){ return; }
+  const W = cv.width, H = cv.height, cx = W/2, cy = H/2, R = W*0.42;
+  let phase = 0;
+  const dots = [];
+  // rejilla de puntos sobre una esfera (lat/lon)
+  for(let lat = -80; lat <= 80; lat += 8){
+    const rad = lat * Math.PI/180;
+    const circ = Math.cos(rad);
+    const n = Math.max(6, Math.round(circ * 46));
+    for(let i = 0; i < n; i++){
+      dots.push({ lat: rad, lon: (i/n)*2*Math.PI });
+    }
+  }
+  function frame(){
+    if(!document.getElementById('globe')){ globeRAF = null; return; }
+    ctx.clearRect(0,0,W,H);
+    phase += 0.0038;
+    for(const d of dots){
+      const lon = d.lon + phase;
+      const x3 = Math.cos(d.lat) * Math.sin(lon);
+      const z3 = Math.cos(d.lat) * Math.cos(lon);
+      const y3 = Math.sin(d.lat);
+      if(z3 < -0.1) continue;                 // cara trasera
+      const x = cx + x3 * R;
+      const y = cy - y3 * R;
+      const depth = (z3 + 1) / 2;
+      const size = 0.6 + depth * 1.5;
+      const alpha = 0.15 + depth * 0.6;
+      const r = Math.round(96 + depth*40), g = Math.round(120 + depth*30), b = 250;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, 6.283);
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fill();
+    }
+    globeRAF = requestAnimationFrame(frame);
+  }
+  if(globeRAF) cancelAnimationFrame(globeRAF);
+  frame();
+}
+
+function heroStart(){
+  const q = document.getElementById('hero-quote');
+  if(q && !q.textContent) q.textContent = HERO_QUOTES[0];
+  drawGlobe();
+  if(!heroTimer) heroTimer = setInterval(heroRotate, 5000);
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
+  heroStart();
   const b=document.getElementById('bp-refrescar');
   if(b)b.addEventListener('click',bpCargar);
 });
