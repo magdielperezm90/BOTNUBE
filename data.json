@@ -1,28 +1,44 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-14 23:34 UTC",
- "ultima_vela": "2026-07-14",
- "precio_qqq": 719.69,
+ "actualizado": "2026-07-15 23:40 UTC",
+ "ultima_vela": "2026-07-15",
+ "precio_qqq": 717.74,
  "indicadores": {
-  "roc10": -0.61,
-  "valor_smc": 9989.74,
-  "valor_bh": 9940.41,
-  "tickers_alcistas": 9,
+  "roc10": -2.53,
+  "valor_smc": 9995.63,
+  "valor_bh": 9913.48,
+  "tickers_alcistas": 10,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 8000.0,
+  "efectivo": 6000.474086546253,
   "posiciones": {
    "SPY": {
     "unidades": 2.646533,
     "costo": 2000.0,
     "entrada": 754.95,
     "fecha": "2026-07-10",
-    "precio_actual": 751.83
+    "precio_actual": 754.81
+   },
+   "AMZN": {
+    "unidades": 7.834666,
+    "costo": 1999.53,
+    "entrada": 254.96,
+    "fecha": "2026-07-15",
+    "precio_actual": 254.96
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-07-15",
+    "tipo": "COMPRA (CHoCH +1.6%)",
+    "ticker": "AMZN",
+    "precio": 254.96,
+    "unidades": 7.8347,
+    "valor": 1999.53,
+    "pnl": ""
+   },
    {
     "fecha": "2026-07-10",
     "tipo": "COMPRA (CHoCH +0.3%)",
@@ -62,6 +78,12 @@
    "smc": 9989.74,
    "bh": 9940.41,
    "roc10": -0.61
+  },
+  {
+   "fecha": "2026-07-15",
+   "smc": 9995.63,
+   "bh": 9913.48,
+   "roc10": -2.53
   }
  ]
 }
