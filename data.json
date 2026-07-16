@@ -1,14 +1,14 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-15 23:40 UTC",
- "ultima_vela": "2026-07-15",
- "precio_qqq": 717.74,
+ "actualizado": "2026-07-16 23:37 UTC",
+ "ultima_vela": "2026-07-16",
+ "precio_qqq": 705.94,
  "indicadores": {
-  "roc10": -2.53,
-  "valor_smc": 9995.63,
-  "valor_bh": 9913.48,
-  "tickers_alcistas": 10,
+  "roc10": -2.65,
+  "valor_smc": 9945.08,
+  "valor_bh": 9750.5,
+  "tickers_alcistas": 9,
   "tickers_total": 20
  },
  "smc": {
@@ -19,14 +19,14 @@
     "costo": 2000.0,
     "entrada": 754.95,
     "fecha": "2026-07-10",
-    "precio_actual": 754.81
+    "precio_actual": 750.72
    },
    "AMZN": {
     "unidades": 7.834666,
     "costo": 1999.53,
     "entrada": 254.96,
     "fecha": "2026-07-15",
-    "precio_actual": 254.96
+    "precio_actual": 249.89
    }
   },
   "operaciones": [
@@ -84,6 +84,12 @@
    "smc": 9995.63,
    "bh": 9913.48,
    "roc10": -2.53
+  },
+  {
+   "fecha": "2026-07-16",
+   "smc": 9945.08,
+   "bh": 9750.5,
+   "roc10": -2.65
   }
  ]
 }
