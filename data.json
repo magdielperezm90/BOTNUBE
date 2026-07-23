@@ -1,35 +1,38 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-22 23:40 UTC",
- "ultima_vela": "2026-07-22",
- "precio_qqq": 705.35,
+ "actualizado": "2026-07-23 23:38 UTC",
+ "ultima_vela": "2026-07-23",
+ "precio_qqq": 691.96,
  "indicadores": {
-  "roc10": -0.86,
-  "valor_smc": 9896.84,
-  "valor_bh": 9742.35,
-  "tickers_alcistas": 6,
+  "roc10": -4.33,
+  "valor_smc": 9780.96,
+  "valor_bh": 9557.41,
+  "tickers_alcistas": 4,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 6000.474086546253,
-  "posiciones": {
-   "SPY": {
-    "unidades": 2.646533,
-    "costo": 2000.0,
-    "entrada": 754.95,
-    "fecha": "2026-07-10",
-    "precio_actual": 747.41
-   },
-   "AMZN": {
-    "unidades": 7.834666,
-    "costo": 1999.53,
-    "entrada": 254.96,
-    "fecha": "2026-07-15",
-    "precio_actual": 244.85
-   }
-  },
+  "efectivo": 9780.955617557061,
+  "posiciones": {},
   "operaciones": [
+   {
+    "fecha": "2026-07-23",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "AMZN",
+    "precio": 233.66,
+    "unidades": 7.8347,
+    "valor": 1828.82,
+    "pnl": -170.71
+   },
+   {
+    "fecha": "2026-07-23",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "SPY",
+    "precio": 738.18,
+    "unidades": 2.6465,
+    "valor": 1951.66,
+    "pnl": -48.34
+   },
    {
     "fecha": "2026-07-15",
     "tipo": "COMPRA (CHoCH +1.6%)",
@@ -114,6 +117,12 @@
    "smc": 9896.84,
    "bh": 9742.35,
    "roc10": -0.86
+  },
+  {
+   "fecha": "2026-07-23",
+   "smc": 9780.96,
+   "bh": 9557.41,
+   "roc10": -4.33
   }
  ]
 }
