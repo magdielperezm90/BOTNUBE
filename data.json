@@ -1,28 +1,47 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-10 23:38 UTC",
- "ultima_vela": "2026-07-10",
- "precio_qqq": 725.51,
+ "actualizado": "2026-07-23 23:38 UTC",
+ "ultima_vela": "2026-07-23",
+ "precio_qqq": 691.96,
  "indicadores": {
-  "roc10": 1.27,
-  "valor_smc": 9998.0,
-  "valor_bh": 10020.8,
-  "tickers_alcistas": 9,
+  "roc10": -4.33,
+  "valor_smc": 9780.96,
+  "valor_bh": 9557.41,
+  "tickers_alcistas": 4,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 8000.0,
-  "posiciones": {
-   "SPY": {
-    "unidades": 2.646533,
-    "costo": 2000.0,
-    "entrada": 754.95,
-    "fecha": "2026-07-10",
-    "precio_actual": 754.95
-   }
-  },
+  "efectivo": 9780.955617557061,
+  "posiciones": {},
   "operaciones": [
+   {
+    "fecha": "2026-07-23",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "AMZN",
+    "precio": 233.66,
+    "unidades": 7.8347,
+    "valor": 1828.82,
+    "pnl": -170.71
+   },
+   {
+    "fecha": "2026-07-23",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "SPY",
+    "precio": 738.18,
+    "unidades": 2.6465,
+    "valor": 1951.66,
+    "pnl": -48.34
+   },
+   {
+    "fecha": "2026-07-15",
+    "tipo": "COMPRA (CHoCH +1.6%)",
+    "ticker": "AMZN",
+    "precio": 254.96,
+    "unidades": 7.8347,
+    "valor": 1999.53,
+    "pnl": ""
+   },
    {
     "fecha": "2026-07-10",
     "tipo": "COMPRA (CHoCH +0.3%)",
@@ -50,6 +69,60 @@
    "smc": 9998.0,
    "bh": 10020.8,
    "roc10": 1.27
+  },
+  {
+   "fecha": "2026-07-13",
+   "smc": 9982.7,
+   "bh": 9830.61,
+   "roc10": 0.74
+  },
+  {
+   "fecha": "2026-07-14",
+   "smc": 9989.74,
+   "bh": 9940.41,
+   "roc10": -0.61
+  },
+  {
+   "fecha": "2026-07-15",
+   "smc": 9995.63,
+   "bh": 9913.48,
+   "roc10": -2.53
+  },
+  {
+   "fecha": "2026-07-16",
+   "smc": 9945.08,
+   "bh": 9750.5,
+   "roc10": -2.65
+  },
+  {
+   "fecha": "2026-07-17",
+   "smc": 9904.58,
+   "bh": 9603.95,
+   "roc10": -2.42
+  },
+  {
+   "fecha": "2026-07-20",
+   "smc": 9923.03,
+   "bh": 9614.03,
+   "roc10": -3.7
+  },
+  {
+   "fecha": "2026-07-21",
+   "smc": 9920.29,
+   "bh": 9792.35,
+   "roc10": -0.06
+  },
+  {
+   "fecha": "2026-07-22",
+   "smc": 9896.84,
+   "bh": 9742.35,
+   "roc10": -0.86
+  },
+  {
+   "fecha": "2026-07-23",
+   "smc": 9780.96,
+   "bh": 9557.41,
+   "roc10": -4.33
   }
  ]
 }
