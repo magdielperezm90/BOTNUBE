@@ -472,12 +472,54 @@ const SC={
   psico:{c:'#f472b6',r:'244,114,182'},
   riesgo:{c:'#34d399',r:'52,211,153'},
   ifvg:{c:'#2dd4bf',r:'45,212,191'},
-  cisd:{c:'#38bdf8',r:'56,189,248'}
+  cisd:{c:'#38bdf8',r:'56,189,248'},
+  trt:{c:'#fb923c',r:'251,146,60'}
 };
 function sc(id){return (SC[id]||SC.smc).c;}
 function sr(id){return (SC[id]||SC.smc).r;}
 
 const CD={
+'trt.0':{title:'TRT: Tendencia — Rango — Tendencia',long:'La idea central del método: el mercado solo puede hacer tres cosas, y siempre en el mismo ciclo. Tiende (se mueve direccionalmente), consolida (rango lateral donde compradores y vendedores se equilibran) y vuelve a tender. Nada más. Toda la operativa se reduce a saber en cuál de las tres fases estás. Si atrapas la tendencia al inicio, o esperas la ruptura del rango, eres rentable. El peor lugar estadístico para entrar es el medio de una consolidación: puede seguir chocando quince minutos más y sacarte por ambos lados. Ahí solo estás apostando a cara o cruz.',chartFn:'chartTRT',
+rules:[
+{t:'Identifica la fase antes de pensar en entrar',ex:'<strong>Ejemplo:</strong> El precio lleva 40 minutos rebotando entre 20,000 y 20,030 sin salir. Eso es RANGO — no hay operación. La operación aparece cuando rompa uno de los dos extremos con convicción.'},
+{t:'Es mejor llegar tarde a la fiesta que llegar temprano',ex:'<strong>Ejemplo:</strong> Entrar a 20,035 tras la ruptura confirmada de 20,030 se siente "caro" comparado con haber comprado a 20,010 dentro del rango. Pero el de 20,010 se comió tres latigazos y salió por stop; el de 20,035 entró cuando el movimiento ya empezó.'},
+{t:'El medio del rango es la zona de muerte',ex:'<strong>Ejemplo:</strong> Compras a mitad de una consolidación: si el precio va abajo te sacan, si va arriba entraste con mal precio y mal stop. No hay ventaja estadística ahí — solo ruido de dos fuerzas empatadas.'}]},
+'trt.1':{title:'Anatomía de la vela: las mechas importan',long:'Cada vela tiene cuatro partes y todas cuentan una historia. En una vela verde: la mecha inferior es el mínimo, el cuerpo inferior la apertura, el cuerpo superior el cierre y la mecha superior el máximo. En una roja se invierte: mecha superior el máximo, cuerpo superior la apertura, cuerpo inferior el cierre, mecha inferior el mínimo. El punto clave del método: quien te diga que traces tendencias ignorando las mechas está tirando el 50% de la información de la vela. Las mechas muestran dónde el precio fue rechazado — precisamente donde están las órdenes que importan.',chartFn:'chartVELA',
+rules:[
+{t:'La mecha es rechazo: el precio fue ahí y lo echaron',ex:'<strong>Ejemplo:</strong> Una vela con mecha superior larga en 20,050 significa que el precio subió hasta ahí y los vendedores lo empujaron de vuelta. Ese 20,050 queda como nivel de oferta — es información, no adorno.'},
+{t:'Cuerpo grande = convicción; cuerpo pequeño = duda',ex:'<strong>Ejemplo:</strong> Una vela de cuerpo enorme y mechas mínimas dice que un lado dominó de principio a fin. Una vela con cuerpo diminuto y mechas largas a ambos lados dice que hubo pelea sin ganador: indecisión.'},
+{t:'Traza tus líneas usando mechas, no solo cierres',ex:'<strong>Ejemplo:</strong> Si trazas un soporte solo con los cierres, ignoras los mínimos reales donde el precio rebotó. El método insiste: usa el extremo de la mecha, que es donde de verdad reaccionaron las órdenes.'}]},
+'trt.2':{title:'El patrón Three Bar',long:'Su patrón favorito, y es simplemente TRT comprimido en tres velas: una vela de tendencia (impulso), una vela de pausa o rango (la que consolida), y una vela que continúa la tendencia (la ruptura). Su virtud es práctica: te entrega todo el plan de trade de una sola vez — la entrada es la ruptura de la vela de pausa, el stop va en el máximo o mínimo de esa segunda vela (riesgo pequeño y definido), y el objetivo es el siguiente nivel a la izquierda. No tiene que verse bonito: los three bars feos también funcionan. Y es notablemente más fiable en 15 minutos que en 1 minuto.',chartFn:'chartTHREEBAR',
+rules:[
+{t:'Vela 1: impulso · Vela 2: pausa · Vela 3: continuación',ex:'<strong>Ejemplo alcista:</strong> Vela verde fuerte (impulso), vela pequeña que se queda dentro de su rango (pausa), y una tercera vela que rompe el máximo de la segunda: ahí entras. La estructura de tres velas replica el ciclo TRT completo.'},
+{t:'El stop va en el extremo de la SEGUNDA vela',ex:'<strong>Ejemplo:</strong> Si entras en la ruptura del máximo de la vela de pausa (20,020), tu stop va bajo el mínimo de esa misma vela (19,995). Riesgo: 25 puntos, definido antes de entrar. Si el precio vuelve ahí, el patrón falló y sales pequeño.'},
+{t:'Más potente en 15m que en 1m',ex:'<strong>Ejemplo:</strong> El mismo patrón en velas de 1 minuto genera decenas de señales al día, la mayoría ruido. En 15 minutos aparece pocas veces pero con movimientos mucho mayores. Coincide con lo que tu propio laboratorio midió: cuanto más corto el marco, peor la relación señal/ruido.'}]},
+'trt.3':{title:'Estructura de mercado: HH/HL y LL/LH',long:'Una tendencia alcista es una secuencia de máximos más altos (HH) y mínimos más altos (HL). Una bajista es mínimos más bajos (LL) y máximos más bajos (LH). La regla operativa: mientras la secuencia se mantenga, deja correr el trade con trailing; sal solo cuando aparezca la vela de invalidación que rompe la estructura. La regla práctica en largo que da el método: si una mecha baja diez o quince puntos pero NO rompe los mínimos de las velas previas, la tendencia sigue viva — aguanta. Esto ataca el error más caro del trader novato: cerrar ganadores demasiado pronto y ver el precio correr cientos de puntos sin ti.',chartFn:'chartESTRUCT',
+rules:[
+{t:'Alcista = HH + HL; bajista = LL + LH',ex:'<strong>Ejemplo:</strong> Máximos en 20,050 → 20,080 → 20,110 con mínimos en 20,020 → 20,045 → 20,070. Cada máximo y cada mínimo superan al anterior: tendencia alcista intacta, no hay razón para salir.'},
+{t:'Una mecha no es una invalidación',ex:'<strong>Ejemplo:</strong> El precio baja 12 puntos y te asusta, pero se queda por encima del último mínimo estructural. La estructura NO se rompió: mantienes. La invalidación es un CIERRE que rompe el mínimo previo, no un susto intrabar.'},
+{t:'"Mira a la izquierda": los niveles previos son tus objetivos',ex:'<strong>Ejemplo:</strong> Estás largo y arriba, a la izquierda, hay un máximo previo en 20,150. Ese es tu objetivo natural. Si lo rompe, el siguiente nivel a la izquierda pasa a ser el objetivo. El gráfico ya te dice dónde tomar ganancias.'}]},
+'trt.4':{title:'Break and Retest (BNR)',long:'El segundo patrón favorito del método, y probablemente el concepto más universal del trading: el precio rompe un nivel, regresa a retestearlo desde el otro lado, y desde ahí continúa. Ahí es donde entras. La observación honesta que hace el autor: los "pivotes", la "liquidez", la "estructura de mercado", los "order blocks" — todos son nombres distintos para lo mismo: soportes y resistencias que se rompen y se retestean. Y una señal de fuerza: si el precio rompe y NO retestea ningún nivel importante, el movimiento es especialmente fuerte.',chartFn:'chartBNR',
+rules:[
+{t:'Rompe → vuelve → confirma → continúa',ex:'<strong>Ejemplo:</strong> Resistencia en 20,000. El precio la rompe hasta 20,030, baja de nuevo a 20,002, rebota ahí. Ese rebote sobre el nivel roto (ahora soporte) es tu entrada, con stop justo debajo.'},
+{t:'Todos los sistemas nombran lo mismo de forma distinta',ex:'<strong>Ejemplo:</strong> Lo que ICT llama "order block", Wyckoff llama "zona de acumulación" y SMC llama "zona de oferta/demanda" son, en esencia, niveles donde el precio reaccionó antes y volverá a reaccionar. El BNR es la mecánica común detrás de todos.'},
+{t:'Sin retest = movimiento muy fuerte',ex:'<strong>Ejemplo:</strong> Si el precio rompe un nivel importante y sigue sin mirar atrás, significa que la demanda es tan agresiva que nadie espera mejor precio. Es una señal de fuerza — aunque también deja al trader que esperaba el retest fuera del movimiento.'}]},
+'trt.5':{title:'MVG (imbalance) — el hueco institucional',long:'El autor lo llama "Max Value Gap" y lo describe como un desfase del feed de datos institucional causado por una orden enorme en el cambio de marca temporal, que deja un hueco visible en el gráfico. Su versión estrella es el "Golden MVG": una vela a la que le falta la mecha inferior — "a la vela le falta una pierna" — que según él casi siempre inicia una tendencia. El uso práctico: proyectas el hueco hacia la derecha y el precio tiende a regresar a rellenarlo, lo que lo convierte en objetivo cuando no hay estructura cerca. NOTA IMPORTANTE: "MVG" es terminología propia del autor. En la literatura general esto es esencialmente un Fair Value Gap / imbalance, que ya tienes estudiado en el módulo IFVG.',chartFn:'chartMVG',
+rules:[
+{t:'Un hueco sin negociar actúa como imán',ex:'<strong>Ejemplo:</strong> Un movimiento violento deja una zona entre 20,040 y 20,055 donde casi no hubo negociación. El precio tiende a volver ahí a "rellenar" ese desequilibrio antes de continuar.'},
+{t:'Golden MVG: la vela sin mecha inferior',ex:'<strong>Ejemplo:</strong> Una vela alcista cuya apertura coincide con su mínimo (sin mecha abajo) indica que no hubo ni un intento vendedor: compradores desde el primer tick. Según el método, ese tipo de vela suele arrancar tendencias.'},
+{t:'Es el mismo concepto que el FVG, con otro nombre',ex:'<strong>Ejemplo:</strong> Compáralo con tu módulo IFVG: tres velas, hueco entre la primera y la tercera, el precio vuelve a rellenarlo. Mismo fenómeno, distinta etiqueta. Reconocer que los nombres cambian pero los conceptos se repiten es una de las lecciones más útiles de todo el trading.'}]},
+'trt.6':{title:'Niveles: dónde reacciona el precio',long:'El método enumera todas las formas de soporte y resistencia y las trata como una sola familia. Fluidos: las EMAs, que actúan como soporte dinámico. Psicológicos: los números redondos (20,000, 20,500) — zonas donde se concentran órdenes institucionales por pura convención humana. Pivotes mayores: zonas de temporalidades altas donde ya hubo break & retest. Intradía: el rango de apertura (ORB) y los máximos/mínimos del día previo y del premarket. Y las mechas barridas: si el precio barre varias mechas vendedoras seguidas, esas posiciones institucionales que no aceptan pérdida se dan la vuelta, entra volumen y el movimiento se acelera.',
+rules:[
+{t:'Marca los niveles ANTES de que abra el mercado',ex:'<strong>Ejemplo:</strong> Antes de las 9:30 marcas: máximo y mínimo de ayer, máximo y mínimo del premarket, y los números redondos cercanos. Cuando el precio se acerque a uno, ya sabes que ahí habrá batalla. Esto conecta directo con tu módulo de Plan y Riesgo.'},
+{t:'Los números redondos son zonas de grado institucional',ex:'<strong>Ejemplo:</strong> 20,000 en el NQ concentra órdenes simplemente porque el cerebro humano ancla en cifras redondas. No tiene magia técnica, pero funciona porque todos lo miran a la vez.'},
+{t:'La regla de las 11:30 del ORB',ex:'<strong>Ejemplo:</strong> Si a las 11:30 el precio sigue dentro del rango de apertura, el método predice dos escenarios: o una ruptura mayor a la esperada por la tarde, o rango el resto del día. Es una heurística de contexto, no una regla mecánica.'}]},
+'trt.7':{title:'El veredicto honesto',long:'Este método tiene partes valiosas y partes que hay que tomar con pinzas, y conviene separarlas. LO SÓLIDO: la filosofía es sensata y coincide con la literatura seria — operar rupturas en vez del medio del rango, dejar correr ganadores usando la estructura, cortar perdedores rápido, evitar el "árbol de Navidad" de indicadores redundantes, y el reconocimiento honesto de que todos los sistemas (ICT, SMC, Wyckoff) le ponen nombres distintos a lo mismo. Además el autor da advertencias reales: cuenta que perdió $169,000 en cinco minutos por mantener una posición overnight antes de un reporte de resultados. Eso es honestidad poco común. LO QUE HAY QUE COMPROBAR: todas sus cifras (85-87% de continuación, 70% de acierto de la estructura, "miles de por ciento" más probabilidad overnight) son afirmaciones sin fuente ni backtest publicado. Y el método vive en el intradía de 1 a 15 minutos, donde tu propio laboratorio midió profit factor menor a 1 en las quince estrategias probadas.',chartFn:'chartTRTVER',
+rules:[
+{t:'Los principios: sensatos y coinciden con la evidencia',ex:'<strong>Ejemplo:</strong> "No operes el medio del rango", "deja correr al ganador con trailing por estructura", "menos indicadores es mejor". Estos principios aparecen en la literatura seria y en tus propios backtests: tu Cazador hace exactamente eso — entra en ruptura de estructura y deja correr hasta la invalidación.'},
+{t:'Las cifras: hipótesis, no hechos',ex:'<strong>Ejemplo:</strong> "85-87% de continuación si se rompe el ORB y el máximo del día previo" es una afirmación fuerte y perfectamente comprobable... que nadie ha comprobado públicamente. Tu propio backtest del ORB dio profit factor 0.42. Si esa cifra fuera cierta, el ORB sería una máquina de dinero — y no lo fue en tus datos.'},
+{t:'El marco temporal sigue siendo el problema',ex:'<strong>Ejemplo real de tu laboratorio:</strong> ORB intradía → PF 0.42. ICT 5m → 0.90. EMA 1h → 0.84. Quince estrategias, todas las intradía por debajo de 1.0. El Three Bar en 15 minutos podría ser distinto, pero hasta que alguien lo mida, es una hipótesis más.'},
+{t:'Cómo aprovechar este método con honestidad',ex:'<strong>Ejemplo:</strong> Quédate con la filosofía (fases del mercado, gestión por estructura, simplicidad) que es transferible a cualquier marco temporal — incluido el diario donde SÍ tienes ventaja medida. Y trata cada porcentaje que te den como lo que es: una hipótesis esperando tu backtest.'}]},
 'cisd.0':{title:'Qué es el CISD',long:'CISD significa Change in State of Delivery (cambio en el estado de entrega). Es un concepto de timing de la escuela ICT. La idea: cuando el mercado cae, esa caída la construyen una serie de velas bajistas consecutivas. El CISD ocurre cuando el precio CIERRA por encima de las aperturas de esa serie de velas (o por debajo, en el caso alcista→bajista). En ese momento, según ICT, el "estado de entrega" cambió de vendedor a comprador. Es una forma de detectar el giro leyendo los cuerpos de las velas en lugar de esperar a que se rompa un swing.',chartFn:'chartCISD',
 rules:[
 {t:'Identifica la serie de velas del último impulso',ex:'<strong>Ejemplo:</strong> El precio cae en 4 velas rojas seguidas. Esas 4 velas, con sus aperturas, forman "la serie". El nivel a vigilar es la apertura de la primera vela de esa serie bajista (la más alta de las aperturas).'},
@@ -1104,7 +1146,16 @@ tags:[['ICT','purple'],['Confirmación temprana','blue'],['Reversión','green'],
 concepts:[['🔄','Qué es el CISD','El precio cierra más allá de las aperturas de la serie de velas del último impulso.','cisd.0'],['⚔️','CISD vs CHoCH','La diferencia clave: rompe cuerpos de velas, no swings estructurales.','cisd.1'],['🌊','El barrido primero','El CISD válido llega tras un barrido de liquidez, igual que el IFVG.','cisd.2'],['⚖️','El veredicto honesto','Más temprano significa más señales falsas. Sin backtest riguroso, como toda la familia ICT.','cisd.3']],
 quiz:[{q:'¿Qué define exactamente un CISD (Change in State of Delivery)?',ctx:'Es un concepto de timing de la escuela ICT.',opts:['El precio rompe el último swing high o low','El precio cierra más allá de las aperturas de la serie de velas del último impulso','Una vela de mucho volumen','El cruce de dos medias móviles'],ok:1,exp:'El CISD ocurre cuando el precio cierra por encima (o por debajo) de las aperturas de las velas consecutivas que formaron el último tramo del movimiento. Marca un cambio en el "estado de entrega" de vendedor a comprador (o viceversa) según ICT.'},
 {q:'¿Cuál es la diferencia principal entre el CISD y el CHoCH?',ctx:'Ambos detectan giros, pero miran cosas distintas.',opts:['El CISD solo funciona en crypto','El CHoCH rompe swings estructurales; el CISD rompe las aperturas de las velas (cuerpos)','No hay diferencia real','El CISD necesita tres medias móviles'],ok:1,exp:'El CHoCH rompe un swing estructural (un pivote del gráfico). El CISD rompe las aperturas de las velas del último impulso — que suelen quedar más cerca que el swing. Por eso el CISD dispara ANTES que el CHoCH: es una confirmación más temprana.'},
-{q:'¿Cuál es la principal desventaja de que el CISD sea más "temprano"?',ctx:'El eterno trade-off del trading.',opts:['Que es más lento','Que genera más señales falsas (te mete antes en los giros buenos Y en los malos)','Que solo funciona de noche','Que necesita datos de pago'],ok:1,exp:'Más temprano = más ruidoso. El CISD te mete antes en los giros reales, pero también en todos los falsos. Es el eterno trade-off: velocidad contra fiabilidad. Y como toda la familia ICT, sus reglas dependen de juicios subjetivos ("¿cuáles velas forman la serie?") que impiden un backtest riguroso.'}]}
+{q:'¿Cuál es la principal desventaja de que el CISD sea más "temprano"?',ctx:'El eterno trade-off del trading.',opts:['Que es más lento','Que genera más señales falsas (te mete antes en los giros buenos Y en los malos)','Que solo funciona de noche','Que necesita datos de pago'],ok:1,exp:'Más temprano = más ruidoso. El CISD te mete antes en los giros reales, pero también en todos los falsos. Es el eterno trade-off: velocidad contra fiabilidad. Y como toda la familia ICT, sus reglas dependen de juicios subjetivos ("¿cuáles velas forman la serie?") que impiden un backtest riguroso.'}]},
+
+{id:'trt',icon:'🔀',label:'Método TRT',name:'Método TRT · Tendencia-Rango-Tendencia',sub:'Un sistema de lectura pura de velas y estructura, sin indicadores. Su idea central: el mercado solo hace tres cosas — tender, consolidar y volver a tender. Toda la operativa consiste en identificar en qué fase estás y operar SOLO las rupturas, nunca el medio del rango.',
+info:[['Timeframe','1m – 15m (multi-TF)'],['Mercados','Futuros ES/NQ'],['Dificultad','⭐⭐⭐'],['Tipo','Ruptura y continuación']],
+tags:[['Sin indicadores','green'],['Estructura','blue'],['Multi-temporalidad','purple'],['Discrecional','red']],
+concepts:[['🔀','TRT: la idea central','Tendencia → Rango → Tendencia. El peor lugar para entrar es el medio del rango.','trt.0'],['📊','Anatomía de la vela','Las mechas SÍ importan: ignorarlas es tirar el 50% de la información.','trt.1'],['3️⃣','El patrón Three Bar','TRT en miniatura: impulso → pausa → continuación. Entrada, stop y objetivo en 3 velas.','trt.2'],['📈','Estructura HH/HL y LL/LH','Deja correr al ganador mientras la secuencia siga viva. Sal en la invalidación.','trt.3'],['🔁','Break and Retest (BNR)','Rompe un nivel, vuelve a testearlo, continúa. El patrón más universal del trading.','trt.4'],['🕳️','MVG / imbalance','Huecos de precio que actúan como imán. La versión propia del autor del Fair Value Gap.','trt.5'],['🎯','Niveles y soportes','ORB, día previo, números redondos, mechas barridas: dónde el precio reacciona.','trt.6'],['⚖️','El veredicto honesto','Qué parte de este método tiene respaldo real y qué cifras hay que tomar con pinzas.','trt.7']],
+quiz:[{q:'Según el método TRT, ¿cuál es el peor lugar estadístico para entrar?',ctx:'La regla que más pérdidas evita.',opts:['En la ruptura del rango','En el medio de una consolidación (rango)','Al inicio de una tendencia','En el retest de un nivel roto'],ok:1,exp:'El medio del rango es donde el precio puede seguir rebotando entre paredes y sacarte por ambos lados. Ahí solo estás apostando 50/50. El método dice: espera la ruptura, aunque llegues "tarde a la fiesta".'},
+{q:'¿Qué es el patrón "Three Bar"?',ctx:'Su patrón favorito, y es TRT en miniatura.',opts:['Tres velas del mismo color seguidas','Vela de tendencia → vela de pausa/rango → vela que continúa la tendencia','Tres máximos al mismo nivel','Tres velas con la misma apertura'],ok:1,exp:'El Three Bar es TRT comprimido en tres velas: impulso, pausa, continuación. Su valor práctico es que te da todo el plan de una vez: entrada en la ruptura, stop en el extremo de la segunda vela (riesgo pequeño y definido) y objetivo en el siguiente nivel.'},
+{q:'¿Cómo debes gestionar un ganador según este método?',ctx:'La diferencia entre ganar poco y ganar de verdad.',opts:['Cerrar en cuanto haya ganancia','Dejarlo correr mientras la estructura (HH/HL) siga intacta, salir en la vela de invalidación','Cerrar siempre al final del día','Mover el stop a la entrada e ignorar el gráfico'],ok:1,exp:'Mientras la secuencia de máximos y mínimos más altos siga viva, la tendencia sigue viva: aguanta con trailing por estructura. Una mecha que baja 10-15 puntos sin romper los mínimos previos NO es una salida. Esto evita el error clásico de cerrar temprano y ver el precio correr sin ti.'},
+{q:'¿Qué debes hacer con las cifras que da el autor (85-87%, 70%, "miles de por ciento")?',ctx:'La pregunta del laboratorio.',opts:['Creerlas: es un trader experimentado','Tomarlas como hipótesis a comprobar con tu propio backtesting','Ignorar todo el método por eso','Multiplicarlas por dos'],ok:1,exp:'Son afirmaciones suyas sin fuente verificable ni backtest publicado. Eso no invalida el método — muchos de sus principios (operar rupturas, no el medio del rango; dejar correr ganadores) son sensatos y coinciden con la literatura. Pero los porcentajes concretos son hipótesis, no hechos. Compruébalos tú.'}]}
 ];
 
 // ─── CHART FUNCTIONS ───────────────────────────────────────────────────────
@@ -1386,6 +1437,146 @@ function chartCRT4H(){
     ${lbl(250,205,'Entry corto post-sweep → Target = Mínimo de la vela 4H',c,'middle','11')}
   `);}
 
+// ─── TRT CHARTS ─────────────────────────────────────────────────────────────
+function chartTRT(){
+  let v='';
+  const t1=[[60,150,45],[92,128,40],[124,108,38]];
+  t1.forEach(c=>{v+=wick(c[0],c[1]-8,c[1]+c[2]+8,'#22c55e')+candle(c[0],c[1],c[2],14,true,'#22c55e');});
+  const rango=[[170,100,22],[200,104,20],[230,98,24],[260,106,20],[290,100,22],[320,104,20]];
+  rango.forEach(c=>{v+=wick(c[0],c[1]-10,c[1]+c[2]+10,'#8b949e')+candle(c[0],c[1],c[2],14,true,'#8b949e');});
+  const t2=[[370,86,40],[402,64,42],[434,42,40],[466,26,34]];
+  t2.forEach(c=>{v+=wick(c[0],c[1]-8,c[1]+c[2]+8,'#22c55e')+candle(c[0],c[1],c[2],14,true,'#22c55e');});
+  return svgWrap(`<rect x="155" y="88" width="185" height="52" fill="rgba(139,148,158,.1)" stroke="#8b949e" stroke-width="1" stroke-dasharray="4"/>
+    ${lbl(247,84,'RANGO — zona de muerte','#8b949e','middle','10')}
+    ${lbl(247,158,'NO operar aquí','#ef4444','middle','10')}
+    ${v}
+    ${lbl(100,196,'1. TENDENCIA','#22c55e','middle','11')}
+    ${lbl(247,196,'2. RANGO','#8b949e','middle','11')}
+    ${lbl(420,196,'3. TENDENCIA','#22c55e','middle','11')}
+    <path d="M345,105 L365,105" stroke="#fb923c" stroke-width="2" marker-end="url(#arT)"/>
+    <defs><marker id="arT" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#fb923c"/></marker></defs>
+    ${lbl(355,124,'ruptura = entrada','#fb923c','middle','10')}
+    ${lbl(280,16,'El ciclo eterno del mercado','#fb923c','middle','11')}`,220);
+}
+
+function chartVELA(){
+  return svgWrap(`${lbl(280,18,'Las mechas son el 50% de la información','#fb923c','middle','11')}
+    ${wick(170,40,180,'#22c55e')}${candle(170,75,70,34,true,'#22c55e')}
+    ${lbl(170,196,'VELA VERDE','#22c55e','middle','10')}
+    ${lbl(122,46,'máximo','#8b949e','end','9')}
+    ${lbl(122,80,'cierre','#8b949e','end','9')}
+    ${lbl(122,148,'apertura','#8b949e','end','9')}
+    ${lbl(122,180,'mínimo','#8b949e','end','9')}
+    <line x1="126" y1="42" x2="152" y2="42" stroke="#8b949e" stroke-width=".8"/>
+    <line x1="126" y1="76" x2="152" y2="76" stroke="#8b949e" stroke-width=".8"/>
+    <line x1="126" y1="144" x2="152" y2="144" stroke="#8b949e" stroke-width=".8"/>
+    <line x1="126" y1="177" x2="152" y2="177" stroke="#8b949e" stroke-width=".8"/>
+    ${wick(390,40,180,'#ef4444')}${candle(390,75,70,34,false,'#ef4444')}
+    ${lbl(390,196,'VELA ROJA','#ef4444','middle','10')}
+    ${lbl(438,46,'máximo','#8b949e','start','9')}
+    ${lbl(438,80,'apertura','#8b949e','start','9')}
+    ${lbl(438,148,'cierre','#8b949e','start','9')}
+    ${lbl(438,180,'mínimo','#8b949e','start','9')}
+    <line x1="408" y1="42" x2="434" y2="42" stroke="#8b949e" stroke-width=".8"/>
+    <line x1="408" y1="76" x2="434" y2="76" stroke="#8b949e" stroke-width=".8"/>
+    <line x1="408" y1="144" x2="434" y2="144" stroke="#8b949e" stroke-width=".8"/>
+    <line x1="408" y1="177" x2="434" y2="177" stroke="#8b949e" stroke-width=".8"/>
+    ${lbl(280,110,'la mecha = rechazo','#fb923c','middle','10')}
+    ${lbl(280,126,'ahí hay órdenes','#fb923c','middle','10')}`,220);
+}
+
+function chartTHREEBAR(){
+  let v='';
+  v+=wick(150,50,160,'#22c55e')+candle(150,60,90,26,true,'#22c55e');
+  v+=wick(240,44,120,'#8b949e')+candle(240,58,34,26,true,'#8b949e');
+  v+=wick(330,20,110,'#22c55e')+candle(330,30,68,26,true,'#22c55e');
+  return svgWrap(`${lbl(280,16,'THREE BAR: TRT comprimido en 3 velas','#fb923c','middle','11')}
+    <line x1="215" y1="58" x2="470" y2="58" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="5"/>
+    ${lbl(478,62,'entrada','#22c55e','start','10')}
+    <line x1="215" y1="92" x2="470" y2="92" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5"/>
+    ${lbl(478,96,'stop','#ef4444','start','10')}
+    ${v}
+    ${lbl(150,190,'1. IMPULSO','#22c55e','middle','10')}
+    ${lbl(240,190,'2. PAUSA','#8b949e','middle','10')}
+    ${lbl(330,190,'3. RUPTURA','#22c55e','middle','10')}
+    ${lbl(240,206,'el stop va en el extremo de esta','#8b949e','middle','9')}`,220);
+}
+
+function chartESTRUCT(){
+  const path='M30,170 L80,120 L110,145 L165,95 L195,120 L250,70 L285,96 L340,45 L375,72 L430,28';
+  return svgWrap(`${lbl(280,16,'Deja correr mientras HH y HL sigan vivos','#fb923c','middle','11')}
+    <path d="${path}" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+    <circle cx="80" cy="120" r="4" fill="#22c55e"/>${lbl(80,112,'HH','#22c55e','middle','9')}
+    <circle cx="165" cy="95" r="4" fill="#22c55e"/>${lbl(165,87,'HH','#22c55e','middle','9')}
+    <circle cx="250" cy="70" r="4" fill="#22c55e"/>${lbl(250,62,'HH','#22c55e','middle','9')}
+    <circle cx="340" cy="45" r="4" fill="#22c55e"/>${lbl(340,37,'HH','#22c55e','middle','9')}
+    <circle cx="110" cy="145" r="4" fill="#3b82f6"/>${lbl(110,162,'HL','#3b82f6','middle','9')}
+    <circle cx="195" cy="120" r="4" fill="#3b82f6"/>${lbl(195,137,'HL','#3b82f6','middle','9')}
+    <circle cx="285" cy="96" r="4" fill="#3b82f6"/>${lbl(285,113,'HL','#3b82f6','middle','9')}
+    <circle cx="375" cy="72" r="4" fill="#3b82f6"/>${lbl(375,89,'HL','#3b82f6','middle','9')}
+    ${lbl(455,40,'objetivo:','#8b949e','start','9')}
+    ${lbl(455,52,'nivel a la','#8b949e','start','9')}
+    ${lbl(455,64,'izquierda','#8b949e','start','9')}
+    ${lbl(280,200,'Una mecha que no rompe el mínimo previo NO es invalidación: aguanta','#8b949e','middle','10')}`,220);
+}
+
+function chartBNR(){
+  let v='';
+  v+=wick(120,110,165,'#ef4444')+candle(120,120,38,18,false,'#ef4444');
+  v+=wick(165,96,150,'#22c55e')+candle(165,105,40,18,true,'#22c55e');
+  v+=wick(210,58,120,'#22c55e')+candle(210,66,48,18,true,'#22c55e');
+  v+=wick(260,60,128,'#ef4444')+candle(260,74,38,18,false,'#ef4444');
+  v+=wick(305,72,132,'#8b949e')+candle(305,86,26,18,true,'#8b949e');
+  v+=wick(350,40,110,'#22c55e')+candle(350,50,54,18,true,'#22c55e');
+  v+=wick(395,20,90,'#22c55e')+candle(395,28,52,18,true,'#22c55e');
+  return svgWrap(`<line x1="90" y1="100" x2="470" y2="100" stroke="#fb923c" stroke-width="2"/>
+    ${lbl(96,94,'nivel (resistencia → soporte)','#fb923c','start','10')}
+    ${v}
+    <circle cx="305" cy="100" r="9" fill="none" stroke="#22c55e" stroke-width="2"/>
+    ${lbl(305,178,'RETEST','#22c55e','middle','10')}
+    ${lbl(305,192,'= entrada','#22c55e','middle','10')}
+    ${lbl(210,182,'ruptura','#8b949e','middle','9')}
+    ${lbl(280,16,'BREAK AND RETEST: rompe, vuelve, confirma, continúa','#fb923c','middle','11')}`,220);
+}
+
+function chartMVG(){
+  let v='';
+  v+=wick(140,90,170,'#22c55e')+candle(140,100,50,22,true,'#22c55e');
+  v+=wick(215,30,145,'#22c55e')+candle(215,40,95,22,true,'#22c55e');
+  v+=wick(290,25,120,'#22c55e')+candle(290,35,55,22,true,'#22c55e');
+  v+=candle(400,60,72,22,true,'#22c55e');
+  return svgWrap(`<rect x="120" y="90" width="230" height="30" fill="rgba(251,146,60,.16)" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4"/>
+    ${lbl(235,84,'MVG / imbalance: hueco sin negociar','#fb923c','middle','10')}
+    ${v}
+    <line x1="350" y1="105" x2="470" y2="105" stroke="#fb923c" stroke-width="1" stroke-dasharray="3"/>
+    ${lbl(478,109,'imán','#fb923c','start','9')}
+    <circle cx="400" cy="132" r="7" fill="none" stroke="#eab308" stroke-width="2"/>
+    ${lbl(400,168,'Golden MVG:','#eab308','middle','10')}
+    ${lbl(400,182,'sin mecha inferior','#eab308','middle','10')}
+    ${lbl(400,196,'("le falta una pierna")','#8b949e','middle','9')}
+    ${lbl(280,16,'El precio tiende a volver a rellenar el hueco','#fb923c','middle','11')}`,220);
+}
+
+function chartTRTVER(){
+  return svgWrap(`${lbl(280,24,'QUÉ QUEDARSE Y QUÉ COMPROBAR','#e7ecf3','middle','13')}
+    <rect x="45" y="46" width="215" height="130" rx="10" fill="rgba(34,197,94,.08)" stroke="#22c55e" stroke-width="1.5"/>
+    ${lbl(152,66,'✔ LO SÓLIDO','#22c55e','middle','11')}
+    ${lbl(152,88,'Operar rupturas, no el rango','#8b949e','middle','9')}
+    ${lbl(152,104,'Dejar correr con estructura','#8b949e','middle','9')}
+    ${lbl(152,120,'Cortar perdedores rápido','#8b949e','middle','9')}
+    ${lbl(152,136,'Menos indicadores es mejor','#8b949e','middle','9')}
+    ${lbl(152,152,'Todos nombran lo mismo','#8b949e','middle','9')}
+    ${lbl(152,168,'Advertencias honestas','#8b949e','middle','9')}
+    <rect x="300" y="46" width="215" height="130" rx="10" fill="rgba(245,158,11,.08)" stroke="#f59e0b" stroke-width="1.5"/>
+    ${lbl(407,66,'⚠ POR COMPROBAR','#f59e0b','middle','11')}
+    ${lbl(407,88,'"85-87% de continuación"','#8b949e','middle','9')}
+    ${lbl(407,104,'"70% acierto estructura"','#8b949e','middle','9')}
+    ${lbl(407,120,'"miles de % overnight"','#8b949e','middle','9')}
+    ${lbl(407,142,'Sin fuente ni backtest','#f59e0b','middle','9')}
+    ${lbl(407,160,'Tu ORB real dio PF 0.42','#ef4444','middle','9')}
+    ${lbl(280,200,'Quédate con la filosofía. Cada porcentaje es una hipótesis esperando tu backtest.','#8b949e','middle','10')}`,220);
+}
+
 // ─── CISD CHARTS ────────────────────────────────────────────────────────────
 function chartCISD(){
   let velas='';
@@ -1585,7 +1776,7 @@ function chartABS(){
     ${lbl(280,18,'ABSORCION: un comprador pasivo gigante se traga toda la agresion','#22c55e','middle','11')}`,220);
 }
 
-const CHART_FNS={chartCISD,chartCISDVS,chartCISDVER,chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
+const CHART_FNS={chartTRT,chartVELA,chartTHREEBAR,chartESTRUCT,chartBNR,chartMVG,chartTRTVER,chartCISD,chartCISDVS,chartCISDVER,chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
 
 // ─── APP STATE ──────────────────────────────────────────────────────────────
 let curId=null, curTab='r', scores={}, done=new Set();
