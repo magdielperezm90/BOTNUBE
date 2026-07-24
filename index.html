@@ -473,12 +473,80 @@ const SC={
   riesgo:{c:'#34d399',r:'52,211,153'},
   ifvg:{c:'#2dd4bf',r:'45,212,191'},
   cisd:{c:'#38bdf8',r:'56,189,248'},
-  trt:{c:'#fb923c',r:'251,146,60'}
+  trt:{c:'#fb923c',r:'251,146,60'},
+  velas:{c:'#facc15',r:'250,204,21'}
 };
 function sc(id){return (SC[id]||SC.smc).c;}
 function sr(id){return (SC[id]||SC.smc).r;}
 
 const CD={
+'velas.8':{title:'Patrones de 1 y 2 velas: el vocabulario esencial',long:'Los patrones de velas son configuraciones con nombre propio que resumen batallas típicas. No son magia — son atajos visuales para historias que ya sabes leer: rechazo, dominio, indecisión y cambio de mando. Aquí están los seis que cubren el 90% de lo que verás. La advertencia de siempre: la evidencia estadística sobre patrones aislados es débil (la mayoría ronda el 50% sin contexto); su valor real aparece cuando ocurren EN un nivel importante, que es el siguiente concepto.',chartFn:'chartVPATRONES',
+rules:[
+{t:'Martillo / Estrella fugaz: el rechazo con nombre',ex:'<strong>Martillo:</strong> mecha inferior larga (2-3x el cuerpo), cuerpo pequeño arriba. Los vendedores empujaron y los compradores recuperaron TODO. <strong>Estrella fugaz:</strong> su gemela invertida — mecha superior larga, cuerpo abajo. Intento alcista aplastado. Ambas valen solo tras un movimiento previo (un martillo en rango lateral no significa nada).'},
+{t:'Envolvente (Engulfing): el cambio de mando',ex:'<strong>Ejemplo alcista:</strong> vela roja, y la siguiente vela verde cuyo cuerpo ENVUELVE completamente el cuerpo de la roja. Los compradores no solo ganaron su asalto: borraron el asalto anterior del rival. Es de los patrones de reversión con mejor reputación — especialmente con volumen alto en la vela envolvente.'},
+{t:'Doji e Inside Bar: la pausa que precede la decisión',ex:'<strong>Doji:</strong> apertura ≈ cierre, cuerpo casi inexistente. Empate total. <strong>Inside Bar:</strong> una vela completamente contenida dentro del rango de la anterior — compresión. Ninguna de las dos es señal por sí sola: son PAUSAS. La señal es la ruptura del rango de esa pausa (¿te suena? Es la vela 2 del Three Bar del método TRT).'},
+{t:'Marubozu: el dominio absoluto',ex:'<strong>Ejemplo:</strong> vela de cuerpo completo, sin mechas (o mínimas). Apertura en un extremo, cierre en el otro, sin resistencia en el camino. Un solo bando controló cada segundo del periodo. Tras una consolidación, un marubozu que rompe es de las confirmaciones más fuertes que existen.'}]},
+'velas.9':{title:'El contexto lo es todo: dónde ocurre la vela',long:'La lección que separa al que memoriza patrones del que sabe leer: LA MISMA VELA tiene significados completamente distintos según DÓNDE aparece. Un martillo sobre un soporte importante con volumen es una señal seria; el mismo martillo flotando en el medio de un rango es ruido. Antes de emocionarte con cualquier vela, pregúntate tres cosas: ¿está en un nivel que importa? ¿viene después de un movimiento (o de la nada)? ¿el volumen la respalda? Sin las tres respuestas, la vela más bonita del mundo es solo una vela.',chartFn:'chartVCONTEXTO',
+rules:[
+{t:'La misma vela, dos significados opuestos',ex:'<strong>Ejemplo:</strong> Un martillo aparece exactamente sobre el mínimo del día previo que además coincide con un número redondo: rechazo en confluencia de niveles = señal seria. El mismo martillo a mitad de camino entre soporte y resistencia: nadie defendía nada ahí = ruido estadístico.'},
+{t:'Vela + nivel + volumen = la tripleta completa',ex:'<strong>Ejemplo:</strong> Envolvente alcista (vela ✔) sobre el soporte semanal (nivel ✔) con el doble del volumen promedio (volumen ✔). Cuando las tres se alinean, la probabilidad juega a tu favor. Con solo una, estás adivinando con estilo.'},
+{t:'La vela necesita una historia previa que revertir',ex:'<strong>Ejemplo:</strong> Un patrón de reversión necesita algo QUE revertir. Un martillo tras una caída de 60 puntos cuenta la historia de un rechazo al pánico. Un martillo tras tres velas laterales no revierte nada — no había tendencia que cambiar.'}]},
+'velas.10':{title:'Invalidación: cuándo tu lectura está muerta',long:'El concepto más importante de todo el módulo, porque es el que define tu stop y protege tu cuenta. La invalidación NO es "el precio va en mi contra" — es "LA PREMISA por la que entré dejó de ser cierta". Si compraste porque detectaste una pared compradora en 20,000, tu premisa es "alguien defiende 20,000". Mientras esa pared aguante, los sustos son ruido. Pero si una vela CIERRA claramente por debajo de 20,000, la pared cedió: tu tesis está muerta, y quedarte es esperanza, no análisis. La consecuencia práctica es enorme: el stop no se pone "a 20 puntos porque sí" — se pone exactamente donde tu lectura se invalida. Y la distinción técnica crucial: una MECHA que perfora y regresa es un último test que la pared superó; un CIERRE del otro lado es la invalidación. Cuerpos mandan, mechas testean.',chartFn:'chartVINVALIDA',
+rules:[
+{t:'Invalidación = tu premisa dejó de ser cierta, no un número arbitrario',ex:'<strong>Ejemplo:</strong> Entraste largo por absorción en 20,000. Tu premisa: "hay un comprador grande ahí". El precio baja a 20,004 y te sudan las manos — pero la premisa sigue viva (la pared no se tocó). El precio NO tiene que subir ya para que tu lectura sea válida; solo tiene que no morir la premisa.'},
+{t:'Mecha que perfora = test superado. Cierre que rompe = lectura muerta',ex:'<strong>Ejemplo:</strong> Una vela pincha hasta 19,996 con la mecha y cierra en 20,008: la pared absorbió hasta ese último ataque — señal de fuerza, no de debilidad. Pero una vela que CIERRA en 19,990: la pared cedió. Se sale. Sin negociar, sin "un poquito más", sin mover el stop.'},
+{t:'El stop se coloca donde muere la tesis',ex:'<strong>Ejemplo:</strong> Absorción detectada en 20,000 → stop en 19,993 (unos ticks bajo la pared, dando espacio a la mecha de test). No en 19,980 "por seguridad" (regalas puntos) ni en 19,999 (te saca el ruido). La invalidación DEFINE el stop; el stop no es una opinión.'},
+{t:'Mover el stop = negarse a aceptar que la lectura murió',ex:'<strong>Ejemplo:</strong> El precio cierra bajo tu pared y en vez de salir, bajas el stop "para darle aire". Lo que en realidad hiciste: cambiar tu análisis por una esperanza. Conecta con tu módulo de Psicología: mover el stop es el clic sin fricción que convierte pérdidas de $50 en pérdidas de $300. La invalidación existe precisamente para protegerte de ti mismo.'},
+{t:'Cada tipo de lectura tiene su invalidación específica',ex:'<strong>Ejemplos:</strong> Absorción en un nivel → cierre más allá del nivel. Martillo → cierre bajo el mínimo del martillo. Estructura alcista (HH/HL) → cierre bajo el último HL. Ruptura con retest → cierre de vuelta dentro del rango roto. ANTES de entrar, escribe cuál es tu invalidación. Si no puedes nombrarla, no tienes un trade — tienes una corazonada.'}]},
+'velas.11':{title:'Multi-temporalidad y gaps: el cuadro completo',long:'Dos herramientas finales para leer velas como un profesional. PRIMERA: toda vela es un resumen de velas menores — una vela diaria contiene 78 velas de 5 minutos. Un martillo diario visto por dentro es una caída matinal + una recuperación vespertina completa. Leer en dos marcos (uno para el contexto, otro para el detalle) te da la historia completa: el marco mayor te dice DÓNDE estás, el menor te dice QUÉ está pasando ahí. SEGUNDA: los gaps (huecos entre el cierre de una vela y la apertura de la siguiente) son información pura — muestran dónde el precio saltó sin negociar, y esos vacíos tienden a actuar como imanes (ya conoces la mecánica por el FVG y el MVG: es la misma familia).',chartFn:'chartVMULTITF',
+rules:[
+{t:'La vela mayor resume; las menores explican',ex:'<strong>Ejemplo:</strong> Ves un martillo en el diario. Bajas a 15 minutos y descubres QUÉ lo formó: una caída de pánico en la mañana, tres velas de absorción en el mínimo (¡con las huellas que ya sabes leer!) y una recuperación sostenida en la tarde. El martillo era el titular; el 15m es el artículo completo.'},
+{t:'Marco mayor para el contexto, menor para el gatillo',ex:'<strong>Ejemplo práctico:</strong> El diario te dice que el precio llegó a un soporte semanal (contexto: zona de compra potencial). El 15m te muestra la absorción formándose en ese nivel (gatillo: la confirmación). Operar solo con el menor es ir a ciegas; solo con el mayor es llegar tarde. Juntos son el sistema.'},
+{t:'Los gaps son vacíos que atraen al precio',ex:'<strong>Ejemplo:</strong> El futuro cierra el viernes en 20,050 y abre el domingo en 20,110: gap de 60 puntos donde NADIE negoció. Estadísticamente, el precio tiende a regresar a "rellenar" ese hueco (en índices, la mayoría de gaps se rellenan tarde o temprano). Un gap sin rellenar arriba o abajo es siempre un objetivo latente en tu mapa.'},
+{t:'Gap y sigue = fuerza; gap y rellena = debilidad',ex:'<strong>Ejemplo:</strong> Si el precio abre con gap alcista y NUNCA mira atrás (gap and go), la demanda es tan fuerte que nadie espera mejor precio — señal de fuerza mayor. Si abre con gap y lo rellena en la primera hora, el salto era entusiasmo sin convicción. El comportamiento DEL gap es en sí mismo una lectura.'}]},
+'velas.0':{title:'La vela es una batalla completa',long:'Cada vela resume un combate con cuatro datos: dónde empezó (apertura), hasta dónde llegaron los compradores (máximo), hasta dónde llegaron los vendedores (mínimo) y quién quedó en pie al final (cierre). La pregunta que resuelve una vela no es "¿va a subir?" sino "¿quién ganó ESTE asalto y por cuánto?". Leer velas es leer el resultado de una pelea, no adivinar la siguiente.',chartFn:'chartVBATALLA',
+rules:[
+{t:'El cierre respecto a la apertura dice quién ganó el asalto',ex:'<strong>Ejemplo:</strong> Apertura 20,000, cierre 20,035. Los compradores ganaron 35 puntos netos en ese periodo. Si el cierre hubiera sido 19,980, ganaron los vendedores.'},
+{t:'Los extremos dicen hasta dónde llegó cada bando',ex:'<strong>Ejemplo:</strong> Máximo 20,060 y mínimo 19,990 con cierre en 20,035. Los compradores llegaron a 20,060 pero no lo sostuvieron; los vendedores tocaron 19,990 y perdieron el terreno. La vela cerró en la mitad alta: ventaja compradora, pero con resistencia arriba.'},
+{t:'La posición del cierre DENTRO del rango es la clave',ex:'<strong>Ejemplo:</strong> Dos velas con el mismo rango: una cierra en el 90% superior (compradores dominaron el cierre) y otra en el 10% (vendedores). El rango es igual, la historia es opuesta. Mira siempre DÓNDE cierra dentro de su propio rango.'}]},
+'velas.1':{title:'Cuerpo vs mecha: la proporción lo dice todo',long:'La proporción entre el cuerpo y las mechas es el indicador de convicción más directo que existe. Cuerpo grande con mechas mínimas: un lado dominó de principio a fin, sin discusión. Cuerpo pequeño con mechas largas a ambos lados: hubo pelea intensa sin ganador claro, indecisión. Y el caso más informativo: cuerpo pequeño con UNA mecha muy larga — ahí hubo un intento fuerte en una dirección que fue completamente rechazado.',chartFn:'chartVPROPORCION',
+rules:[
+{t:'Cuerpo grande, mechas cortas = convicción total',ex:'<strong>Ejemplo:</strong> Vela verde de 40 puntos de cuerpo y mechas de 2 puntos. Los compradores mandaron desde el primer tick hasta el último. No hubo contraataque. Señal de fuerza real.'},
+{t:'Cuerpo pequeño, mechas largas a ambos lados = indecisión',ex:'<strong>Ejemplo:</strong> Rango total de 50 puntos pero cuerpo de solo 4. El precio subió 25, bajó 25 y volvió al centro. Ninguno de los dos bandos pudo cerrar la pelea: equilibrio. Suele aparecer antes de rupturas.'},
+{t:'Una sola mecha larga = rechazo puro en ese extremo',ex:'<strong>Ejemplo:</strong> Cuerpo verde pequeño arriba, mecha inferior de 35 puntos. Traducción: los vendedores empujaron 35 puntos abajo y los compradores les devolvieron TODO el terreno dentro del mismo periodo. Ese mínimo quedó defendido.'}]},
+'velas.2':{title:'Qué es la absorción (y por qué importa tanto)',long:'La absorción ocurre cuando un lado ataca con enorme agresión... y el precio no se mueve. La única explicación posible es que alguien con órdenes límite gigantes está del otro lado recibiendo TODO ese flujo sin ceder terreno. Piensa en una pared: puedes lanzarle mil pelotas, pero no se mueve. Ese "alguien" suele ser institucional, porque hace falta capacidad enorme para absorber sin retroceder. Y aquí está la parte valiosa: cuando el bando agresor se queda sin municiones, el precio suele salir disparado en la dirección OPUESTA — porque los agresores atrapados tienen que cerrar sus posiciones, empujando el precio contra ellos mismos.',chartFn:'chartVABSORCION',
+rules:[
+{t:'La ecuación: mucha presión + cero movimiento = absorción',ex:'<strong>Ejemplo:</strong> Tres velas seguidas atacan el soporte 20,000 con volumen enorme. Los tres mínimos quedan en 20,000, 20,001 y 20,000. Se vendieron miles de contratos y el precio no bajó ni un punto: alguien compró todo eso sin dejarlo caer.'},
+{t:'Hace falta tamaño institucional para absorber',ex:'<strong>Ejemplo:</strong> Para tragarte 3,000 contratos de venta sin mover el precio necesitas capacidad de comprar 3,000 contratos. Ningún trader minorista hace eso. Por eso la absorción es una de las pocas huellas visibles de dinero grande.'},
+{t:'Cuando el agresor se agota, el rebote es violento',ex:'<strong>Ejemplo:</strong> Tras tres velas martillando 20,000 sin éxito, los vendedores se quedan sin fuerza. Además, los que vendieron ahí están todos en pérdida y deben recomprar para cerrar. Resultado típico: un rebote rápido de 40-60 puntos.'}]},
+'velas.3':{title:'Las 4 huellas visuales de la absorción',long:'Sin datos de order flow, puedes detectar absorción en el gráfico normal buscando cuatro señales. Ninguna es infalible por separado; juntas son bastante elocuentes. Primera: mechas repetidas al mismo nivel. Segunda: velas de rango comprimido tras un movimiento fuerte. Tercera: mínimos (o máximos) idénticos vela tras vela. Cuarta: volumen creciente sin progreso de precio.',chartFn:'chartVHUELLAS',
+rules:[
+{t:'Huella 1 — Mechas repetidas al mismo nivel',ex:'<strong>Ejemplo:</strong> Cuatro velas seguidas con mechas inferiores que terminan exactamente en 19,998, 20,000, 19,999 y 20,000. El precio intentó bajar cuatro veces y cuatro veces lo devolvieron desde el mismo punto. Ese nivel tiene un comprador defendiéndolo.'},
+{t:'Huella 2 — Rango comprimido tras un impulso fuerte',ex:'<strong>Ejemplo:</strong> El precio cae 80 puntos en tres velas y de pronto las siguientes cuatro velas tienen rangos de solo 5-8 puntos. La caída no se revirtió, pero se DETUVO en seco. Alguien está poniendo un piso ahí.'},
+{t:'Huella 3 — Mínimos o máximos calcados',ex:'<strong>Ejemplo:</strong> Cinco velas con mínimos en 20,000 / 20,000 / 20,001 / 20,000 / 20,000. Esa precisión no es casualidad: es una orden límite grande y estática en ese precio exacto.'},
+{t:'Huella 4 — Volumen creciendo, precio quieto',ex:'<strong>Ejemplo:</strong> El volumen sube vela a vela (1,200 → 1,800 → 2,400 contratos) mientras el precio se mueve en un rango de 6 puntos. Cada vez se pelea más fuerte por el mismo terreno: alguien está recibiendo todo ese flujo.'}]},
+'velas.4':{title:'La regla de oro: volumen alto + rango pequeño',long:'Si te quedas con UNA sola cosa de todo este módulo, que sea esta ecuación: volumen ALTO con rango de precio PEQUEÑO significa absorción. La lógica es simple e implacable. Volumen alto significa que se negociaron muchísimos contratos. Rango pequeño significa que el precio apenas se movió. Si se negoció tanto y el precio no se movió, alguien tuvo que estar del otro lado recibiendo todo ese flujo. Es aritmética de mercado, no interpretación. Y su opuesto también informa: volumen bajo con rango grande significa que no hubo nadie defendiendo — el precio se movió por un vacío de liquidez.',chartFn:'chartVVOLUMEN',
+rules:[
+{t:'Volumen alto + rango pequeño = ABSORCIÓN',ex:'<strong>Ejemplo:</strong> Una vela negocia 4,200 contratos (el triple del promedio) con un rango de apenas 7 puntos. Traducción: hubo una batalla feroz y nadie ganó terreno. La barra de volumen gigante bajo una vela diminuta es la firma visual más clara.'},
+{t:'Volumen bajo + rango grande = vacío de liquidez',ex:'<strong>Ejemplo:</strong> El precio se mueve 50 puntos con solo 400 contratos. No hubo pelea: simplemente no había nadie del otro lado. Típico de la madrugada o de zonas sin historia (los LVN del volume profile). Estos movimientos se revierten con facilidad.'},
+{t:'Compara siempre contra el volumen PROMEDIO reciente',ex:'<strong>Ejemplo:</strong> "Volumen alto" no es un número fijo: son 4,200 contratos cuando el promedio de las últimas 20 velas es 1,400. Pon una media de volumen en tu gráfico (gratis en TradingView) y juzga cada barra contra ella.'}]},
+'velas.5':{title:'Ejemplos paso a paso, vela por vela',long:'Cuatro secuencias completas de absorción comentadas en orden cronológico. Léelas como si estuvieras viendo el gráfico desarrollarse en vivo, una vela a la vez. Fíjate en que en todos los casos la señal no está en una vela aislada, sino en la SECUENCIA: presión que se repite sin lograr avanzar.',chartFn:'chartVEJEMPLOS',
+rules:[
+{t:'Ejemplo A — Absorción compradora en soporte (el más común)',ex:'<strong>Vela 1:</strong> Roja grande, cae 30 puntos hasta 20,000. Volumen 1,500. Parece que sigue el desplome.<br><strong>Vela 2:</strong> Roja pero pequeña. Mínimo 20,000 otra vez. Volumen 2,800 (¡casi el doble!). Se vendió muchísimo y no bajó ni un punto.<br><strong>Vela 3:</strong> Cuerpo diminuto, mecha inferior en 19,999. Volumen 3,400. Tercera vez rechazado desde el mismo nivel.<br><strong>Vela 4:</strong> Verde con cuerpo mediano, cierra en 20,025. Los vendedores se agotaron.<br><strong>Lectura:</strong> tres velas de venta agresiva absorbidas en el mismo precio, con volumen creciente. Cuando el último vendedor se rindió, el rebote llegó.'},
+{t:'Ejemplo B — Absorción vendedora en resistencia (techo)',ex:'<strong>Vela 1:</strong> Verde fuerte que sube hasta 20,100. Euforia compradora.<br><strong>Vela 2:</strong> Verde pero con mecha superior larga: llegó a 20,102 y cerró en 20,085. Volumen alto.<br><strong>Vela 3:</strong> Otra mecha superior en 20,101. Volumen aún mayor. El precio TOCA el nivel pero no lo supera.<br><strong>Vela 4:</strong> Roja que cierra en 20,060.<br><strong>Lectura:</strong> alguien vendía en 20,100-20,102 todo lo que le compraban. Los compradores tardíos quedaron atrapados y su salida aceleró la caída.'},
+{t:'Ejemplo C — Absorción fallida (para que no te enamores)',ex:'<strong>Vela 1-3:</strong> Tres velas con mínimos idénticos en 19,950, volumen creciente. Absorción de manual: parece que hay un comprador enorme.<br><strong>Vela 4:</strong> Vela roja gigante que rompe 19,950 y cae 60 puntos con volumen récord.<br><strong>Lectura:</strong> el absorbedor se rindió o era más pequeño de lo que parecía. La absorción es EVIDENCIA de que alguien defiende un nivel, no garantía de que lo logre. Por eso siempre hay stop.'},
+{t:'Ejemplo D — Absorción en tendencia (continuación)',ex:'<strong>Contexto:</strong> tendencia alcista clara.<br><strong>Vela 1-2:</strong> Retroceso de 25 puntos con velas rojas.<br><strong>Vela 3:</strong> Roja pequeña con volumen enorme y mecha inferior larga: los vendedores atacaron y fueron absorbidos.<br><strong>Vela 4-5:</strong> El precio reanuda la subida y hace nuevo máximo.<br><strong>Lectura:</strong> la absorción no solo aparece en giros — también confirma retrocesos dentro de una tendencia. Los compradores grandes aprovecharon el descuento.'}]},
+'velas.6':{title:'Agotamiento vs absorción',long:'Se confunden constantemente porque ambos preceden a giros, pero la mecánica es distinta y conviene separarlas. En la ABSORCIÓN hay un actor pasivo grande defendiendo activamente un nivel: recibe todas las órdenes agresivas sin ceder. Es una pared. En el AGOTAMIENTO no hay pared: simplemente ya no quedan compradores (o vendedores) nuevos que quieran entrar. El movimiento muere solo, por falta de combustible, normalmente tras un clímax de volumen. Diferencia práctica: la absorción se ve como muchas velas peleando en el mismo sitio; el agotamiento se ve como una vela clímax enorme y luego silencio.',chartFn:'chartVAGOTAMIENTO',
+rules:[
+{t:'Absorción = pared activa (varias velas, mismo nivel)',ex:'<strong>Ejemplo:</strong> Cuatro velas martillando 20,000 con volumen creciente y mínimos idénticos. Hay alguien ahí comprando cada contrato que se vende. Es defensa deliberada de un precio concreto.'},
+{t:'Agotamiento = se acabó el combustible (clímax y silencio)',ex:'<strong>Ejemplo:</strong> Tras una caída larga, una vela roja enorme con el triple de volumen que cualquier otra... y después las siguientes velas tienen volumen mínimo. El pánico final vació a los vendedores: ya vendió el que tenía que vender.'},
+{t:'Ambos preceden giros, pero se leen distinto',ex:'<strong>Ejemplo:</strong> Si ves absorción, el nivel exacto importa (pon tu stop del otro lado de esa pared). Si ves agotamiento, lo que importa es el clímax (el extremo de esa vela enorme suele ser el punto de giro). Uno te da un nivel; el otro, un momento.'}]},
+'velas.7':{title:'Cómo usarlo sin engañarte',long:'La lectura de velas es la habilidad más transferible del trading — funciona en cualquier mercado y cualquier temporalidad, y no depende de ningún indicador ni suscripción. Pero hay que ser honesto sobre sus límites. Una vela te dice con total precisión lo que YA pasó: dónde abrió, dónde cerró, hasta dónde llegó cada bando, si hubo rechazo. Lo que NO puede decirte es qué pasará después. La absorción es evidencia de que alguien grande defiende un nivel; no es garantía de que lo logre (mira el Ejemplo C). Y el sesgo más peligroso al estudiar velas es el retrovisor: en un gráfico pasado, las absorciones que funcionaron saltan a la vista y las que fallaron son invisibles. Por eso siempre: stop definido, y las velas como CONTEXTO dentro de un sistema, no como profecía.',chartFn:'chartVHONESTO',
+rules:[
+{t:'Las velas describen el pasado con precisión; no predicen',ex:'<strong>Ejemplo:</strong> Un martillo perfecto en soporte con volumen enorme te dice que hubo rechazo comprador real. No te dice que vaya a subir. Aumenta la probabilidad, no la certeza — y por eso el stop existe.'},
+{t:'Cuidado con el sesgo del retrovisor',ex:'<strong>Ejemplo:</strong> Abre un gráfico pasado y verás diez absorciones que funcionaron perfectas. Lo que no ves son las quince que fallaron, porque tu ojo las descarta automáticamente. Para saber si un patrón funciona hay que CONTARLO, no admirarlo.'},
+{t:'Úsalo como contexto dentro de un sistema, no como sistema',ex:'<strong>Ejemplo:</strong> Tu Cazador SMC no lee absorción — entra por estructura en diario y por eso se pudo validar 4 veces. La lectura de velas complementa un sistema (te dice si un nivel se está defendiendo), pero por sí sola es discrecional y no backtesteable.'},
+{t:'Practica contándolo, no admirándolo',ex:'<strong>Ejemplo:</strong> Abre el MNQ, marca 20 absorciones que identifiques EN VIVO (no en retrospectiva), anota qué pasó después de cada una y saca el porcentaje. Veinte anotaciones honestas valen más que mil horas mirando gráficos pasados. Eso es backtesting manual — lo mismo que predica Marci Silfrain.'}]},
 'trt.0':{title:'TRT: Tendencia — Rango — Tendencia',long:'La idea central del método: el mercado solo puede hacer tres cosas, y siempre en el mismo ciclo. Tiende (se mueve direccionalmente), consolida (rango lateral donde compradores y vendedores se equilibran) y vuelve a tender. Nada más. Toda la operativa se reduce a saber en cuál de las tres fases estás. Si atrapas la tendencia al inicio, o esperas la ruptura del rango, eres rentable. El peor lugar estadístico para entrar es el medio de una consolidación: puede seguir chocando quince minutos más y sacarte por ambos lados. Ahí solo estás apostando a cara o cruz.',chartFn:'chartTRT',
 rules:[
 {t:'Identifica la fase antes de pensar en entrar',ex:'<strong>Ejemplo:</strong> El precio lleva 40 minutos rebotando entre 20,000 y 20,030 sin salir. Eso es RANGO — no hay operación. La operación aparece cuando rompa uno de los dos extremos con convicción.'},
@@ -1155,7 +1223,17 @@ concepts:[['🔀','TRT: la idea central','Tendencia → Rango → Tendencia. El 
 quiz:[{q:'Según el método TRT, ¿cuál es el peor lugar estadístico para entrar?',ctx:'La regla que más pérdidas evita.',opts:['En la ruptura del rango','En el medio de una consolidación (rango)','Al inicio de una tendencia','En el retest de un nivel roto'],ok:1,exp:'El medio del rango es donde el precio puede seguir rebotando entre paredes y sacarte por ambos lados. Ahí solo estás apostando 50/50. El método dice: espera la ruptura, aunque llegues "tarde a la fiesta".'},
 {q:'¿Qué es el patrón "Three Bar"?',ctx:'Su patrón favorito, y es TRT en miniatura.',opts:['Tres velas del mismo color seguidas','Vela de tendencia → vela de pausa/rango → vela que continúa la tendencia','Tres máximos al mismo nivel','Tres velas con la misma apertura'],ok:1,exp:'El Three Bar es TRT comprimido en tres velas: impulso, pausa, continuación. Su valor práctico es que te da todo el plan de una vez: entrada en la ruptura, stop en el extremo de la segunda vela (riesgo pequeño y definido) y objetivo en el siguiente nivel.'},
 {q:'¿Cómo debes gestionar un ganador según este método?',ctx:'La diferencia entre ganar poco y ganar de verdad.',opts:['Cerrar en cuanto haya ganancia','Dejarlo correr mientras la estructura (HH/HL) siga intacta, salir en la vela de invalidación','Cerrar siempre al final del día','Mover el stop a la entrada e ignorar el gráfico'],ok:1,exp:'Mientras la secuencia de máximos y mínimos más altos siga viva, la tendencia sigue viva: aguanta con trailing por estructura. Una mecha que baja 10-15 puntos sin romper los mínimos previos NO es una salida. Esto evita el error clásico de cerrar temprano y ver el precio correr sin ti.'},
-{q:'¿Qué debes hacer con las cifras que da el autor (85-87%, 70%, "miles de por ciento")?',ctx:'La pregunta del laboratorio.',opts:['Creerlas: es un trader experimentado','Tomarlas como hipótesis a comprobar con tu propio backtesting','Ignorar todo el método por eso','Multiplicarlas por dos'],ok:1,exp:'Son afirmaciones suyas sin fuente verificable ni backtest publicado. Eso no invalida el método — muchos de sus principios (operar rupturas, no el medio del rango; dejar correr ganadores) son sensatos y coinciden con la literatura. Pero los porcentajes concretos son hipótesis, no hechos. Compruébalos tú.'}]}
+{q:'¿Qué debes hacer con las cifras que da el autor (85-87%, 70%, "miles de por ciento")?',ctx:'La pregunta del laboratorio.',opts:['Creerlas: es un trader experimentado','Tomarlas como hipótesis a comprobar con tu propio backtesting','Ignorar todo el método por eso','Multiplicarlas por dos'],ok:1,exp:'Son afirmaciones suyas sin fuente verificable ni backtest publicado. Eso no invalida el método — muchos de sus principios (operar rupturas, no el medio del rango; dejar correr ganadores) son sensatos y coinciden con la literatura. Pero los porcentajes concretos son hipótesis, no hechos. Compruébalos tú.'}]},
+
+{id:'velas',icon:'🕯️',label:'Leer Velas',name:'Lectura de Velas y Absorción',sub:'Cada vela es una batalla completa entre compradores y vendedores, con ganador y perdedor. Aquí aprendes a leer quién ganó, quién se agotó y — lo más valioso — cuándo alguien grande está absorbiendo en silencio toda la presión del otro lado.',
+info:[['Aplica a','Todos los mercados'],['Timeframe','Cualquiera'],['Dificultad','⭐⭐⭐'],['Base de','Todo el price action']],
+tags:[['Fundamental','blue'],['Absorción','amber'],['Price action','green'],['Sin indicadores','purple']],
+concepts:[['🕯️','La vela es una batalla','Apertura, máximo, mínimo y cierre cuentan quién ganó el asalto.','velas.0'],['📏','Cuerpo vs mecha: la proporción','La relación entre cuerpo y mechas revela convicción o indecisión.','velas.1'],['🃏','Patrones de 1 y 2 velas','Martillo, estrella, envolvente, inside bar: el vocabulario esencial.','velas.8'],['📍','El contexto lo es todo','La misma vela vale oro en un nivel y nada en el medio de la nada.','velas.9'],['🛡️','Qué es la absorción','Presión enorme de un lado... y el precio no se mueve. Alguien la está tragando.','velas.2'],['🔍','Las 4 huellas de la absorción','Las señales visuales que delatan a un absorbedor institucional.','velas.3'],['📊','La regla de oro del volumen','Volumen alto + rango pequeño = alguien absorbió.','velas.4'],['🎬','Ejemplos paso a paso','Cuatro secuencias reales de absorción, comentadas vela por vela.','velas.5'],['⚡','Agotamiento vs absorción','Parecidos pero distintos: uno es rendición, el otro es defensa activa.','velas.6'],['❌','Invalidación: cuándo tu lectura murió','El concepto que define tu stop: dónde tu tesis deja de ser cierta.','velas.10'],['🔭','Multi-temporalidad y gaps','La misma historia contada en tres marcos, y los huecos que dejan huella.','velas.11'],['⚖️','Cómo usarlo sin engañarte','Qué puede y qué NO puede decirte una vela. La honestidad estadística.','velas.7']],
+quiz:[{q:'¿Qué indica una vela con volumen MUY alto pero rango de precio muy pequeño?',ctx:'Es la firma clásica de un fenómeno concreto.',opts:['Que no pasó nada relevante','Absorción: alguien grande absorbió toda la presión sin dejar mover el precio','Que el mercado está cerrado','Que hubo un error de datos'],ok:1,exp:'Mucho volumen significa que se negoció muchísimo; rango pequeño significa que el precio no se movió. La única explicación es que alguien con órdenes límite enormes absorbió toda la agresión del otro lado. Cuando el agresor se agota, el precio suele salir disparado en dirección contraria.'},
+{q:'Una vela con mecha inferior muy larga y cuerpo pequeño arriba, ¿qué cuenta?',ctx:'La mecha es la parte que el precio recorrió y perdió.',opts:['Que los vendedores dominaron','Que los vendedores empujaron abajo pero los compradores recuperaron todo el terreno','Que no hubo actividad','Que el precio va a bajar seguro'],ok:1,exp:'La mecha inferior larga muestra que el precio SÍ bajó hasta ahí, pero fue rechazado: los compradores absorbieron esa venta y devolvieron el precio arriba. Es rechazo comprador. Ahora bien — indica presión compradora en esa vela, no una garantía de subida.'},
+{q:'¿Cuál es la diferencia entre absorción y agotamiento?',ctx:'Se parecen mucho pero la mecánica es distinta.',opts:['Son exactamente lo mismo','Absorción: alguien pasivo se traga la presión activamente. Agotamiento: la presión se acaba sola por falta de combustible','El agotamiento solo pasa en crypto','La absorción solo ocurre al cierre'],ok:1,exp:'En la absorción hay un actor pasivo grande DEFENDIENDO un nivel: recibe todas las órdenes agresivas sin ceder. En el agotamiento simplemente ya no quedan compradores (o vendedores) nuevos: el movimiento muere por inanición tras un clímax. Ambos preceden giros, pero uno es defensa activa y el otro es rendición.'},
+{q:'Detectaste absorción compradora en 20,000. ¿Qué evento INVALIDA tu lectura?',ctx:'La invalidación define dónde va tu stop.',opts:['Que el precio baje 5 puntos con una mecha','Que una vela CIERRE claramente por debajo de 20,000','Que pasen 10 minutos sin subir','Que el volumen baje'],ok:1,exp:'Una mecha que perfora el nivel y vuelve es un último test — la pared aguantó. Pero un CIERRE por debajo significa que la pared cedió: tu premisa (alguien defiende 20,000) dejó de ser cierta. Ahí tu lectura está muerta y se sale, sin negociar. El stop se coloca exactamente donde la tesis se invalida, no a una distancia arbitraria.'},
+{q:'¿Qué NO puede decirte una vela por sí sola?',ctx:'La honestidad estadística del price action.',opts:['Dónde abrió y cerró el precio','Cuál fue el rango del periodo','Hacia dónde irá el precio a continuación con certeza','Si hubo rechazo en algún extremo'],ok:2,exp:'La vela te dice con precisión qué YA pasó: apertura, cierre, extremos, rechazos. Lo que NO puede decirte es qué pasará después. Una absorción perfecta puede fallar; un martillo de libro puede seguir cayendo. Lee las velas como evidencia de lo ocurrido, no como profecía.'}]}
 ];
 
 // ─── CHART FUNCTIONS ───────────────────────────────────────────────────────
@@ -1436,6 +1514,275 @@ function chartCRT4H(){
     ${lbl(475,165,'Target: Mín 4H','#4ade80','start','10')}
     ${lbl(250,205,'Entry corto post-sweep → Target = Mínimo de la vela 4H',c,'middle','11')}
   `);}
+
+// ─── VELAS EXTRA CHARTS ─────────────────────────────────────────────────────
+function chartVPATRONES(){
+  let v='';
+  // martillo
+  v+=wick(75,70,155,'#22c55e')+candle(75,70,26,20,true,'#22c55e');
+  // estrella fugaz
+  v+=wick(150,45,132,'#ef4444')+candle(150,106,26,20,false,'#ef4444');
+  // envolvente: roja pequeña + verde grande
+  v+=wick(225,78,128,'#ef4444')+candle(225,84,34,16,false,'#ef4444');
+  v+=wick(262,58,145,'#22c55e')+candle(262,64,76,20,true,'#22c55e');
+  // doji
+  v+=wick(340,55,150,'#8b949e')+candle(340,100,5,20,true,'#8b949e');
+  // inside bar
+  v+=wick(408,60,148,'#22c55e')+candle(408,66,78,20,true,'#22c55e');
+  v+=wick(444,88,124,'#8b949e')+candle(444,94,30,14,true,'#8b949e');
+  // marubozu
+  v+=candle(505,52,104,20,true,'#22c55e');
+  return svgWrap(`${lbl(280,16,'El vocabulario esencial: 6 patrones que cubren el 90%','#facc15','middle','11')}
+    ${v}
+    ${lbl(75,178,'MARTILLO','#22c55e','middle','9')}
+    ${lbl(75,190,'rechazo abajo','#8b949e','middle','8')}
+    ${lbl(150,178,'ESTRELLA','#ef4444','middle','9')}
+    ${lbl(150,190,'rechazo arriba','#8b949e','middle','8')}
+    ${lbl(243,178,'ENVOLVENTE','#22c55e','middle','9')}
+    ${lbl(243,190,'cambio de mando','#8b949e','middle','8')}
+    ${lbl(340,178,'DOJI','#8b949e','middle','9')}
+    ${lbl(340,190,'empate','#8b949e','middle','8')}
+    ${lbl(426,178,'INSIDE BAR','#8b949e','middle','9')}
+    ${lbl(426,190,'compresión','#8b949e','middle','8')}
+    ${lbl(505,178,'MARUBOZU','#22c55e','middle','9')}
+    ${lbl(505,190,'dominio total','#8b949e','middle','8')}
+    ${lbl(280,210,'Solo valen CON contexto: el siguiente concepto','#f59e0b','middle','9')}`,220);
+}
+
+function chartVCONTEXTO(){
+  let v1='';
+  v1+=wick(95,50,100,'#ef4444')+candle(95,56,42,16,false,'#ef4444');
+  v1+=wick(135,88,132,'#ef4444')+candle(135,94,34,16,false,'#ef4444');
+  v1+=wick(175,120,168,'#22c55e')+candle(175,120,22,16,true,'#22c55e');
+  let v2='';
+  v2+=wick(390,96,144,'#22c55e')+candle(390,96,22,16,true,'#22c55e');
+  return svgWrap(`${lbl(280,16,'LA MISMA VELA — dos significados opuestos','#facc15','middle','11')}
+    <line x1="60" y1="172" x2="240" y2="172" stroke="#22c55e" stroke-width="2.5"/>
+    ${lbl(150,188,'soporte del día previo + número redondo','#22c55e','middle','8')}
+    ${v1}
+    <circle cx="175" cy="140" r="16" fill="none" stroke="#facc15" stroke-width="2"/>
+    ${lbl(150,36,'martillo EN el nivel','#22c55e','middle','10')}
+    ${lbl(150,50,'tras una caída = SEÑAL','#22c55e','middle','10')}
+    <line x1="300" y1="26" x2="300" y2="200" stroke="#30363d"/>
+    ${v2}
+    <circle cx="390" cy="116" r="16" fill="none" stroke="#8b949e" stroke-width="2" stroke-dasharray="4"/>
+    ${lbl(410,42,'el mismo martillo flotando','#8b949e','middle','10')}
+    ${lbl(410,56,'en medio de la nada = RUIDO','#8b949e','middle','10')}
+    ${lbl(410,175,'sin nivel, sin caída previa,','#8b949e','middle','8')}
+    ${lbl(410,187,'sin volumen: nadie defendía nada','#8b949e','middle','8')}
+    ${lbl(280,212,'Vela + nivel + volumen: la tripleta. Con una sola, adivinas con estilo','#facc15','middle','9')}`,220);
+}
+
+function chartVINVALIDA(){
+  let v1='';
+  v1+=wick(100,70,148,'#ef4444')+candle(100,76,40,16,false,'#ef4444');
+  v1+=wick(140,96,166,'#22c55e')+candle(140,102,42,16,true,'#22c55e');   // mecha perfora, cierra arriba
+  v1+=wick(180,66,140,'#22c55e')+candle(180,72,52,16,true,'#22c55e');
+  let v2='';
+  v2+=wick(370,74,150,'#ef4444')+candle(370,80,38,16,false,'#ef4444');
+  v2+=wick(410,96,178,'#ef4444')+candle(410,120,52,16,false,'#ef4444');  // CIERRA debajo
+  return svgWrap(`${lbl(280,16,'MECHA QUE TESTEA vs CIERRE QUE MATA','#facc15','middle','11')}
+    <line x1="65" y1="152" x2="240" y2="152" stroke="#22c55e" stroke-width="2.5"/>
+    ${lbl(152,196,'pared en 20,000','#22c55e','middle','9')}
+    ${v1}
+    <circle cx="140" cy="162" r="9" fill="none" stroke="#22c55e" stroke-width="2"/>
+    ${lbl(152,38,'la mecha perfora y VUELVE:','#22c55e','middle','10')}
+    ${lbl(152,52,'test superado — AGUANTAS','#22c55e','middle','10')}
+    <line x1="295" y1="26" x2="295" y2="205" stroke="#30363d"/>
+    <line x1="330" y1="152" x2="500" y2="152" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6"/>
+    ${lbl(415,196,'la pared cedió','#ef4444','middle','9')}
+    ${v2}
+    <circle cx="410" cy="172" r="9" fill="none" stroke="#ef4444" stroke-width="2"/>
+    ${lbl(415,38,'el CIERRE queda debajo:','#ef4444','middle','10')}
+    ${lbl(415,52,'lectura MUERTA — SALES','#ef4444','middle','10')}
+    ${lbl(280,214,'El stop va donde muere la tesis. Cuerpos mandan; mechas testean','#facc15','middle','9')}`,222);
+}
+
+function chartVMULTITF(){
+  let vd='';
+  vd+=wick(105,50,175,'#22c55e')+candle(105,118,40,34,true,'#22c55e');   // martillo diario
+  let vm='';
+  vm+=wick(300,58,120,'#ef4444')+candle(300,62,50,14,false,'#ef4444');
+  vm+=wick(335,102,150,'#ef4444')+candle(335,108,34,14,false,'#ef4444');
+  vm+=wick(370,128,158,'#ef4444')+candle(370,134,18,14,false,'#ef4444');
+  vm+=wick(405,126,157,'#8b949e')+candle(405,132,16,14,true,'#8b949e');
+  vm+=wick(440,98,150,'#22c55e')+candle(440,104,44,14,true,'#22c55e');
+  vm+=wick(475,64,116,'#22c55e')+candle(475,70,48,14,true,'#22c55e');
+  return svgWrap(`${lbl(280,16,'La vela mayor RESUME; las menores EXPLICAN','#facc15','middle','11')}
+    ${vd}
+    ${lbl(105,200,'DIARIO: un martillo','#22c55e','middle','9')}
+    <path d="M150,110 L270,110" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arV)"/>
+    <defs><marker id="arV" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#8b949e"/></marker></defs>
+    ${lbl(210,102,'por dentro...','#8b949e','middle','9')}
+    ${vm}
+    <line x1="355" y1="160" x2="420" y2="160" stroke="#facc15" stroke-width="1.5" stroke-dasharray="3"/>
+    ${lbl(388,176,'absorción','#facc15','middle','8')}
+    ${lbl(388,200,'15 MIN: pánico → absorción en el mínimo → recuperación','#8b949e','middle','9')}
+    ${lbl(280,214,'Marco mayor = contexto (DÓNDE). Marco menor = gatillo (QUÉ pasa ahí)','#facc15','middle','9')}`,222);
+}
+
+// ─── VELAS / ABSORCION CHARTS ───────────────────────────────────────────────
+function chartVBATALLA(){
+  return svgWrap(`${lbl(280,16,'Una vela = un asalto con ganador y perdedor','#facc15','middle','11')}
+    ${wick(200,40,180,'#22c55e')}${candle(200,70,80,40,true,'#22c55e')}
+    <line x1="150" y1="42" x2="250" y2="42" stroke="#8b949e" stroke-width=".7" stroke-dasharray="3"/>
+    ${lbl(145,46,'máximo: hasta aquí llegaron los compradores','#8b949e','end','9')}
+    <line x1="150" y1="72" x2="250" y2="72" stroke="#22c55e" stroke-width=".7" stroke-dasharray="3"/>
+    ${lbl(145,76,'cierre: quién quedó en pie','#22c55e','end','9')}
+    <line x1="150" y1="148" x2="250" y2="148" stroke="#8b949e" stroke-width=".7" stroke-dasharray="3"/>
+    ${lbl(145,152,'apertura: dónde empezó la pelea','#8b949e','end','9')}
+    <line x1="150" y1="178" x2="250" y2="178" stroke="#8b949e" stroke-width=".7" stroke-dasharray="3"/>
+    ${lbl(145,182,'mínimo: hasta aquí llegaron los vendedores','#8b949e','end','9')}
+    <rect x="300" y="60" width="200" height="26" rx="5" fill="rgba(34,197,94,.12)" stroke="#22c55e" stroke-width="1"/>
+    ${lbl(400,77,'cierra en el 80% superior','#22c55e','middle','10')}
+    ${lbl(400,104,'= los compradores dominaron','#8b949e','middle','10')}
+    ${lbl(400,120,'el cierre del asalto','#8b949e','middle','10')}
+    ${lbl(400,150,'Mira SIEMPRE dónde cierra','#facc15','middle','10')}
+    ${lbl(400,164,'dentro de su propio rango','#facc15','middle','10')}`,220);
+}
+
+function chartVPROPORCION(){
+  let v='';
+  v+=wick(90,45,170,'#22c55e')+candle(90,50,115,26,true,'#22c55e');
+  v+=wick(215,40,180,'#8b949e')+candle(215,102,16,26,true,'#8b949e');
+  v+=wick(340,40,175,'#22c55e')+candle(340,50,32,26,true,'#22c55e');
+  v+=wick(455,45,180,'#ef4444')+candle(455,140,34,26,false,'#ef4444');
+  return svgWrap(`${lbl(280,16,'La proporción cuerpo/mecha = nivel de convicción','#facc15','middle','11')}
+    ${v}
+    ${lbl(90,196,'CONVICCIÓN','#22c55e','middle','10')}
+    ${lbl(90,208,'cuerpo grande','#8b949e','middle','9')}
+    ${lbl(215,196,'INDECISIÓN','#8b949e','middle','10')}
+    ${lbl(215,208,'mechas ambos lados','#8b949e','middle','9')}
+    ${lbl(340,196,'RECHAZO ABAJO','#22c55e','middle','10')}
+    ${lbl(340,208,'compradores ganaron','#8b949e','middle','9')}
+    ${lbl(455,196,'RECHAZO ARRIBA','#ef4444','middle','10')}
+    ${lbl(455,208,'vendedores ganaron','#8b949e','middle','9')}`,225);
+}
+
+function chartVABSORCION(){
+  let v='';
+  const ataques=[[110,55,60],[175,68,52],[240,78,44],[305,86,38]];
+  ataques.forEach(a=>{v+=wick(a[0],a[1],152,'#ef4444')+candle(a[0],a[1],a[2],20,false,'#ef4444');});
+  v+=wick(380,60,150,'#22c55e')+candle(380,72,72,20,true,'#22c55e');
+  v+=wick(445,30,120,'#22c55e')+candle(445,40,74,20,true,'#22c55e');
+  let vols='';
+  [[110,26],[175,38],[240,50],[305,62],[380,40],[445,30]].forEach(b=>{
+    vols+=`<rect x="${b[0]-9}" y="${205-b[1]}" width="18" height="${b[1]}" rx="2" fill="rgba(250,204,21,.5)"/>`;
+  });
+  return svgWrap(`<line x1="80" y1="155" x2="490" y2="155" stroke="#22c55e" stroke-width="2.5"/>
+    ${lbl(86,149,'soporte defendido — la PARED','#22c55e','start','10')}
+    ${v}
+    ${lbl(215,40,'venta agresiva creciente...','#ef4444','middle','10')}
+    ${lbl(215,54,'y el precio NO baja','#ef4444','middle','10')}
+    ${lbl(412,26,'vendedores agotados','#22c55e','middle','10')}
+    ${lbl(412,40,'→ rebote violento','#22c55e','middle','10')}
+    ${vols}
+    ${lbl(60,200,'vol','#8b949e','end','9')}
+    ${lbl(280,222,'ABSORCIÓN: alguien pasivo se traga toda la agresión sin ceder un punto','#facc15','middle','10')}`,232);
+}
+
+function chartVHUELLAS(){
+  let v='';
+  [[90,70,40],[135,78,34],[180,74,38],[225,80,32]].forEach(a=>{
+    v+=wick(a[0],a[1]-6,150,'#ef4444')+candle(a[0],a[1],a[2],16,false,'#ef4444');});
+  return svgWrap(`${lbl(280,16,'Las 4 huellas visuales del absorbedor','#facc15','middle','11')}
+    <line x1="70" y1="152" x2="250" y2="152" stroke="#facc15" stroke-width="2" stroke-dasharray="4"/>
+    ${v}
+    ${lbl(160,172,'1. mechas repetidas','#facc15','middle','9')}
+    ${lbl(160,184,'en el MISMO nivel','#facc15','middle','9')}
+    <rect x="300" y="46" width="200" height="34" rx="6" fill="rgba(250,204,21,.08)" stroke="#facc15" stroke-width="1"/>
+    ${lbl(400,68,'2. rango comprimido tras impulso','#8b949e','middle','9')}
+    <rect x="300" y="90" width="200" height="34" rx="6" fill="rgba(250,204,21,.08)" stroke="#facc15" stroke-width="1"/>
+    ${lbl(400,112,'3. mínimos calcados (20,000 x4)','#8b949e','middle','9')}
+    <rect x="300" y="134" width="200" height="34" rx="6" fill="rgba(250,204,21,.08)" stroke="#facc15" stroke-width="1"/>
+    ${lbl(400,156,'4. volumen sube, precio quieto','#8b949e','middle','9')}
+    ${lbl(400,190,'Ninguna es infalible sola.','#8b949e','middle','9')}
+    ${lbl(400,202,'Juntas son elocuentes.','#8b949e','middle','9')}`,220);
+}
+
+function chartVVOLUMEN(){
+  let v='';
+  v+=wick(140,60,110,'#8b949e')+candle(140,72,26,26,true,'#8b949e');
+  v+=wick(390,40,160,'#22c55e')+candle(390,48,104,26,true,'#22c55e');
+  return svgWrap(`${lbl(280,16,'LA REGLA DE ORO','#facc15','middle','12')}
+    <rect x="60" y="34" width="180" height="16" rx="3" fill="rgba(250,204,21,.15)"/>
+    ${lbl(150,46,'volumen ALTO + rango PEQUEÑO','#facc15','middle','9')}
+    ${v}
+    <rect x="126" y="130" width="28" height="62" rx="2" fill="rgba(250,204,21,.65)"/>
+    ${lbl(150,206,'= ABSORCIÓN','#facc15','middle','10')}
+    <rect x="310" y="34" width="180" height="16" rx="3" fill="rgba(139,148,158,.15)"/>
+    ${lbl(400,46,'volumen BAJO + rango GRANDE','#8b949e','middle','9')}
+    <rect x="376" y="174" width="28" height="18" rx="2" fill="rgba(139,148,158,.55)"/>
+    ${lbl(400,206,'= vacío de liquidez','#8b949e','middle','10')}
+    <line x1="280" y1="30" x2="280" y2="200" stroke="#30363d" stroke-width="1"/>`,220);
+}
+
+function chartVEJEMPLOS(){
+  let v='';
+  v+=wick(80,50,150,'#ef4444')+candle(80,58,74,18,false,'#ef4444');
+  v+=wick(130,96,152,'#ef4444')+candle(130,104,32,18,false,'#ef4444');
+  v+=wick(180,110,153,'#ef4444')+candle(180,116,20,18,false,'#ef4444');
+  v+=wick(230,80,150,'#22c55e')+candle(230,92,50,18,true,'#22c55e');
+  let vols='';
+  [[80,22],[130,40],[180,54],[230,34]].forEach(b=>{
+    vols+=`<rect x="${b[0]-8}" y="${200-b[1]}" width="16" height="${b[1]}" rx="2" fill="rgba(250,204,21,.5)"/>`;});
+  return svgWrap(`<line x1="60" y1="155" x2="270" y2="155" stroke="#22c55e" stroke-width="2"/>
+    ${lbl(64,149,'20,000','#22c55e','start','9')}
+    ${v}${vols}
+    ${lbl(80,214,'V1','#8b949e','middle','9')}
+    ${lbl(130,214,'V2','#8b949e','middle','9')}
+    ${lbl(180,214,'V3','#8b949e','middle','9')}
+    ${lbl(230,214,'V4','#8b949e','middle','9')}
+    ${lbl(165,32,'EJEMPLO A: absorción compradora','#facc15','middle','10')}
+    ${lbl(390,60,'V1: cae 30 pts, vol 1,500','#8b949e','middle','9')}
+    ${lbl(390,78,'V2: mínimo IGUAL, vol 2,800','#facc15','middle','9')}
+    ${lbl(390,96,'V3: mínimo IGUAL, vol 3,400','#facc15','middle','9')}
+    ${lbl(390,114,'V4: verde, cierra +25 pts','#22c55e','middle','9')}
+    <line x1="300" y1="130" x2="480" y2="130" stroke="#30363d"/>
+    ${lbl(390,150,'3 ataques absorbidos en el','#8b949e','middle','9')}
+    ${lbl(390,164,'mismo precio, volumen','#8b949e','middle','9')}
+    ${lbl(390,178,'creciente → los vendedores','#8b949e','middle','9')}
+    ${lbl(390,192,'se rindieron','#22c55e','middle','9')}`,225);
+}
+
+function chartVAGOTAMIENTO(){
+  let v='';
+  [[85,66,44],[130,74,40],[175,70,44],[220,76,38]].forEach(a=>{
+    v+=wick(a[0],a[1]-6,150,'#ef4444')+candle(a[0],a[1],a[2],16,false,'#ef4444');});
+  v+=wick(340,40,110,'#ef4444')+candle(340,48,96,24,false,'#ef4444');
+  v+=wick(400,120,168,'#8b949e')+candle(400,132,14,16,true,'#8b949e');
+  v+=wick(445,124,166,'#8b949e')+candle(445,134,12,16,true,'#8b949e');
+  return svgWrap(`<line x1="65" y1="152" x2="250" y2="152" stroke="#22c55e" stroke-width="2"/>
+    ${v}
+    ${lbl(155,30,'ABSORCIÓN','#22c55e','middle','11')}
+    ${lbl(155,176,'varias velas, MISMO nivel','#8b949e','middle','9')}
+    ${lbl(155,190,'= pared activa defendiendo','#8b949e','middle','9')}
+    ${lbl(155,204,'te da un NIVEL','#22c55e','middle','9')}
+    <line x1="285" y1="26" x2="285" y2="206" stroke="#30363d"/>
+    ${lbl(400,30,'AGOTAMIENTO','#f59e0b','middle','11')}
+    ${lbl(400,176,'clímax enorme y luego silencio','#8b949e','middle','9')}
+    ${lbl(400,190,'= se acabó el combustible','#8b949e','middle','9')}
+    ${lbl(400,204,'te da un MOMENTO','#f59e0b','middle','9')}`,220);
+}
+
+function chartVHONESTO(){
+  return svgWrap(`${lbl(280,26,'LO QUE UNA VELA PUEDE Y NO PUEDE DECIRTE','#e7ecf3','middle','12')}
+    <rect x="45" y="48" width="215" height="118" rx="10" fill="rgba(34,197,94,.08)" stroke="#22c55e" stroke-width="1.5"/>
+    ${lbl(152,70,'✔ SÍ TE DICE','#22c55e','middle','11')}
+    ${lbl(152,92,'Dónde abrió y cerró','#8b949e','middle','9')}
+    ${lbl(152,108,'Hasta dónde llegó cada bando','#8b949e','middle','9')}
+    ${lbl(152,124,'Si hubo rechazo y dónde','#8b949e','middle','9')}
+    ${lbl(152,140,'Si alguien defendió un nivel','#8b949e','middle','9')}
+    ${lbl(152,156,'Quién ganó ESE asalto','#8b949e','middle','9')}
+    <rect x="300" y="48" width="215" height="118" rx="10" fill="rgba(239,68,68,.08)" stroke="#ef4444" stroke-width="1.5"/>
+    ${lbl(407,70,'✘ NO TE DICE','#ef4444','middle','11')}
+    ${lbl(407,92,'Hacia dónde irá el precio','#8b949e','middle','9')}
+    ${lbl(407,108,'Si la absorción aguantará','#8b949e','middle','9')}
+    ${lbl(407,124,'Cuándo terminará el movimiento','#8b949e','middle','9')}
+    ${lbl(407,148,'Por eso: SIEMPRE stop','#ef4444','middle','10')}
+    ${lbl(280,190,'Cuidado con el retrovisor: en un gráfico pasado solo ves las absorciones que','#8b949e','middle','9')}
+    ${lbl(280,203,'funcionaron. Para saber si sirve, hay que CONTARLO — no admirarlo.','#facc15','middle','9')}`,220);
+}
 
 // ─── TRT CHARTS ─────────────────────────────────────────────────────────────
 function chartTRT(){
@@ -1776,7 +2123,7 @@ function chartABS(){
     ${lbl(280,18,'ABSORCION: un comprador pasivo gigante se traga toda la agresion','#22c55e','middle','11')}`,220);
 }
 
-const CHART_FNS={chartTRT,chartVELA,chartTHREEBAR,chartESTRUCT,chartBNR,chartMVG,chartTRTVER,chartCISD,chartCISDVS,chartCISDVER,chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
+const CHART_FNS={chartVPATRONES,chartVCONTEXTO,chartVINVALIDA,chartVMULTITF,chartVBATALLA,chartVPROPORCION,chartVABSORCION,chartVHUELLAS,chartVVOLUMEN,chartVEJEMPLOS,chartVAGOTAMIENTO,chartVHONESTO,chartTRT,chartVELA,chartTHREEBAR,chartESTRUCT,chartBNR,chartMVG,chartTRTVER,chartCISD,chartCISDVS,chartCISDVER,chartSWEEP,chartIFVG,chartIFVGENTRY,chartIFVGVER,chartDOM,chartFP,chartDELTA,chartVP,chartABS,chartOB,chartBOS,chartFVG,chartLQ,chartPD,chartOR,chartWYACC,chartKZ,chartEW,chartSDB,chartPB,chartFIB,chartGC,chartRSIDIV,chartCRT4H};
 
 // ─── APP STATE ──────────────────────────────────────────────────────────────
 let curId=null, curTab='r', scores={}, done=new Set();

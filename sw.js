@@ -1,4 +1,4 @@
-const CACHE = 'bot-qqq-v13';
+const CACHE = 'bot-qqq-v15';
 const SHELL = ['./bot.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
