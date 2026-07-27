@@ -1,20 +1,37 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-24 23:43 UTC",
- "ultima_vela": "2026-07-24",
- "precio_qqq": 684.23,
+ "actualizado": "2026-07-27 23:44 UTC",
+ "ultima_vela": "2026-07-27",
+ "precio_qqq": 682.12,
  "indicadores": {
-  "roc10": -5.69,
-  "valor_smc": 9780.96,
-  "valor_bh": 9450.64,
+  "roc10": -4.16,
+  "valor_smc": 9779.0,
+  "valor_bh": 9421.49,
   "tickers_alcistas": 4,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 9780.955617557061,
-  "posiciones": {},
+  "efectivo": 7824.764494045649,
+  "posiciones": {
+   "KO": {
+    "unidades": 23.245331,
+    "costo": 1956.19,
+    "entrada": 84.07,
+    "fecha": "2026-07-27",
+    "precio_actual": 84.07
+   }
+  },
   "operaciones": [
+   {
+    "fecha": "2026-07-27",
+    "tipo": "COMPRA (CHoCH +1.4%)",
+    "ticker": "KO",
+    "precio": 84.07,
+    "unidades": 23.2453,
+    "valor": 1956.19,
+    "pnl": ""
+   },
    {
     "fecha": "2026-07-23",
     "tipo": "VENTA (estructura rota)",
@@ -129,6 +146,12 @@
    "smc": 9780.96,
    "bh": 9450.64,
    "roc10": -5.69
+  },
+  {
+   "fecha": "2026-07-27",
+   "smc": 9779.0,
+   "bh": 9421.49,
+   "roc10": -4.16
   }
  ]
 }
