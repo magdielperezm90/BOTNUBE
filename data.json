@@ -1,28 +1,60 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-30 23:41 UTC",
- "ultima_vela": "2026-07-30",
- "precio_qqq": 683.55,
+ "actualizado": "2026-07-31 23:41 UTC",
+ "ultima_vela": "2026-07-31",
+ "precio_qqq": 687.99,
  "indicadores": {
-  "roc10": -3.17,
-  "valor_smc": 9881.74,
-  "valor_bh": 9441.25,
-  "tickers_alcistas": 4,
+  "roc10": -1.06,
+  "valor_smc": 9856.88,
+  "valor_bh": 9502.57,
+  "tickers_alcistas": 5,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 7824.764494045649,
+  "efectivo": 3880.8297330809683,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 88.49
+    "precio_actual": 87.59
+   },
+   "AMZN": {
+    "unidades": 7.254557,
+    "costo": 1972.16,
+    "entrada": 271.58,
+    "fecha": "2026-07-31",
+    "precio_actual": 271.58
+   },
+   "SPY": {
+    "unidades": 2.63684,
+    "costo": 1971.77,
+    "entrada": 747.03,
+    "fecha": "2026-07-31",
+    "precio_actual": 747.03
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-07-31",
+    "tipo": "COMPRA (CHoCH +0.2%)",
+    "ticker": "SPY",
+    "precio": 747.03,
+    "unidades": 2.6368,
+    "valor": 1971.77,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-07-31",
+    "tipo": "COMPRA (CHoCH +5.2%)",
+    "ticker": "AMZN",
+    "precio": 271.58,
+    "unidades": 7.2546,
+    "valor": 1972.16,
+    "pnl": ""
+   },
    {
     "fecha": "2026-07-27",
     "tipo": "COMPRA (CHoCH +1.4%)",
@@ -170,6 +202,12 @@
    "smc": 9881.74,
    "bh": 9441.25,
    "roc10": -3.17
+  },
+  {
+   "fecha": "2026-07-31",
+   "smc": 9856.88,
+   "bh": 9502.57,
+   "roc10": -1.06
   }
  ]
 }
