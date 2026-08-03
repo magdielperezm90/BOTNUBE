@@ -1,42 +1,58 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-31 23:41 UTC",
- "ultima_vela": "2026-07-31",
- "precio_qqq": 687.99,
+ "actualizado": "2026-08-03 23:47 UTC",
+ "ultima_vela": "2026-08-03",
+ "precio_qqq": 700.07,
  "indicadores": {
-  "roc10": -1.06,
-  "valor_smc": 9856.88,
-  "valor_bh": 9502.57,
-  "tickers_alcistas": 5,
+  "roc10": 0.58,
+  "valor_smc": 9956.22,
+  "valor_bh": 9669.42,
+  "tickers_alcistas": 6,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 3880.8297330809683,
+  "efectivo": 1889.1871500600353,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 87.59
+    "precio_actual": 86.86
    },
    "AMZN": {
     "unidades": 7.254557,
     "costo": 1972.16,
     "entrada": 271.58,
     "fecha": "2026-07-31",
-    "precio_actual": 271.58
+    "precio_actual": 284.02
    },
    "SPY": {
     "unidades": 2.63684,
     "costo": 1971.77,
     "entrada": 747.03,
     "fecha": "2026-07-31",
-    "precio_actual": 747.03
+    "precio_actual": 757.67
+   },
+   "IWM": {
+    "unidades": 6.716801,
+    "costo": 1991.64,
+    "entrada": 296.22,
+    "fecha": "2026-08-03",
+    "precio_actual": 296.22
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-08-03",
+    "tipo": "COMPRA (CHoCH +0.2%)",
+    "ticker": "IWM",
+    "precio": 296.22,
+    "unidades": 6.7168,
+    "valor": 1991.64,
+    "pnl": ""
+   },
    {
     "fecha": "2026-07-31",
     "tipo": "COMPRA (CHoCH +0.2%)",
@@ -208,6 +224,12 @@
    "smc": 9856.88,
    "bh": 9502.57,
    "roc10": -1.06
+  },
+  {
+   "fecha": "2026-08-03",
+   "smc": 9956.22,
+   "bh": 9669.42,
+   "roc10": 0.58
   }
  ]
 }
