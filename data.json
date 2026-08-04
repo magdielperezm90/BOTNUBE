@@ -1,49 +1,65 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-08-03 23:47 UTC",
- "ultima_vela": "2026-08-03",
- "precio_qqq": 700.07,
+ "actualizado": "2026-08-04 23:42 UTC",
+ "ultima_vela": "2026-08-04",
+ "precio_qqq": 723.85,
  "indicadores": {
-  "roc10": 0.58,
-  "valor_smc": 9956.22,
-  "valor_bh": 9669.42,
-  "tickers_alcistas": 6,
+  "roc10": 2.1,
+  "valor_smc": 9972.37,
+  "valor_bh": 9997.87,
+  "tickers_alcistas": 9,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 1889.1871500600353,
+  "efectivo": 0.0,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 86.86
+    "precio_actual": 86.56
    },
    "AMZN": {
     "unidades": 7.254557,
     "costo": 1972.16,
     "entrada": 271.58,
     "fecha": "2026-07-31",
-    "precio_actual": 284.02
+    "precio_actual": 277.42
    },
    "SPY": {
     "unidades": 2.63684,
     "costo": 1971.77,
     "entrada": 747.03,
     "fecha": "2026-07-31",
-    "precio_actual": 757.67
+    "precio_actual": 771.33
    },
    "IWM": {
     "unidades": 6.716801,
     "costo": 1991.64,
     "entrada": 296.22,
     "fecha": "2026-08-03",
-    "precio_actual": 296.22
+    "precio_actual": 301.71
+   },
+   "XLK": {
+    "unidades": 10.097903,
+    "costo": 1889.19,
+    "entrada": 186.9,
+    "fecha": "2026-08-04",
+    "precio_actual": 186.9
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-08-04",
+    "tipo": "COMPRA (CHoCH +3.0%)",
+    "ticker": "XLK",
+    "precio": 186.9,
+    "unidades": 10.0979,
+    "valor": 1889.19,
+    "pnl": ""
+   },
    {
     "fecha": "2026-08-03",
     "tipo": "COMPRA (CHoCH +0.2%)",
@@ -230,6 +246,12 @@
    "smc": 9956.22,
    "bh": 9669.42,
    "roc10": 0.58
+  },
+  {
+   "fecha": "2026-08-04",
+   "smc": 9972.37,
+   "bh": 9997.87,
+   "roc10": 2.1
   }
  ]
 }
