@@ -1,20 +1,103 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-07-23 23:38 UTC",
- "ultima_vela": "2026-07-23",
- "precio_qqq": 691.96,
+ "actualizado": "2026-08-14 22:59 UTC",
+ "ultima_vela": "2026-08-14",
+ "precio_qqq": 731.07,
  "indicadores": {
-  "roc10": -4.33,
-  "valor_smc": 9780.96,
-  "valor_bh": 9557.41,
-  "tickers_alcistas": 4,
+  "roc10": 6.26,
+  "valor_smc": 9990.92,
+  "valor_bh": 10097.6,
+  "tickers_alcistas": 9,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 9780.955617557061,
-  "posiciones": {},
+  "efectivo": 1937.0589881182352,
+  "posiciones": {
+   "KO": {
+    "unidades": 23.245331,
+    "costo": 1956.19,
+    "entrada": 84.07,
+    "fecha": "2026-07-27",
+    "precio_actual": 87.71
+   },
+   "SPY": {
+    "unidades": 2.63684,
+    "costo": 1971.77,
+    "entrada": 747.03,
+    "fecha": "2026-07-31",
+    "precio_actual": 776.34
+   },
+   "IWM": {
+    "unidades": 6.716801,
+    "costo": 1991.64,
+    "entrada": 296.22,
+    "fecha": "2026-08-03",
+    "precio_actual": 305.09
+   },
+   "XLK": {
+    "unidades": 10.097903,
+    "costo": 1889.19,
+    "entrada": 186.9,
+    "fecha": "2026-08-04",
+    "precio_actual": 190.01
+   }
+  },
   "operaciones": [
+   {
+    "fecha": "2026-08-12",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "AMZN",
+    "precio": 267.28,
+    "unidades": 7.2546,
+    "valor": 1937.06,
+    "pnl": -35.1
+   },
+   {
+    "fecha": "2026-08-04",
+    "tipo": "COMPRA (CHoCH +3.0%)",
+    "ticker": "XLK",
+    "precio": 186.9,
+    "unidades": 10.0979,
+    "valor": 1889.19,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-08-03",
+    "tipo": "COMPRA (CHoCH +0.2%)",
+    "ticker": "IWM",
+    "precio": 296.22,
+    "unidades": 6.7168,
+    "valor": 1991.64,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-07-31",
+    "tipo": "COMPRA (CHoCH +0.2%)",
+    "ticker": "SPY",
+    "precio": 747.03,
+    "unidades": 2.6368,
+    "valor": 1971.77,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-07-31",
+    "tipo": "COMPRA (CHoCH +5.2%)",
+    "ticker": "AMZN",
+    "precio": 271.58,
+    "unidades": 7.2546,
+    "valor": 1972.16,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-07-27",
+    "tipo": "COMPRA (CHoCH +1.4%)",
+    "ticker": "KO",
+    "precio": 84.07,
+    "unidades": 23.2453,
+    "valor": 1956.19,
+    "pnl": ""
+   },
    {
     "fecha": "2026-07-23",
     "tipo": "VENTA (estructura rota)",
@@ -123,6 +206,102 @@
    "smc": 9780.96,
    "bh": 9557.41,
    "roc10": -4.33
+  },
+  {
+   "fecha": "2026-07-24",
+   "smc": 9780.96,
+   "bh": 9450.64,
+   "roc10": -5.69
+  },
+  {
+   "fecha": "2026-07-27",
+   "smc": 9779.0,
+   "bh": 9421.49,
+   "roc10": -4.16
+  },
+  {
+   "fecha": "2026-07-28",
+   "smc": 9876.63,
+   "bh": 9329.92,
+   "roc10": -6.14
+  },
+  {
+   "fecha": "2026-07-29",
+   "smc": 9895.46,
+   "bh": 9139.87,
+   "roc10": -7.8
+  },
+  {
+   "fecha": "2026-07-30",
+   "smc": 9881.74,
+   "bh": 9441.25,
+   "roc10": -3.17
+  },
+  {
+   "fecha": "2026-07-31",
+   "smc": 9856.88,
+   "bh": 9502.57,
+   "roc10": -1.06
+  },
+  {
+   "fecha": "2026-08-03",
+   "smc": 9956.22,
+   "bh": 9669.42,
+   "roc10": 0.58
+  },
+  {
+   "fecha": "2026-08-04",
+   "smc": 9972.37,
+   "bh": 9997.87,
+   "roc10": 2.1
+  },
+  {
+   "fecha": "2026-08-05",
+   "smc": 9916.96,
+   "bh": 9907.4,
+   "roc10": 1.69
+  },
+  {
+   "fecha": "2026-08-06",
+   "smc": 9895.28,
+   "bh": 9870.8,
+   "roc10": 3.28
+  },
+  {
+   "fecha": "2026-08-07",
+   "smc": 9977.32,
+   "bh": 9986.55,
+   "roc10": 5.67
+  },
+  {
+   "fecha": "2026-08-10",
+   "smc": 9971.45,
+   "bh": 9956.71,
+   "roc10": 5.68
+  },
+  {
+   "fecha": "2026-08-11",
+   "smc": 9918.11,
+   "bh": 9923.29,
+   "roc10": 6.36
+  },
+  {
+   "fecha": "2026-08-12",
+   "smc": 9929.93,
+   "bh": 9995.8,
+   "roc10": 9.36
+  },
+  {
+   "fecha": "2026-08-13",
+   "smc": 9985.24,
+   "bh": 10111.41,
+   "roc10": 7.1
+  },
+  {
+   "fecha": "2026-08-14",
+   "smc": 9990.92,
+   "bh": 10097.6,
+   "roc10": 6.26
   }
  ]
 }
