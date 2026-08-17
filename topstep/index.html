@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Topstep · Límites operativos</title>
+<meta name="description" content="Calculadora de reglas Topstep: cuánto necesitas hoy, dónde parar, meta real con consistencia y retiros.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14171C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Topstep">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fondo:#14171C;
+  --panel:#1C2028;
+  --panel2:#232833;
+  --linea:#2E3542;
+  --ambar:#E8A33D;
+  --ambar-tenue:#6B5124;
+  --jade:#4FB286;
+  --jade-tenue:#204538;
+  --rojo:#D8544F;
+  --rojo-tenue:#4A2422;
+  --texto:#E6E8EA;
+  --mudo:#8B939E;
+  --mudo2:#5D6673;
+  --display:'Barlow Condensed',system-ui,sans-serif;
+  --cuerpo:'Barlow',system-ui,sans-serif;
+  --dato:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--fondo);color:var(--texto);
+  font-family:var(--cuerpo);font-size:16px;line-height:1.45;
+  padding:0 0 env(safe-area-inset-bottom);
+  -webkit-font-smoothing:antialiased;
+}
+.envoltura{max-width:560px;margin:0 auto;padding:0 14px 60px}
+
+/* ---------- cabecera ---------- */
+.cabecera{
+  display:flex;align-items:center;gap:10px;
+  padding:16px 0 12px;border-bottom:1px solid var(--linea);margin-bottom:16px;
+}
+.marca{flex:1;min-width:0}
+.marca h1{
+  font-family:var(--display);font-weight:700;font-size:26px;line-height:1;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.marca p{
+  font-family:var(--dato);font-size:10px;color:var(--mudo2);
+  letter-spacing:.16em;text-transform:uppercase;margin-top:4px;
+}
+.btn-idioma{
+  background:transparent;border:1px solid var(--linea);color:var(--mudo);
+  font-family:var(--dato);font-size:11px;letter-spacing:.08em;
+  padding:7px 10px;border-radius:4px;cursor:pointer;
+}
+.btn-idioma:hover{border-color:var(--ambar);color:var(--ambar)}
+
+/* ---------- anunciador (elemento firma) ---------- */
+.anunciador{
+  border:1px solid var(--linea);border-left-width:5px;
+  background:var(--panel);border-radius:6px;
+  padding:18px 16px;margin-bottom:18px;
+  transition:border-color .25s,background .25s;
+}
+.anunciador[data-estado="ok"]{border-left-color:var(--ambar);background:linear-gradient(180deg,rgba(232,163,61,.07),transparent 60%)}
+.anunciador[data-estado="listo"]{border-left-color:var(--jade);background:linear-gradient(180deg,rgba(79,178,134,.09),transparent 60%)}
+.anunciador[data-estado="alto"]{border-left-color:var(--rojo);background:linear-gradient(180deg,rgba(216,84,79,.09),transparent 60%)}
+.anunciador[data-estado="espera"]{border-left-color:var(--mudo2)}
+.anunciador .eyebrow{
+  font-family:var(--dato);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--mudo2);margin-bottom:8px;
+}
+.anunciador h2{
+  font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;
+  letter-spacing:.02em;text-transform:uppercase;margin-bottom:12px;
+}
+.anunciador[data-estado="ok"] h2{color:var(--ambar)}
+.anunciador[data-estado="listo"] h2{color:var(--jade)}
+.anunciador[data-estado="alto"] h2{color:var(--rojo)}
+.anunciador[data-estado="espera"] h2{color:var(--mudo)}
+.anunciador ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.anunciador li{
+  font-size:14.5px;color:var(--texto);padding-left:14px;position:relative;
+}
+.anunciador li::before{
+  content:"";position:absolute;left:0;top:9px;
+  width:5px;height:1px;background:var(--mudo2);
+}
+.anunciador li b{font-family:var(--dato);font-weight:600;color:#fff}
+
+/* ---------- corredor del día ---------- */
+.corredor{margin-top:16px;padding-top:14px;border-top:1px solid var(--linea)}
+.corredor-etiquetas{
+  display:flex;justify-content:space-between;
+  font-family:var(--dato);font-size:10px;letter-spacing:.1em;
+  color:var(--mudo2);text-transform:uppercase;margin-bottom:6px;
+}
+.barra{
+  position:relative;height:26px;background:var(--panel2);
+  border-radius:3px;overflow:hidden;
+}
+.banda{position:absolute;top:0;bottom:0;background:rgba(79,178,134,.22);border-left:1px solid var(--jade);border-right:1px solid var(--jade)}
+.zona-roja{position:absolute;top:0;bottom:0;background:rgba(216,84,79,.16)}
+.aguja{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.6)}
+.corredor-pies{
+  display:flex;justify-content:space-between;margin-top:6px;
+  font-family:var(--dato);font-size:11px;color:var(--mudo);
+}
+
+/* ---------- pestañas ---------- */
+.pestanas{
+  display:flex;gap:2px;background:var(--panel2);
+  border-radius:5px;padding:3px;margin-bottom:16px;
+}
+.pestanas button{
+  flex:1;background:transparent;border:0;color:var(--mudo);
+  font-family:var(--display);font-size:14px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:9px 4px;border-radius:3px;cursor:pointer;transition:.15s;
+}
+.pestanas button[aria-selected="true"]{background:var(--panel);color:var(--ambar)}
+
+/* ---------- paneles y campos ---------- */
+.seccion{
+  background:var(--panel);border:1px solid var(--linea);
+  border-radius:6px;padding:14px;margin-bottom:12px;
+}
+.seccion > h3{
+  font-family:var(--dato);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--mudo2);
+  margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--linea);
+}
+.campos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.campo{display:flex;flex-direction:column;gap:5px}
+.campo.ancho{grid-column:1/-1}
+.campo label{
+  font-family:var(--dato);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--mudo);
+}
+.campo input,.campo select{
+  background:var(--panel2);border:1px solid var(--linea);color:var(--texto);
+  font-family:var(--dato);font-size:16px;font-weight:500;
+  padding:9px 10px;border-radius:4px;width:100%;
+}
+.campo input:focus,.campo select:focus{outline:2px solid var(--ambar);outline-offset:-1px;border-color:var(--ambar)}
+.campo .pista{font-size:11px;color:var(--mudo2);font-family:var(--cuerpo)}
+
+/* ---------- filas de dato ---------- */
+.fila{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:9px 0;border-bottom:1px solid rgba(46,53,66,.55);
+}
+.fila:last-child{border-bottom:0}
+.fila .k{font-size:14px;color:var(--mudo)}
+.fila .v{font-family:var(--dato);font-size:16px;font-weight:600;white-space:nowrap}
+.fila .v small{font-size:11px;color:var(--mudo2);font-weight:400}
+.v.ambar{color:var(--ambar)} .v.jade{color:var(--jade)} .v.rojo{color:var(--rojo)}
+
+/* ---------- cifra grande ---------- */
+.cifra{
+  text-align:center;padding:16px 0 12px;
+  border-bottom:1px solid var(--linea);margin-bottom:12px;
+}
+.cifra .n{
+  font-family:var(--dato);font-size:38px;font-weight:600;line-height:1;
+  letter-spacing:-.02em;
+}
+.cifra .l{
+  font-family:var(--dato);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--mudo2);margin-top:8px;
+}
+
+/* ---------- medidor de consistencia ---------- */
+.medidor{margin-top:4px}
+.medidor .pista-m{position:relative;height:10px;background:var(--panel2);border-radius:2px;overflow:hidden}
+.medidor .lleno{position:absolute;left:0;top:0;bottom:0;border-radius:2px;transition:width .3s,background .3s}
+.medidor .marca-50{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ambar)}
+.medidor .leyenda{
+  display:flex;justify-content:space-between;margin-top:6px;
+  font-family:var(--dato);font-size:10px;color:var(--mudo2);letter-spacing:.06em;
+}
+
+.nota{
+  font-size:12.5px;color:var(--mudo);line-height:1.5;
+  padding:10px 12px;background:var(--panel2);border-radius:4px;
+  border-left:2px solid var(--ambar-tenue);margin-top:10px;
+}
+.oculto{display:none !important}
+footer{
+  text-align:center;padding:22px 0 8px;
+  font-family:var(--dato);font-size:10px;color:var(--mudo2);letter-spacing:.1em;
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+@media (max-width:380px){
+  .campos{grid-template-columns:1fr}
+  .anunciador h2{font-size:25px}
+  .cifra .n{font-size:32px}
+}
+</style>
+</head>
+<body>
+<div class="envoltura">
+
+  <header class="cabecera">
+    <div class="marca">
+      <h1 data-t="titulo">Límites operativos</h1>
+      <p><span data-t="sub">Topstep · calculadora de reglas</span></p>
+    </div>
+    <button class="btn-idioma" id="btnIdioma" type="button">EN</button>
+  </header>
+
+  <!-- ══════════ ANUNCIADOR ══════════ -->
+  <section class="anunciador" id="anunciador" data-estado="espera" aria-live="polite">
+    <div class="eyebrow" data-t="veredicto">Veredicto de hoy</div>
+    <h2 id="anTitulo">—</h2>
+    <ul id="anLineas"></ul>
+    <div class="corredor" id="corredor">
+      <div class="corredor-etiquetas">
+        <span data-t="corredorTit">Corredor del día</span>
+        <span id="corredorEstado"></span>
+      </div>
+      <div class="barra" id="barra">
+        <div class="zona-roja" id="zonaRoja"></div>
+        <div class="banda" id="banda"></div>
+        <div class="aguja" id="aguja"></div>
+      </div>
+      <div class="corredor-pies">
+        <span id="pieMin">—</span>
+        <span id="pieMax">—</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PESTAÑAS ══════════ -->
+  <div class="pestanas" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="hoy" data-t="tabHoy">Hoy</button>
+    <button role="tab" aria-selected="false" data-tab="meta" data-t="tabMeta">Meta</button>
+    <button role="tab" aria-selected="false" data-tab="retiros" data-t="tabRetiros">Retiros</button>
+    <button role="tab" aria-selected="false" data-tab="riesgo" data-t="tabRiesgo">Riesgo</button>
+  </div>
+
+  <!-- ══════════ HOY ══════════ -->
+  <div id="pan-hoy">
+    <section class="seccion">
+      <h3 data-t="tuCuenta">Tu cuenta</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lTamano">Tamaño</label>
+          <select id="tamano">
+            <option value="50000">50K</option>
+            <option value="100000">100K</option>
+            <option value="150000">150K</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label data-t="lFase">Fase</label>
+          <select id="fase">
+            <option value="combine" data-t="oCombine">Combine</option>
+            <option value="xfa" data-t="oXfa">Fondeada (XFA)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion" id="secCombine">
+      <h3 data-t="dondeVas">Dónde vas</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lTotalPrevio">Ganancia acumulada (sin hoy)</label>
+          <input type="number" id="totalPrevio" inputmode="decimal" step="0.01" value="0">
+        </div>
+        <div class="campo">
+          <label data-t="lMejorDia">Mejor día hasta ahora</label>
+          <input type="number" id="mejorDia" inputmode="decimal" step="0.01" value="0">
+        </div>
+        <div class="campo ancho">
+          <label data-t="lHoy">Resultado de hoy (en vivo)</label>
+          <input type="number" id="pnlHoy" inputmode="decimal" step="0.01" value="0">
+          <span class="pista" data-t="pistaHoy">Cámbialo mientras operas: todo se recalcula.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="tuPlan">Tu plan de sesión</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lObjetivo">Objetivo del día</label>
+          <input type="number" id="objetivoDia" inputmode="decimal" step="1" value="400">
+        </div>
+        <div class="campo">
+          <label data-t="lStop">Stop personal del día</label>
+          <input type="number" id="stopDia" inputmode="decimal" step="1" value="300">
+        </div>
+      </div>
+      <div class="nota" data-t="notaPlan">
+        El stop personal es tuyo, no de Topstep. Siempre debe ser menor al límite diario de la cuenta.
+      </div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="cuentaHoy">La cuenta de hoy</h3>
+      <div id="filasHoy"></div>
+    </section>
+  </div>
+
+  <!-- ══════════ META ══════════ -->
+  <div id="pan-meta" class="oculto">
+    <section class="seccion">
+      <div class="cifra">
+        <div class="n" id="metaFalta">—</div>
+        <div class="l" data-t="lFalta">Te falta para pasar</div>
+      </div>
+      <div id="filasMeta"></div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="consistencia">Regla de consistencia</h3>
+      <div class="medidor">
+        <div class="pista-m">
+          <div class="lleno" id="mLleno" style="width:0%"></div>
+          <div class="marca-50" id="mMarca" style="left:50%"></div>
+        </div>
+        <div class="leyenda">
+          <span>0%</span>
+          <span id="mValor">—</span>
+          <span data-t="lTope">tope 50%</span>
+        </div>
+      </div>
+      <div class="nota" data-t="notaConsist">
+        Tu mejor día no puede pasar del 50% del total. Por eso la meta real es el mayor entre el objetivo base y el doble de tu mejor día.
+      </div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="ritmo">A qué ritmo llegas</h3>
+      <div id="filasRitmo"></div>
+    </section>
+  </div>
+
+  <!-- ══════════ RETIROS ══════════ -->
+  <div id="pan-retiros" class="oculto">
+    <section class="seccion">
+      <h3 data-t="configRetiro">Configuración</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lRuta">Ruta de retiro</label>
+          <select id="ruta">
+            <option value="standard" data-t="oStd">Standard · 5 días</option>
+            <option value="consistencia" data-t="oCons">Consistencia · 3 días</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label data-t="lDll">¿Compraste con DLL?</label>
+          <select id="conDll">
+            <option value="si" data-t="oSi">Sí (tope doble)</option>
+            <option value="no" data-t="oNo">No</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label data-t="lBalance">Balance de la cuenta</label>
+          <input type="number" id="balanceXfa" inputmode="decimal" step="0.01" value="52000">
+        </div>
+        <div class="campo">
+          <label data-t="lDiasGan">Días ganadores ($150+)</label>
+          <input type="number" id="diasGanadores" inputmode="numeric" step="1" value="0">
+        </div>
+        <div class="campo">
+          <label data-t="lMayorCiclo">Mayor día del ciclo</label>
+          <input type="number" id="mayorCiclo" inputmode="decimal" step="0.01" value="0">
+        </div>
+        <div class="campo">
+          <label data-t="lTotalCiclo">Ganancia del ciclo</label>
+          <input type="number" id="totalCiclo" inputmode="decimal" step="0.01" value="0">
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="puedesRetirar">¿Puedes retirar?</h3>
+      <div id="filasRetiro"></div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="cuanto">Cuánto recibes</h3>
+      <div class="campos">
+        <div class="campo ancho">
+          <label data-t="lMonto">Monto que quieres pedir</label>
+          <input type="number" id="montoRetiro" inputmode="decimal" step="0.01" value="1000">
+        </div>
+      </div>
+      <div id="filasNeto"></div>
+    </section>
+  </div>
+
+  <!-- ══════════ RIESGO ══════════ -->
+  <div id="pan-riesgo" class="oculto">
+    <section class="seccion">
+      <h3 data-t="limites">Límites de la cuenta</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lBalanceAct">Balance actual</label>
+          <input type="number" id="balanceAct" inputmode="decimal" step="0.01" value="52000">
+        </div>
+        <div class="campo">
+          <label data-t="lMllAct">MLL que marca el panel</label>
+          <input type="number" id="mllAct" inputmode="decimal" step="0.01" value="49483.54">
+        </div>
+      </div>
+      <div id="filasLimites"></div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="tamPos">Tamaño de posición</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lInstr">Instrumento</label>
+          <select id="instrumento"></select>
+        </div>
+        <div class="campo">
+          <label data-t="lContratos">Contratos</label>
+          <input type="number" id="contratos" inputmode="numeric" step="1" min="1" value="3">
+        </div>
+        <div class="campo ancho">
+          <label data-t="lRiesgoTrade">Riesgo por operación (USD)</label>
+          <input type="number" id="riesgoTrade" inputmode="decimal" step="1" value="150">
+        </div>
+      </div>
+      <div id="filasPos"></div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="reglasClave">Reglas que no debes olvidar</h3>
+      <div id="filasReglas"></div>
+    </section>
+  </div>
+
+  <footer>
+    <span data-t="pie">No es asesoría financiera · Verifica siempre tu panel de Topstep</span>
+  </footer>
+</div>
+
+<script>
+/* ═══════════════ PARÁMETROS OFICIALES ═══════════════ */
+const PARAMS = {
+  50000:  {meta:3000, mll:2000, dll:1000, minis:5,  micros:50,  capStd:2000, capCons:3000, capStdDll:4000,  capConsDll:6000},
+  100000: {meta:6000, mll:3000, dll:2000, minis:10, micros:100, capStd:3000, capCons:4000, capStdDll:6000,  capConsDll:8000},
+  150000: {meta:9000, mll:4500, dll:3000, minis:15, micros:150, capStd:5000, capCons:6000, capStdDll:10000, capConsDll:12000}
+};
+const INSTR = {
+  MNQ:{n:'MNQ · Micro Nasdaq', v:2,    t:0.25},
+  NQ: {n:'NQ · E-mini Nasdaq',  v:20,   t:0.25},
+  MES:{n:'MES · Micro S&P',     v:5,    t:0.25},
+  ES: {n:'ES · E-mini S&P',     v:50,   t:0.25},
+  MYM:{n:'MYM · Micro Dow',     v:0.5,  t:1},
+  YM: {n:'YM · E-mini Dow',     v:5,    t:1},
+  M2K:{n:'M2K · Micro Russell', v:5,    t:0.1},
+  RTY:{n:'RTY · E-mini Russell',v:50,   t:0.1},
+  MGC:{n:'MGC · Micro Oro',     v:10,   t:0.1},
+  GC: {n:'GC · Oro',            v:100,  t:0.1},
+  MCL:{n:'MCL · Micro Crudo',   v:1,    t:0.01},
+  CL: {n:'CL · Crudo',          v:10,   t:0.01}
+};
+
+/* ═══════════════ IDIOMA ═══════════════ */
+const T = {
+  es:{
+    titulo:'Límites operativos', sub:'Topstep · calculadora de reglas',
+    veredicto:'Veredicto de hoy', corredorTit:'Corredor del día',
+    tabHoy:'Hoy', tabMeta:'Meta', tabRetiros:'Retiros', tabRiesgo:'Riesgo',
+    tuCuenta:'Tu cuenta', lTamano:'Tamaño', lFase:'Fase',
+    oCombine:'Combine', oXfa:'Fondeada (XFA)',
+    dondeVas:'Dónde vas', lTotalPrevio:'Ganancia acumulada (sin hoy)',
+    lMejorDia:'Mejor día hasta ahora', lHoy:'Resultado de hoy (en vivo)',
+    pistaHoy:'Cámbialo mientras operas: todo se recalcula.',
+    tuPlan:'Tu plan de sesión', lObjetivo:'Objetivo del día', lStop:'Stop personal del día',
+    notaPlan:'El stop personal es tuyo, no de Topstep. Siempre debe ser menor al límite diario de la cuenta.',
+    cuentaHoy:'La cuenta de hoy',
+    lFalta:'Te falta para pasar', consistencia:'Regla de consistencia', lTope:'tope 50%',
+    notaConsist:'Tu mejor día no puede pasar del 50% del total. Por eso la meta real es el mayor entre el objetivo base y el doble de tu mejor día.',
+    ritmo:'A qué ritmo llegas',
+    configRetiro:'Configuración', lRuta:'Ruta de retiro',
+    oStd:'Standard · 5 días', oCons:'Consistencia · 3 días',
+    lDll:'¿Compraste con DLL?', oSi:'Sí (tope doble)', oNo:'No',
+    lBalance:'Balance de la cuenta', lDiasGan:'Días ganadores ($150+)',
+    lMayorCiclo:'Mayor día del ciclo', lTotalCiclo:'Ganancia del ciclo',
+    puedesRetirar:'¿Puedes retirar?', cuanto:'Cuánto recibes', lMonto:'Monto que quieres pedir',
+    limites:'Límites de la cuenta', lBalanceAct:'Balance actual', lMllAct:'MLL que marca el panel',
+    tamPos:'Tamaño de posición', lInstr:'Instrumento', lContratos:'Contratos',
+    lRiesgoTrade:'Riesgo por operación (USD)', reglasClave:'Reglas que no debes olvidar',
+    pie:'No es asesoría financiera · Verifica siempre tu panel de Topstep'
+  },
+  en:{
+    titulo:'Operating limits', sub:'Topstep · rules calculator',
+    veredicto:"Today's verdict", corredorTit:"Today's corridor",
+    tabHoy:'Today', tabMeta:'Target', tabRetiros:'Payouts', tabRiesgo:'Risk',
+    tuCuenta:'Your account', lTamano:'Size', lFase:'Phase',
+    oCombine:'Combine', oXfa:'Funded (XFA)',
+    dondeVas:'Where you stand', lTotalPrevio:'Profit so far (excluding today)',
+    lMejorDia:'Best day so far', lHoy:"Today's result (live)",
+    pistaHoy:'Change it while you trade: everything recalculates.',
+    tuPlan:'Your session plan', lObjetivo:'Daily target', lStop:'Personal daily stop',
+    notaPlan:"The personal stop is yours, not Topstep's. Keep it below the account's daily limit.",
+    cuentaHoy:"Today's math",
+    lFalta:'Left to pass', consistencia:'Consistency rule', lTope:'50% cap',
+    notaConsist:'Your best day cannot exceed 50% of total profit. That is why the real target is the greater of the base target and twice your best day.',
+    ritmo:'How fast you get there',
+    configRetiro:'Setup', lRuta:'Payout path',
+    oStd:'Standard · 5 days', oCons:'Consistency · 3 days',
+    lDll:'Bought with DLL?', oSi:'Yes (double cap)', oNo:'No',
+    lBalance:'Account balance', lDiasGan:'Winning days ($150+)',
+    lMayorCiclo:'Largest day this cycle', lTotalCiclo:'Cycle profit',
+    puedesRetirar:'Can you withdraw?', cuanto:'What you receive', lMonto:'Amount to request',
+    limites:'Account limits', lBalanceAct:'Current balance', lMllAct:'MLL shown on dashboard',
+    tamPos:'Position size', lInstr:'Instrument', lContratos:'Contracts',
+    lRiesgoTrade:'Risk per trade (USD)', reglasClave:'Rules to keep in mind',
+    pie:'Not financial advice · Always verify on your Topstep dashboard'
+  }
+};
+let idioma = 'es';
+const t = k => (T[idioma][k] || T.es[k] || k);
+
+/* ═══════════════ UTILIDADES ═══════════════ */
+const $ = id => document.getElementById(id);
+const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+const usd = n => (n<0?'-':'') + '$' + Math.abs(n).toLocaleString(idioma==='es'?'es-MX':'en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const usd0 = n => (n<0?'-':'') + '$' + Math.abs(n).toLocaleString(idioma==='es'?'es-MX':'en-US',{maximumFractionDigits:0});
+const pct = n => (n*100).toFixed(1) + '%';
+
+function filas(cont, arr){
+  cont.innerHTML = arr.map(f =>
+    `<div class="fila"><span class="k">${f[0]}</span><span class="v ${f[2]||''}">${f[1]}${f[3]?`<small> ${f[3]}</small>`:''}</span></div>`
+  ).join('');
+}
+
+/* ═══════════════ MATEMÁTICA DEL COMBINE ═══════════════ */
+// Estado si el día cierra con "hoy"
+function estado(base, prev, mejorPrev, hoy){
+  const total = prev + hoy;
+  const mejor = Math.max(mejorPrev, hoy, 0);
+  const metaReal = Math.max(base, 2*mejor);
+  const falta = Math.max(0, metaReal - total);
+  const consist = total > 0 ? mejor/total : 0;
+  const pasa = total >= base && total > 0 && mejor <= 0.5*total + 0.001;
+  return {total, mejor, metaReal, falta, consist, pasa};
+}
+
+// Corredor: qué puede hacer hoy
+function corredor(base, prev, mejorPrev){
+  // Caso A: hoy <= mejorPrev (la meta no se mueve)
+  const minA = Math.max(base - prev, 2*mejorPrev - prev, 0);
+  const okA  = mejorPrev > 0 && minA <= mejorPrev;
+  // Caso B: hoy > mejorPrev (hoy pasa a ser el mejor día; exige hoy <= prev)
+  const minB = Math.max(base - prev, mejorPrev + 0.01, 0);
+  const okB  = prev > 0 && minB <= prev;
+
+  return {
+    minA, okA, minB, okB,
+    techoQuieto: mejorPrev,                 // hasta aquí la meta no se mueve
+    minPasar: okA ? minA : (okB ? minB : null),
+    maxPasar: okA ? (okB ? prev : mejorPrev) : (okB ? prev : null),
+    posible: okA || okB
+  };
+}
+
+/* ═══════════════ RENDER ═══════════════ */
+function render(){
+  const base = PARAMS[$('tamano').value].meta;
+  const P = PARAMS[$('tamano').value];
+  const fase = $('fase').value;
+  const prev = num('totalPrevio'), mejorPrev = num('mejorDia'), hoy = num('pnlHoy');
+  const objetivo = num('objetivoDia'), stopPersonal = Math.abs(num('stopDia'));
+
+  const e = estado(base, prev, mejorPrev, hoy);
+  const c = corredor(base, prev, mejorPrev);
+
+  /* ---- anunciador ---- */
+  const an = $('anunciador'), lineas = [];
+  let est = 'ok', titulo = '';
+
+  if (hoy <= -P.dll){
+    est='alto';
+    titulo = idioma==='es' ? 'Límite diario tocado' : 'Daily limit hit';
+    lineas.push(idioma==='es'
+      ? `Perdiste <b>${usd(Math.abs(hoy))}</b> y el límite de la cuenta es <b>${usd(P.dll)}</b>. El día terminó.`
+      : `You are down <b>${usd(Math.abs(hoy))}</b> and the account limit is <b>${usd(P.dll)}</b>. The day is over.`);
+  } else if (hoy <= -stopPersonal && stopPersonal > 0){
+    est='alto';
+    titulo = idioma==='es' ? 'Stop personal alcanzado' : 'Personal stop reached';
+    lineas.push(idioma==='es'
+      ? `Tu plan dice parar en <b>${usd(stopPersonal)}</b>. Cierra la plataforma.`
+      : `Your plan says stop at <b>${usd(stopPersonal)}</b>. Close the platform.`);
+    lineas.push(idioma==='es'
+      ? `Aún te queda <b>${usd(P.dll - Math.abs(hoy))}</b> antes del límite de la cuenta, pero ese colchón no es para usarlo.`
+      : `You still have <b>${usd(P.dll - Math.abs(hoy))}</b> before the account limit, but that cushion is not for spending.`);
+  } else if (fase === 'xfa'){
+    est='ok';
+    titulo = idioma==='es' ? 'Cuenta fondeada' : 'Funded account';
+    lineas.push(idioma==='es'
+      ? `Objetivo del día: <b>${usd(objetivo)}</b> · stop en <b>${usd(stopPersonal)}</b>.`
+      : `Daily target: <b>${usd(objetivo)}</b> · stop at <b>${usd(stopPersonal)}</b>.`);
+    lineas.push(idioma==='es'
+      ? `Un día cuenta como ganador desde <b>$150</b> netos. Ve a la pestaña Retiros.`
+      : `A day counts as a winner from <b>$150</b> net. See the Payouts tab.`);
+  } else if (e.pasa){
+    est='listo';
+    titulo = idioma==='es' ? 'Combine superado' : 'Combine passed';
+    lineas.push(idioma==='es'
+      ? `Total <b>${usd(e.total)}</b> con el mejor día en <b>${pct(e.consist)}</b>. Cierra y solicita la cuenta fondeada.`
+      : `Total <b>${usd(e.total)}</b> with best day at <b>${pct(e.consist)}</b>. Close out and request the funded account.`);
+    lineas.push(idioma==='es'
+      ? `Cada trade extra hoy solo puede quitarte esto.`
+      : `Any extra trade today can only take this away.`);
+  } else if (c.posible && c.minPasar !== null && hoy >= c.minPasar && hoy <= (c.maxPasar ?? Infinity)){
+    est='listo';
+    titulo = idioma==='es' ? 'Cierra aquí y pasas' : 'Close here and you pass';
+    lineas.push(idioma==='es'
+      ? `Con <b>${usd(hoy)}</b> de hoy quedas en <b>${usd(e.total)}</b> y el mejor día en <b>${pct(e.consist)}</b>.`
+      : `With today's <b>${usd(hoy)}</b> you land at <b>${usd(e.total)}</b> and best day at <b>${pct(e.consist)}</b>.`);
+    lineas.push(idioma==='es' ? `No pidas otra vuelta.` : `Do not ask for another round.`);
+  } else if (c.posible){
+    est='ok';
+    titulo = idioma==='es' ? 'Hoy puedes pasar' : 'You can pass today';
+    lineas.push(idioma==='es'
+      ? `Necesitas <b>${usd(Math.max(0, c.minPasar - hoy))}</b> más hoy (cerrar el día en <b>${usd(c.minPasar)}</b>).`
+      : `You need <b>${usd(Math.max(0, c.minPasar - hoy))}</b> more today (close the day at <b>${usd(c.minPasar)}</b>).`);
+    if (c.maxPasar !== null && isFinite(c.maxPasar)){
+      lineas.push(idioma==='es'
+        ? `No pases de <b>${usd(c.maxPasar)}</b>: arriba de ahí la meta se aleja.`
+        : `Do not exceed <b>${usd(c.maxPasar)}</b>: beyond that the target moves away.`);
+    }
+  } else {
+    est='ok';
+    titulo = idioma==='es' ? 'Hoy no alcanza' : 'Not today';
+    lineas.push(idioma==='es'
+      ? `Con lo que llevas no hay número que te haga pasar hoy. Te falta <b>${usd(e.falta)}</b>.`
+      : `No number closes it out today. You are <b>${usd(e.falta)}</b> short.`);
+    lineas.push(idioma==='es'
+      ? `Techo útil de hoy: <b>${usd(c.techoQuieto)}</b>. Arriba de ahí la meta sube <b>$2</b> por cada dólar.`
+      : `Useful ceiling today: <b>${usd(c.techoQuieto)}</b>. Above that the target rises <b>$2</b> per dollar.`);
+    if (hoy > c.techoQuieto && c.techoQuieto > 0){
+      lineas.push(idioma==='es'
+        ? `Ya lo pasaste: la meta subió a <b>${usd(e.metaReal)}</b>.`
+        : `You already crossed it: target rose to <b>${usd(e.metaReal)}</b>.`);
+    }
+  }
+
+  if (hoy > 0 && objetivo > 0 && hoy >= objetivo && est !== 'listo' && est !== 'alto'){
+    lineas.push(idioma==='es'
+      ? `Ya cumpliste tu objetivo del día (<b>${usd(objetivo)}</b>).`
+      : `You already met your daily target (<b>${usd(objetivo)}</b>).`);
+  }
+
+  an.dataset.estado = est;
+  $('anTitulo').textContent = titulo;
+  $('anLineas').innerHTML = lineas.map(l => `<li>${l}</li>`).join('');
+
+  /* ---- corredor visual ---- */
+  const escalaMax = Math.max(c.minPasar || 0, c.techoQuieto, hoy, objetivo, 100) * 1.25;
+  const escalaMin = Math.min(-P.dll, hoy, -stopPersonal);
+  const rango = escalaMax - escalaMin;
+  const px = v => ((v - escalaMin) / rango) * 100;
+
+  $('zonaRoja').style.left = '0%';
+  $('zonaRoja').style.width = px(0) + '%';
+  if (c.posible && c.minPasar !== null){
+    const hasta = (c.maxPasar !== null && isFinite(c.maxPasar)) ? c.maxPasar : escalaMax;
+    $('banda').style.left = px(c.minPasar) + '%';
+    $('banda').style.width = Math.max(1, px(hasta) - px(c.minPasar)) + '%';
+    $('banda').style.display = 'block';
+    $('pieMin').textContent = (idioma==='es'?'mín ':'min ') + usd0(c.minPasar);
+    $('pieMax').textContent = (c.maxPasar!==null&&isFinite(c.maxPasar)) ? ((idioma==='es'?'máx ':'max ') + usd0(c.maxPasar)) : '—';
+    $('corredorEstado').textContent = idioma==='es' ? 'zona de pase' : 'passing zone';
+  } else {
+    $('banda').style.display = 'none';
+    $('pieMin').textContent = (idioma==='es'?'stop ':'stop ') + usd0(-stopPersonal);
+    $('pieMax').textContent = (idioma==='es'?'techo útil ':'useful cap ') + usd0(c.techoQuieto);
+    $('corredorEstado').textContent = idioma==='es' ? 'sin pase hoy' : 'no pass today';
+  }
+  $('aguja').style.left = Math.min(99.5, Math.max(0, px(hoy))) + '%';
+
+  /* ---- filas: hoy ---- */
+  const perdidaHoy = hoy < 0 ? Math.abs(hoy) : 0;
+  filas($('filasHoy'), [
+    [idioma==='es'?'Resultado de hoy':"Today's result", usd(hoy), hoy>=0?'jade':'rojo'],
+    [idioma==='es'?'Falta para tu objetivo':'Left to your target', usd(Math.max(0, objetivo - hoy)), 'ambar'],
+    [idioma==='es'?'Margen antes de tu stop':'Room before your stop', usd(Math.max(0, stopPersonal - perdidaHoy)), 'ambar'],
+    [idioma==='es'?'Margen antes del límite diario':'Room before daily limit', usd(Math.max(0, P.dll - perdidaHoy)), perdidaHoy>P.dll*0.6?'rojo':''],
+    [idioma==='es'?'Total si cierras ahora':'Total if you close now', usd(e.total)],
+    [idioma==='es'?'Mejor día si cierras ahora':'Best day if you close now', usd(e.mejor)],
+    [idioma==='es'?'Consistencia resultante':'Resulting consistency', pct(e.consist), e.consist>0.5?'rojo':'jade']
+  ]);
+
+  /* ---- filas: meta ---- */
+  $('metaFalta').textContent = e.falta > 0 ? usd(e.falta) : (idioma==='es'?'Cumplida':'Met');
+  $('metaFalta').className = 'n ' + (e.falta > 0 ? '' : 'jade');
+  filas($('filasMeta'), [
+    [idioma==='es'?'Objetivo base':'Base target', usd(base)],
+    [idioma==='es'?'Meta real (consistencia)':'Real target (consistency)', usd(e.metaReal), 'ambar'],
+    [idioma==='es'?'Llevas':'You have', usd(e.total)],
+    [idioma==='es'?'Mejor día':'Best day', usd(e.mejor)],
+    [idioma==='es'?'Techo sin mover la meta':'Ceiling that keeps target still', usd(c.techoQuieto), 'ambar'],
+    [idioma==='es'?'Mínimo para pasar hoy':'Minimum to pass today', c.minPasar!==null?usd(c.minPasar):(idioma==='es'?'no es posible':'not possible'), c.minPasar!==null?'jade':'rojo']
+  ]);
+
+  const cs = Math.min(1, e.consist);
+  $('mLleno').style.width = (cs*100) + '%';
+  $('mLleno').style.background = e.consist > 0.5 ? 'var(--rojo)' : 'var(--jade)';
+  $('mValor').textContent = e.total > 0 ? pct(e.consist) : '—';
+
+  const porDia = Math.max(1, objetivo);
+  const dias = e.falta > 0 ? Math.ceil(e.falta / porDia) : 0;
+  filas($('filasRitmo'), [
+    [idioma==='es'?`Sesiones de ${usd0(objetivo)}`:`Sessions of ${usd0(objetivo)}`, dias>0?dias:(idioma==='es'?'ninguna':'none'), 'ambar'],
+    [idioma==='es'?'Por sesión si quieres 3':'Per session if you want 3', usd(e.falta/3)],
+    [idioma==='es'?'Por sesión si quieres 5':'Per session if you want 5', usd(e.falta/5)],
+    [idioma==='es'?'Día máximo permitido al final':'Max allowed day at the end', usd(e.metaReal/2), 'ambar']
+  ]);
+
+  /* ---- retiros ---- */
+  const ruta = $('ruta').value, conDll = $('conDll').value === 'si';
+  const cap = ruta==='standard' ? (conDll?P.capStdDll:P.capStd) : (conDll?P.capConsDll:P.capCons);
+  const balXfa = num('balanceXfa'), diasG = num('diasGanadores');
+  const mayorC = num('mayorCiclo'), totalC = num('totalCiclo');
+  const diasReq = ruta==='standard' ? 5 : 3;
+  const consistCiclo = totalC>0 ? mayorC/totalC : 0;
+  const okDias = diasG >= diasReq;
+  const okConsist = ruta==='standard' ? true : (totalC>0 && consistCiclo <= 0.4);
+  const maxPedir = Math.max(0, Math.min(balXfa*0.5, cap));
+  const colchon = parseFloat($('tamano').value) + P.mll;
+
+  const fr = [
+    [idioma==='es'?'Días ganadores':'Winning days', `${diasG} / ${diasReq}`, okDias?'jade':'ambar'],
+    [idioma==='es'?'Faltan':'Missing', Math.max(0, diasReq-diasG), okDias?'jade':'ambar']
+  ];
+  if (ruta === 'consistencia'){
+    fr.push([idioma==='es'?'Consistencia del ciclo':'Cycle consistency', totalC>0?pct(consistCiclo):'—', okConsist?'jade':'rojo']);
+    fr.push([idioma==='es'?'Tope de la ruta':'Path cap', '40%', 'ambar']);
+  }
+  fr.push([idioma==='es'?'Tope por solicitud':'Cap per request', usd0(cap), 'ambar']);
+  fr.push([idioma==='es'?'50% del balance':'50% of balance', usd(balXfa*0.5)]);
+  fr.push([idioma==='es'?'Máximo que puedes pedir':'Max you can request', usd(maxPedir), 'jade']);
+  fr.push([idioma==='es'?'Colchón recomendado antes del 1er retiro':'Suggested cushion before 1st payout', usd0(colchon), balXfa>=colchon?'jade':'ambar']);
+  fr.push([idioma==='es'?'¿Calificas?':'Eligible?',
+    (okDias&&okConsist) ? (idioma==='es'?'SÍ':'YES') : (idioma==='es'?'Todavía no':'Not yet'),
+    (okDias&&okConsist)?'jade':'ambar']);
+  filas($('filasRetiro'), fr);
+
+  const monto = Math.min(num('montoRetiro'), maxPedir || num('montoRetiro'));
+  filas($('filasNeto'), [
+    [idioma==='es'?'Monto solicitado':'Requested amount', usd(monto)],
+    [idioma==='es'?'Retención Topstep (10%)':'Topstep share (10%)', '-'+usd(monto*0.10), 'rojo'],
+    [idioma==='es'?'Recibes por Wise':'You receive via Wise', usd(monto*0.90), 'jade'],
+    [idioma==='es'?'Recibes por ACH (−$30)':'You receive via ACH (−$30)', usd(Math.max(0, monto*0.90-30))],
+    [idioma==='es'?'Mínimo permitido':'Minimum allowed', usd(125)],
+    [idioma==='es'?'Balance después':'Balance afterwards', usd(Math.max(0, balXfa-monto))]
+  ]);
+
+  /* ---- riesgo ---- */
+  const balAct = num('balanceAct'), mllAct = num('mllAct');
+  const dist = balAct - mllAct;
+  filas($('filasLimites'), [
+    [idioma==='es'?'Distancia al MLL':'Distance to MLL', usd(dist), dist<P.dll?'rojo':'jade'],
+    [idioma==='es'?'Límite diario (DLL)':'Daily limit (DLL)', usd0(P.dll), 'ambar'],
+    [idioma==='es'?'MLL de la cuenta':'Account MLL', usd0(P.mll)],
+    [idioma==='es'?'Contratos máximos':'Max contracts', `${P.minis} mini / ${P.micros} micro`],
+    [idioma==='es'?'¿El MLL ya se fijó?':'Is MLL locked?',
+      dist>=P.mll ? (idioma==='es'?'Sí':'Yes') : (idioma==='es'?'Aún sube':'Still trailing'),
+      dist>=P.mll?'jade':'ambar']
+  ]);
+
+  const ins = INSTR[$('instrumento').value], ctr = Math.max(1, num('contratos'));
+  const porPunto = ins.v * ctr, porTick = ins.v * ins.t * ctr;
+  const rt = num('riesgoTrade');
+  filas($('filasPos'), [
+    [idioma==='es'?'Valor por punto':'Value per point', usd(porPunto), 'ambar', `${ctr}×`],
+    [idioma==='es'?'Valor por tick':'Value per tick', usd(porTick)],
+    [idioma==='es'?'Tu riesgo en puntos':'Your risk in points', porPunto>0?(rt/porPunto).toFixed(2):'—', 'ambar'],
+    [idioma==='es'?'Tu riesgo en ticks':'Your risk in ticks', porTick>0?Math.round(rt/porTick):'—'],
+    [idioma==='es'?'Stop del día en puntos':'Daily stop in points', porPunto>0?(stopPersonal/porPunto).toFixed(2):'—'],
+    [idioma==='es'?'Objetivo del día en puntos':'Daily target in points', porPunto>0?(objetivo/porPunto).toFixed(2):'—'],
+    [idioma==='es'?'Puntos hasta el DLL':'Points to DLL', porPunto>0?(P.dll/porPunto).toFixed(2):'—', 'rojo']
+  ]);
+
+  filas($('filasReglas'), [
+    [idioma==='es'?'El día corre de':'Trading day runs', '5:00 PM – 3:10 PM CT'],
+    [idioma==='es'?'Domingo y lunes':'Sunday and Monday', idioma==='es'?'mismo día':'same day', 'ambar'],
+    [idioma==='es'?'MLL se mide sobre':'MLL measured on', idioma==='es'?'cierre del día':'end-of-day equity'],
+    [idioma==='es'?'Reparto':'Profit split', '90 / 10'],
+    [idioma==='es'?'Retiro mínimo':'Minimum payout', '$125'],
+    [idioma==='es'?'Formulario fiscal':'Tax form', 'W-8BEN'],
+    [idioma==='es'?'Tras el 1er retiro':'After 1st payout', idioma==='es'?'MLL queda en $0':'MLL resets to $0', 'jade']
+  ]);
+
+  guardar();
+}
+
+/* ═══════════════ PERSISTENCIA ═══════════════ */
+const CAMPOS = ['tamano','fase','totalPrevio','mejorDia','pnlHoy','objetivoDia','stopDia',
+  'ruta','conDll','balanceXfa','diasGanadores','mayorCiclo','totalCiclo','montoRetiro',
+  'balanceAct','mllAct','instrumento','contratos','riesgoTrade'];
+
+function guardar(){
+  try{
+    const d = {idioma};
+    CAMPOS.forEach(c => { if($(c)) d[c] = $(c).value; });
+    localStorage.setItem('topstep_calc', JSON.stringify(d));
+  }catch(e){}
+}
+function cargar(){
+  try{
+    const d = JSON.parse(localStorage.getItem('topstep_calc') || '{}');
+    if (d.idioma) idioma = d.idioma;
+    CAMPOS.forEach(c => { if($(c) && d[c] !== undefined) $(c).value = d[c]; });
+  }catch(e){}
+}
+
+/* ═══════════════ ARRANQUE ═══════════════ */
+$('instrumento').innerHTML = Object.entries(INSTR)
+  .map(([k,v]) => `<option value="${k}">${v.n}</option>`).join('');
+
+function aplicarIdioma(){
+  document.documentElement.lang = idioma;
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  $('btnIdioma').textContent = idioma === 'es' ? 'EN' : 'ES';
+  render();
+}
+
+$('btnIdioma').addEventListener('click', () => {
+  idioma = idioma === 'es' ? 'en' : 'es';
+  aplicarIdioma();
+});
+
+document.querySelectorAll('.pestanas button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.pestanas button').forEach(x => x.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true');
+    ['hoy','meta','retiros','riesgo'].forEach(p =>
+      $('pan-'+p).classList.toggle('oculto', p !== b.dataset.tab));
+  });
+});
+
+document.addEventListener('input', e => { if (e.target.matches('input,select')) render(); });
+document.addEventListener('change', e => { if (e.target.matches('input,select')) render(); });
+
+cargar();
+aplicarIdioma();
+
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

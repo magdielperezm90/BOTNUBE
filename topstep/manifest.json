@@ -1,0 +1,26 @@
+{
+  "name": "Topstep · Límites operativos",
+  "short_name": "Topstep",
+  "description": "Calculadora de reglas Topstep: cuánto necesitas hoy, dónde parar, meta real con consistencia y retiros.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14171C",
+  "theme_color": "#14171C",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

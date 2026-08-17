@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#14171C"/>
+  <rect x="56" y="56" width="400" height="400" rx="60" fill="none" stroke="#2E3542" stroke-width="8"/>
+  <!-- banda de limite: piso, corredor seguro, techo -->
+  <rect x="112" y="330" width="288" height="26" rx="4" fill="#D8544F" opacity="0.35"/>
+  <rect x="112" y="228" width="288" height="26" rx="4" fill="#4FB286" opacity="0.45"/>
+  <rect x="112" y="126" width="288" height="26" rx="4" fill="#E8A33D" opacity="0.35"/>
+  <!-- aguja del instrumento -->
+  <rect x="242" y="108" width="10" height="266" rx="5" fill="#E8A33D"/>
+  <circle cx="247" cy="241" r="30" fill="#14171C" stroke="#E8A33D" stroke-width="10"/>
+  <circle cx="247" cy="241" r="9" fill="#E8A33D"/>
+</svg>
