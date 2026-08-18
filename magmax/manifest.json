@@ -1,0 +1,14 @@
+{
+  "name": "MAGMAX Scanner",
+  "short_name": "MAGMAX",
+  "description": "Lectura de estructura de mercado con frecuencias medidas",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14171C",
+  "theme_color": "#14171C",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

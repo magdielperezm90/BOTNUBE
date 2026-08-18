@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171C">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MAGMAX Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--grafito:#14171C;--panel:#1A1E24;--panel2:#20252C;--linea:#2C333C;
+--ambar:#E8A33D;--jade:#4FB286;--rojo:#D8544F;--texto:#D6DCE3;--tenue:#6B7580;
+--display:'Barlow Condensed',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--grafito);color:var(--texto);font-family:var(--mono);font-size:14px;
+line-height:1.5;padding:14px 12px calc(28px + env(safe-area-inset-bottom));
+-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto}
+header{border:1px solid var(--linea);border-top:2px solid var(--ambar);background:var(--panel);
+padding:13px 15px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+h1{font-family:var(--display);font-weight:700;font-size:27px;letter-spacing:.06em;
+text-transform:uppercase;color:var(--ambar);line-height:1}
+.sub{color:var(--tenue);font-size:11.5px;margin-top:5px}
+#lang{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;background:transparent;
+color:var(--tenue);border:1px solid var(--linea);padding:6px 11px;cursor:pointer;flex-shrink:0}
+#lang:active{color:var(--ambar);border-color:var(--ambar)}
+section{margin-bottom:14px;border:1px solid var(--linea);background:var(--panel)}
+.cab{padding:9px 13px;border-bottom:1px solid var(--linea);background:var(--panel2);
+font-family:var(--display);font-size:14px;font-weight:600;letter-spacing:.13em;
+text-transform:uppercase;color:var(--ambar)}
+.cuerpo{padding:13px}
+.paso{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--tenue);margin-bottom:8px}
+.ops{display:grid;gap:7px}
+.op{display:block;width:100%;text-align:left;font-family:var(--mono);font-size:13.5px;
+background:var(--grafito);color:var(--texto);border:1px solid var(--linea);
+padding:12px 13px;cursor:pointer}
+.op:active,.op.sel{border-color:var(--ambar);color:var(--ambar);background:var(--panel2)}
+.op small{display:block;color:var(--tenue);font-size:10.5px;margin-top:3px;letter-spacing:.02em}
+.op.sel small{color:var(--ambar);opacity:.8}
+#zona{border:1px dashed var(--linea);background:var(--panel2);padding:22px 14px;text-align:center;cursor:pointer}
+#zona:active{border-color:var(--ambar)}
+#zona .g{font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+#zona .c{color:var(--tenue);font-size:11px;margin-top:5px}
+#zona.listo{border-style:solid;border-color:var(--jade)}
+#zona.listo .g{color:var(--jade)}
+#foto{width:100%;border:1px solid var(--linea);margin-top:10px;display:block}
+input[type=file]{display:none}
+.vered{font-family:var(--display);font-size:29px;font-weight:700;letter-spacing:.03em;
+text-transform:uppercase;line-height:1.08}
+.vered.si{color:var(--jade)}.vered.no{color:var(--rojo)}.vered.duda{color:var(--ambar)}
+.setup{font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:.05em;
+text-transform:uppercase;color:var(--texto);margin-bottom:3px}
+.lamina{width:100%;border:1px solid var(--linea);margin:11px 0;display:block;background:#fff}
+.lee{font-size:13px;margin:9px 0}
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:11px 0}
+.nums div{border:1px solid var(--linea);background:var(--panel2);padding:8px 10px}
+.nums b{font-family:var(--display);font-size:23px;font-weight:700;display:block;line-height:1.1}
+.nums span{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--tenue)}
+.nums .bien b{color:var(--jade)}.nums .mal b{color:var(--rojo)}.nums .neu b{color:var(--ambar)}
+.aviso{border:1px solid var(--linea);border-left:2px solid var(--rojo);background:var(--panel2);
+padding:10px 12px;font-size:12px;color:var(--texto);margin-top:11px}
+.aviso.ok{border-left-color:var(--jade)}
+.aviso b{color:var(--ambar)}
+button.acc{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.1em;
+text-transform:uppercase;background:transparent;color:var(--ambar);border:1px solid var(--ambar);
+padding:11px 18px;cursor:pointer;width:100%}
+button.acc:active{background:var(--ambar);color:var(--grafito)}
+button.acc.sec{color:var(--tenue);border-color:var(--linea);font-size:13px;padding:9px 14px}
+.fila2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.bit{border:1px solid var(--linea);background:var(--panel2);padding:9px 11px;margin-bottom:7px;font-size:12px}
+.bit .t{color:var(--tenue);font-size:10px;letter-spacing:.05em}
+.bit .s{color:var(--ambar);font-weight:600}
+.bit .r{margin-top:5px;display:flex;gap:6px}
+.bit .r button{flex:1;font-family:var(--mono);font-size:11px;background:var(--grafito);
+color:var(--tenue);border:1px solid var(--linea);padding:6px;cursor:pointer}
+.bit .r button.on{border-color:var(--jade);color:var(--jade)}
+.bit .r button.onx{border-color:var(--rojo);color:var(--rojo)}
+.bit img{width:100%;margin-top:7px;border:1px solid var(--linea)}
+.resumen{font-size:12px;color:var(--tenue);margin-bottom:9px}
+.oculto{display:none}
+.pie{font-size:11px;color:var(--tenue);border:1px solid var(--linea);border-left:2px solid var(--ambar);
+background:var(--panel);padding:10px 12px;margin-top:14px}
+</style>
+</head>
+<body><div class="wrap">
+
+<header>
+  <div><h1 data-i="titulo">MAGMAX Scanner</h1>
+  <div class="sub" data-i="sub">Identifica la situación y te da lo que se midió, no lo que se promete</div></div>
+  <button id="lang" type="button">EN</button>
+</header>
+
+<section>
+  <div class="cab" data-i="cabCaptura">1 · Captura (opcional)</div>
+  <div class="cuerpo">
+    <div id="zona" role="button" tabindex="0">
+      <div class="g" id="zt" data-i="subeFoto">Toca para subir la captura</div>
+      <div class="c" data-i="subeFoto2">Se queda en tu teléfono. Sirve para la bitácora.</div>
+    </div>
+    <input type="file" id="fFoto" accept="image/*">
+    <img id="foto" class="oculto" alt="captura">
+  </div>
+</section>
+
+<section>
+  <div class="cab" data-i="cabSit">2 · Qué dice MAGMAX</div>
+  <div class="cuerpo">
+    <div class="paso" data-i="p1">Estructura</div>
+    <div class="ops" id="q1"></div>
+    <div class="paso" style="margin-top:14px" data-i="p2">Último evento</div>
+    <div class="ops" id="q2"></div>
+  </div>
+</section>
+
+<section id="secRes" class="oculto">
+  <div class="cab" data-i="cabLect">3 · Lectura</div>
+  <div class="cuerpo" id="res"></div>
+</section>
+
+<section id="secBit">
+  <div class="cab" data-i="cabBit">Bitácora</div>
+  <div class="cuerpo">
+    <div class="resumen" id="resumenBit"></div>
+    <div id="listaBit"></div>
+    <button class="acc sec" id="limpiar" type="button" data-i="limpiar">Borrar bitácora</button>
+  </div>
+</section>
+
+<div class="pie" data-i="pie">Los porcentajes salen del backtest de tu propio MNQ (1,128 eventos de estructura, 947 retests, jun-2025 a ago-2026). No son predicciones: son frecuencias pasadas. Esta app no da señales de entrada.</div>
+
+</div>
+<script src="datos.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+let idioma="es", estructura=null, evento=null, fotoData=null, ultimo=null;
+const T=()=>I18N[idioma];
+
+/* ---------------- lógica de lectura ---------------- */
+function leer(est,ev){
+  const L=T().lect;
+  // rango: el veredicto manda sobre todo lo demás
+  if(est==="rango" && ev!=="sweep") return L.rango;
+  if(ev==="bos")    return est==="alcista"?L.bosAlc : est==="bajista"?L.bosBaj : L.rango;
+  if(ev==="choch")  return est==="alcista"?L.chochBaj : est==="bajista"?L.chochAlc : L.rango;
+  if(ev==="retest") return est==="alcista"?L.retestAlc : est==="bajista"?L.retestBaj : L.rango;
+  if(ev==="sweep")  return L.sweep;
+  return L.nada;
+}
+function pintar(){
+  if(!estructura||!evento){ $("secRes").classList.add("oculto"); return; }
+  const d=leer(estructura,evento);
+  ultimo=d;
+  let h='<div class="vered '+d.cls+'">'+d.vered+'</div>';
+  h+='<div class="setup" style="margin-top:9px">'+d.setup+'</div>';
+  if(d.img&&LAMINAS[d.img]) h+='<img class="lamina" src="'+LAMINAS[d.img]+'" alt="'+d.setup+'">';
+  h+='<div class="lee">'+d.lee+'</div>';
+  if(d.nums&&d.nums.length){
+    h+='<div class="nums">';
+    for(const n of d.nums) h+='<div class="'+n[2]+'"><b>'+n[0]+'</b><span>'+n[1]+'</span></div>';
+    h+='</div>';
+  }
+  h+='<div class="aviso '+(d.avisoOk?"ok":"")+'">'+d.aviso+'</div>';
+  h+='<div class="fila2"><button class="acc" id="guardar" type="button">'+T().guardar+'</button>'
+    +'<button class="acc sec" id="reiniciar" type="button">'+T().otra+'</button></div>';
+  $("res").innerHTML=h;
+  $("secRes").classList.remove("oculto");
+  $("guardar").onclick=guardar;
+  $("reiniciar").onclick=()=>{
+    estructura=evento=null; fotoData=null;
+    $("foto").classList.add("oculto"); $("zona").classList.remove("listo");
+    $("zt").textContent=T().subeFoto;
+    opciones(); $("secRes").classList.add("oculto");
+    window.scrollTo({top:0,behavior:"smooth"});
+  };
+  $("secRes").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function opciones(){
+  const mk=(cont,lista,sel,fn)=>{
+    cont.innerHTML="";
+    lista.forEach(o=>{
+      const b=document.createElement("button");
+      b.className="op"+(sel===o.v?" sel":""); b.type="button";
+      b.innerHTML=o.t+"<small>"+o.d+"</small>";
+      b.onclick=()=>{fn(o.v);opciones();pintar();};
+      cont.appendChild(b);
+    });
+  };
+  mk($("q1"),T().op1,estructura,v=>estructura=v);
+  mk($("q2"),T().op2,evento,v=>evento=v);
+}
+
+/* ---------------- captura ---------------- */
+$("zona").onclick=()=>$("fFoto").click();
+$("fFoto").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const im=new Image();
+    im.onload=()=>{
+      const c=document.createElement("canvas");
+      const esc=Math.min(1,900/Math.max(im.width,im.height));
+      c.width=im.width*esc; c.height=im.height*esc;
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      fotoData=c.toDataURL("image/jpeg",0.6);
+      $("foto").src=fotoData; $("foto").classList.remove("oculto");
+      $("zona").classList.add("listo"); $("zt").textContent=T().fotoOk;
+    };
+    im.src=ev.target.result;
+  };
+  r.readAsDataURL(f);
+};
+
+/* ---------------- bitácora ---------------- */
+function leerBit(){ try{return JSON.parse(localStorage.getItem("magmax_bit")||"[]");}catch(e){return[];} }
+function grabarBit(b){ try{localStorage.setItem("magmax_bit",JSON.stringify(b));}catch(e){} }
+function guardar(){
+  const b=leerBit();
+  b.unshift({id:Date.now(),f:new Date().toISOString(),est:estructura,ev:evento,
+             setup:ultimo.setup,foto:fotoData,res:null});
+  grabarBit(b.slice(0,40));
+  pintarBit();
+  $("secBit").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function marcar(id,r){
+  const b=leerBit(); const x=b.find(y=>y.id===id);
+  if(x){ x.res = x.res===r ? null : r; grabarBit(b); pintarBit(); }
+}
+function pintarBit(){
+  const b=leerBit();
+  if(!b.length){ $("resumenBit").textContent=T().bitVacia; $("listaBit").innerHTML=""; return; }
+  const con=b.filter(x=>x.res!==null);
+  const ok=con.filter(x=>x.res==="ok").length;
+  $("resumenBit").textContent = con.length
+    ? T().bitResumen.replace("{n}",b.length).replace("{m}",con.length)
+        .replace("{p}",Math.round(100*ok/con.length))
+    : T().bitSinMarcar.replace("{n}",b.length);
+  $("listaBit").innerHTML=b.map(x=>{
+    const fe=new Date(x.f).toLocaleString(idioma==="es"?"es-MX":"en-US",
+      {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+    return '<div class="bit"><div class="t">'+fe+'</div><div class="s">'+x.setup+'</div>'
+      +(x.foto?'<img src="'+x.foto+'" alt="">':'')
+      +'<div class="r"><button class="'+(x.res==="ok"?"on":"")+'" data-id="'+x.id+'" data-r="ok">'+T().salio+'</button>'
+      +'<button class="'+(x.res==="no"?"onx":"")+'" data-id="'+x.id+'" data-r="no">'+T().nosalio+'</button></div></div>';
+  }).join("");
+  $("listaBit").querySelectorAll("button").forEach(bt=>{
+    bt.onclick=()=>marcar(+bt.dataset.id,bt.dataset.r);
+  });
+}
+$("limpiar").onclick=()=>{ if(confirm(T().confirmar)){ grabarBit([]); pintarBit(); } };
+
+/* ---------------- idioma ---------------- */
+$("lang").onclick=()=>{
+  idioma=idioma==="es"?"en":"es";
+  $("lang").textContent=idioma==="es"?"EN":"ES";
+  document.documentElement.lang=idioma;
+  document.querySelectorAll("[data-i]").forEach(el=>{
+    const k=el.getAttribute("data-i"); if(T()[k])el.textContent=T()[k];
+  });
+  if(!fotoData)$("zt").textContent=T().subeFoto;
+  opciones(); pintar(); pintarBit();
+};
+
+opciones(); pintarBit();
+if("serviceWorker" in navigator)
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body></html>
