@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171C">
+<title>Lab MNQ · Backtest de indicadores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--grafito:#14171C;--panel:#1A1E24;--panel2:#20252C;--linea:#2C333C;
+--ambar:#E8A33D;--jade:#4FB286;--rojo:#D8544F;--texto:#D6DCE3;--tenue:#6B7580;
+--display:'Barlow Condensed',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--grafito);color:var(--texto);font-family:var(--mono);
+font-size:13px;line-height:1.5;padding:20px 16px 70px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto}
+header{border:1px solid var(--linea);border-top:2px solid var(--ambar);background:var(--panel);
+padding:16px 18px;margin-bottom:18px;display:flex;justify-content:space-between;
+align-items:flex-start;gap:16px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.06em;
+text-transform:uppercase;color:var(--ambar);line-height:1}
+.sub{color:var(--tenue);font-size:12px;margin-top:6px}
+#lang{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;
+background:transparent;color:var(--tenue);border:1px solid var(--linea);padding:6px 12px;cursor:pointer}
+#lang:hover{color:var(--ambar);border-color:var(--ambar)}
+section{margin-top:20px;border:1px solid var(--linea);background:var(--panel)}
+.cab{padding:9px 14px;border-bottom:1px solid var(--linea);background:var(--panel2);
+font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.13em;
+text-transform:uppercase;color:var(--ambar);display:flex;justify-content:space-between;gap:10px}
+.cab .ok{color:var(--jade);font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:none}
+.cuerpo{padding:14px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.dos{grid-template-columns:1fr}}
+.drop{border:1px dashed var(--linea);background:var(--panel2);padding:24px 16px;
+text-align:center;cursor:pointer;transition:border-color .15s}
+.drop:hover,.drop.sobre{border-color:var(--ambar)}
+.drop:focus-visible{outline:2px solid var(--ambar);outline-offset:2px}
+.drop .g{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.04em;
+text-transform:uppercase}
+.drop .c{color:var(--tenue);font-size:11px;margin-top:6px}
+.drop.listo{border-style:solid;border-color:var(--jade)}
+.drop.listo .g{color:var(--jade)}
+input[type=file]{display:none}
+.barra{display:flex;height:7px;margin:2px 0 14px;background:var(--panel2)}
+.barra i{display:block;height:100%}.barra .m{background:var(--jade)}
+.barra .v{background:var(--tenue)}.barra .f{background:var(--rojo)}
+.cuenta{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px}
+.cuenta div{display:flex;align-items:baseline;gap:6px}
+.cuenta b{font-family:var(--display);font-size:24px;font-weight:700;line-height:1}
+.cuenta span{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tenue)}
+.cm b{color:var(--jade)}.cv b{color:var(--tenue)}.cf b{color:var(--rojo)}
+.grupo{margin-bottom:14px}
+.gt{font-family:var(--display);font-size:13.5px;font-weight:600;letter-spacing:.1em;
+text-transform:uppercase;padding-bottom:5px;margin-bottom:6px;border-bottom:1px solid var(--linea)}
+.fila{display:grid;grid-template-columns:1fr 108px 56px;gap:9px;align-items:center;padding:3px 0}
+.fila label{font-size:12px;overflow-wrap:anywhere}
+.fila .nm{color:var(--tenue);font-size:10px;display:block}
+.fila input,.fila select{font-family:var(--mono);font-size:12px;background:var(--grafito);
+color:var(--ambar);border:1px solid var(--linea);padding:5px 7px;width:100%}
+.fila input:focus,.fila select:focus{outline:1px solid var(--ambar);border-color:var(--ambar)}
+.est{font-size:9px;letter-spacing:.06em;text-transform:uppercase;text-align:center;
+padding:2px 0;border:1px solid}
+.est.M{color:var(--jade);border-color:var(--jade)}
+.est.V{color:var(--tenue);border-color:var(--linea)}
+.est.F{color:var(--rojo);border-color:var(--rojo)}
+button.acc{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.1em;
+text-transform:uppercase;background:transparent;color:var(--ambar);border:1px solid var(--ambar);
+padding:10px 20px;cursor:pointer}
+button.acc:hover:not(:disabled){background:var(--ambar);color:var(--grafito)}
+button.acc:disabled{opacity:.35;cursor:not-allowed}
+button.acc.sec{color:var(--tenue);border-color:var(--linea);font-size:13px;padding:8px 14px}
+button.acc.sec:hover{background:var(--linea);color:var(--texto)}
+.botones{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.vered{font-family:var(--display);font-size:34px;font-weight:700;letter-spacing:.04em;
+text-transform:uppercase;line-height:1.05}
+.vered.si{color:var(--jade)}.vered.no{color:var(--rojo)}.vered.duda{color:var(--ambar)}
+.veredsub{color:var(--tenue);font-size:12px;margin-top:8px;max-width:62ch}
+.met{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:12px}
+.met div{border:1px solid var(--linea);background:var(--panel2);padding:9px 11px}
+.met b{font-family:var(--display);font-size:25px;font-weight:700;display:block;line-height:1.1}
+.met span{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--tenue)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:right;padding:5px 8px;border-bottom:1px solid var(--linea)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--tenue);font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:400}
+td.b{color:var(--jade)}td.m{color:var(--rojo)}
+svg{width:100%;height:190px;display:block}
+.aviso{margin-top:10px;font-size:11.5px;color:var(--jade);min-height:16px}
+.aviso.mal{color:var(--rojo)}
+.nota{margin-top:18px;padding:11px 13px;border:1px solid var(--linea);border-left:2px solid var(--ambar);
+background:var(--panel);font-size:11.5px;color:var(--tenue)}
+.oculto{display:none}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body><div class="wrap">
+
+<header>
+  <div><h1 data-i="titulo">Lab MNQ</h1>
+  <div class="sub" data-i="sub">Sube el indicador y sus velas. El motor corre lo que dice el .cs.</div></div>
+  <button id="lang" type="button">EN</button>
+</header>
+
+<section><div class="cab"><span data-i="cabCarga">Carga</span></div><div class="cuerpo">
+  <div class="dos">
+    <div class="drop" id="dropCS" tabindex="0" role="button">
+      <div class="g" id="gCS" data-i="subeCS">1 · Indicador .cs</div>
+      <div class="c" id="cCS" data-i="subeCS2">MomentumVolumen.cs o el que quieras probar</div>
+    </div>
+    <div class="drop" id="dropCSV" tabindex="0" role="button">
+      <div class="g" id="gCSV" data-i="subeCSV">2 · Velas de 1 minuto</div>
+      <div class="c" id="cCSV" data-i="subeCSV2">CSV o TXT exportado de NinjaTrader</div>
+    </div>
+  </div>
+  <input type="file" id="fCS" accept=".cs"><input type="file" id="fCSV" accept=".csv,.txt">
+  <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+</div></section>
+
+<section id="secCob" class="oculto"><div class="cab">
+  <span data-i="cabCob">Cobertura del motor</span><span class="ok" id="idCS"></span></div>
+  <div class="cuerpo">
+  <div class="barra"><i class="m" id="bm"></i><i class="v" id="bv"></i><i class="f" id="bf"></i></div>
+  <div class="cuenta">
+    <div class="cm"><b id="nm">0</b><span data-i="enMotor">en el motor</span></div>
+    <div class="cv"><b id="nv">0</b><span data-i="soloVis">solo visual</span></div>
+    <div class="cf"><b id="nf">0</b><span data-i="faltan">sin usar</span></div>
+  </div>
+  <div class="nota" id="notaFaltan"></div>
+</div></section>
+
+<section id="secParam" class="oculto"><div class="cab"><span data-i="cabParam">Parámetros del .cs</span></div>
+<div class="cuerpo"><div id="grupos"></div></div></section>
+
+<section id="secCorrer" class="oculto"><div class="cab"><span data-i="cabCorrer">Correr</span></div>
+<div class="cuerpo">
+  <div class="dos" style="margin-bottom:14px">
+    <div><label class="gt" for="modo" data-i="queOperar">Qué operar</label>
+      <select id="modo">
+        <option value="ambos" data-i="mAmbos">Ambos regímenes</option>
+        <option value="tendencia" data-i="mTend">Solo tendencia</option>
+        <option value="lateral" data-i="mLat">Solo lateral</option>
+      </select></div>
+    <div><label class="gt" for="barrer" data-i="barrerLbl">Barrer un parámetro</label>
+      <select id="barrer"><option value="" data-i="ninguno">Ninguno</option></select></div>
+  </div>
+  <div class="botones">
+    <button class="acc" type="button" id="btnCorrer" disabled data-i="correr">Correr backtest</button>
+    <button class="acc sec" type="button" id="btnJSON" disabled data-i="bajarJSON">Descargar JSON</button>
+  </div>
+</div></section>
+
+<section id="secRes" class="oculto"><div class="cab"><span data-i="cabRes">Resultado</span></div>
+<div class="cuerpo">
+  <div class="vered" id="vered">—</div><div class="veredsub" id="veredsub"></div>
+  <div class="met" id="met" style="margin-top:16px"></div>
+  <div class="gt" style="margin-top:20px" data-i="curva">Curva en R</div>
+  <svg id="svg" viewBox="0 0 900 190" preserveAspectRatio="none" role="img"></svg>
+  <div class="sub" data-i="curvaNota">La línea vertical marca el corte 70/30. Lo de la derecha es la prueba honesta.</div>
+  <div class="gt" style="margin-top:20px" data-i="desglose">Desglose</div>
+  <table id="tDesg"></table>
+  <div class="gt" style="margin-top:20px" data-i="robustez">Robustez en el tiempo</div>
+  <table id="tRob"></table>
+  <div id="wrapBarrido" class="oculto">
+    <div class="gt" style="margin-top:20px" data-i="sens">Sensibilidad</div>
+    <table id="tSens"></table>
+    <div class="sub" data-i="sensNota">Busca una meseta, no un pico. Si el PF sube mientras los trades se desploman, estás midiendo una muestra chica, no una ventaja.</div>
+  </div>
+</div></section>
+
+<div class="nota" data-i="pie">El motor implementa el embudo del .cs: niveles multi-temporalidad, niveles de sesión, régimen, gatillo, print-through, filtro de espacio y tamaño por riesgo. Los parámetros marcados "sin usar" son visuales o todavía no están en el motor. Resultados pasados no garantizan resultados futuros.</div>
+</div>
+
+<script>
+/* =====================================================================
+   MOTOR DE BACKTEST · embudo MomentumVolumen
+   Corre igual en el navegador y en node (para poder validarlo).
+   Todos los parametros salen del .cs: nada esta escrito a mano.
+   ===================================================================== */
+(function(raiz){
+"use strict";
+
+/* ---------- lectura del CSV ---------- */
+function leerVelas(texto){
+  const lineas = texto.split(/\r?\n/);
+  const velas = [];
+  let sep = ";";
+  for(const l of lineas.slice(0,20)){
+    if(!l) continue;
+    if(l.split(";").length>=6){ sep=";"; break; }
+    if(l.split(",").length>=6){ sep=","; break; }
+    if(l.split("\t").length>=6){ sep="\t"; break; }
+  }
+  for(const l of lineas){
+    if(!l.trim()) continue;
+    const p = l.split(sep);
+    if(p.length<6) continue;
+    const t = fecha(p[0]);
+    if(t===null) continue;
+    const o=+p[1], h=+p[2], b=+p[3], c=+p[4], v=+p[5];
+    if(!isFinite(o)||!isFinite(h)||!isFinite(b)||!isFinite(c)) continue;
+    velas.push({t:t,o:o,h:h,l:b,c:c,v:isFinite(v)?v:0});
+  }
+  velas.sort((a,b)=>a.t-b.t);
+  return velas;
+}
+function fecha(s){
+  s = s.trim();
+  let m = s.match(/^(\d{4})(\d{2})(\d{2})[ T]?(\d{2})(\d{2})(\d{2})$/);
+  if(m) return Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if(m) return Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0));
+  const d = Date.parse(s);
+  return isNaN(d)?null:d;
+}
+
+/* ---------- indicadores ---------- */
+function atrWilder(v,n){
+  const a=new Array(v.length).fill(0);
+  let tr0=v[0].h-v[0].l, suma=tr0, prev=tr0;
+  for(let i=1;i<v.length;i++){
+    const tr=Math.max(v[i].h-v[i].l, Math.abs(v[i].h-v[i-1].c), Math.abs(v[i].l-v[i-1].c));
+    if(i<n){ suma+=tr; a[i]= suma/(i+1); prev=a[i]; }
+    else if(i===n){ prev=(suma+tr)/(n+1); a[i]=prev; }
+    else { prev=(prev*(n-1)+tr)/n; a[i]=prev; }
+  }
+  a[0]=tr0;
+  return a;
+}
+function smaVol(v,n){
+  const a=new Array(v.length).fill(0);
+  let s=0;
+  for(let i=0;i<v.length;i++){
+    s+=v[i].v;
+    if(i>=n) s-=v[i-n].v;
+    a[i] = i>=n-1 ? s/n : 0;
+  }
+  return a;
+}
+
+/* ---------- agregacion a temporalidad mayor ---------- */
+/* Devuelve barras {o,h,l,c,cierraEn} donde cierraEn = indice de la vela
+   de 1m en la que esa barra mayor termina. Sin mirar al futuro.       */
+function agregar(v, minutos){
+  const ms = minutos*60000, out=[];
+  let cur=null, bucket=null;
+  for(let i=0;i<v.length;i++){
+    const b = Math.floor(v[i].t/ms);
+    if(cur===null || b!==bucket){
+      if(cur) out.push(cur);
+      cur={o:v[i].o,h:v[i].h,l:v[i].l,c:v[i].c,cierraEn:i};
+      bucket=b;
+    } else {
+      cur.h=Math.max(cur.h,v[i].h);
+      cur.l=Math.min(cur.l,v[i].l);
+      cur.c=v[i].c;
+      cur.cierraEn=i;
+    }
+  }
+  if(cur) out.push(cur);
+  return out;
+}
+
+/* ---------- swings confirmados, sin lookahead ---------- */
+/* Un pivote en el indice p se confirma F barras despues. El nivel
+   entra al mapa en la vela de 1m donde cierra esa barra confirmadora. */
+function swings(barras, F, tfMin){
+  const out=[];
+  for(let i=F;i<barras.length-F;i++){
+    let alto=true, bajo=true;
+    for(let k=1;k<=F;k++){
+      if(barras[i].h<=barras[i+k].h || barras[i].h<=barras[i-k].h) alto=false;
+      if(barras[i].l>=barras[i+k].l || barras[i].l>=barras[i-k].l) bajo=false;
+      if(!alto&&!bajo) break;
+    }
+    const disponibleEn = barras[i+F].cierraEn;
+    if(alto) out.push({precio:barras[i].h, esAlto:true,  tf:tfMin, desde:disponibleEn});
+    if(bajo) out.push({precio:barras[i].l, esAlto:false, tf:tfMin, desde:disponibleEn});
+  }
+  out.sort((a,b)=>a.desde-b.desde);
+  return out;
+}
+
+/* =====================================================================
+   MOTOR
+   ===================================================================== */
+function correr(velas, P, opc){
+  opc = opc || {};
+  const tick     = opc.tick     !== undefined ? opc.tick     : 0.25;
+  const valorPto = opc.valorPto !== undefined ? opc.valorPto : 2;   // MNQ
+  const comision = opc.comision !== undefined ? opc.comision : 1.34;
+  const slipTicks= opc.slippage !== undefined ? opc.slippage : 1;
+  const modo     = opc.modo || "tendencia";  // tendencia | lateral | ambos | sinFiltro
+  const N = velas.length;
+  if(N < 500) return {error:"Pocas velas"};
+
+  const atr = atrWilder(velas, P.PeriodoATR);
+  const vsm = smaVol(velas, P.PeriodoVolumen);
+
+  /* ---- sesiones: hueco > 30 min abre sesion nueva ---- */
+  const nuevaSesion = new Array(N).fill(false);
+  nuevaSesion[0]=true;
+  for(let i=1;i<N;i++)
+    if((velas[i].t - velas[i-1].t) > 30*60000) nuevaSesion[i]=true;
+
+  /* ---- swings de cada temporalidad ---- */
+  const fuentes=[];
+  fuentes.push(swings(velas.map((b,i)=>({o:b.o,h:b.h,l:b.l,c:b.c,cierraEn:i})),
+                      P.FuerzaSwingPrimaria, 1));
+  if(P.UsarTF2) fuentes.push(swings(agregar(velas,P.MinutosTF2), P.FuerzaSwingSuperior, P.MinutosTF2));
+  if(P.UsarTF3) fuentes.push(swings(agregar(velas,P.MinutosTF3), P.FuerzaSwingSuperior, P.MinutosTF3));
+  if(P.UsarTF4) fuentes.push(swings(agregar(velas,P.MinutosTF4), P.FuerzaSwingSuperior, P.MinutosTF4));
+  const punteros = fuentes.map(()=>0);
+
+  /* ---- estado ---- */
+  let niveles=[];
+  let sesH=-Infinity, sesL=Infinity, sesIni=-1, asiaH=-Infinity, asiaL=Infinity, asiaCerr=false;
+  let prevH=null, prevL=null, prevC=null, aperturaSem=null, semanaAct=-1;
+  const histEf=[]; let cortaTend=0, cortaLat=0, regimen=0, ef=0;
+  const gatillos=[]; const abiertos=[]; const trades=[];
+  const tol = P.ToleranciaTicks*tick;
+
+  function agrega(precio,origen,tf,esAlto,bidir,i){
+    if(!isFinite(precio)) return;
+    if(tf>=1440) niveles = niveles.filter(n=>n.origen!==origen);
+    for(const n of niveles)
+      if(n.origen===origen && Math.abs(n.precio-precio)<=tol) return;
+    niveles.push({precio:precio,origen:origen,tf:tf,esAlto:esAlto,bidir:!!bidir,
+                  nace:i,roto:false,dirRuptura:0,gatilloCreado:false});
+  }
+  function califica(n){ return n.tf>=1440 ? true : n.tf>=P.MinutosNivelMinimo; }
+  function espacioHasta(dir,desde){
+    let mejor=Infinity;
+    for(const n of niveles){
+      if(dir===1 && n.precio>desde) mejor=Math.min(mejor,n.precio-desde);
+      else if(dir===-1 && n.precio<desde) mejor=Math.min(mejor,desde-n.precio);
+    }
+    return mejor===Infinity?0:mejor;
+  }
+  function contratos(slPuntos){
+    if(!P.TamanoPorRiesgo) return P.ContratosATR;
+    if(slPuntos<=0) return P.ContratosATR;
+    let n = Math.floor(P.RiesgoObjetivoUSD/(slPuntos*valorPto));
+    if(n<1) n=1;
+    if(n>P.MaxContratos) n=P.MaxContratos;
+    return n;
+  }
+
+  for(let i=1;i<N;i++){
+    const b=velas[i], a=atr[i];
+
+    /* ---------- niveles de sesion ---------- */
+    if(nuevaSesion[i]){
+      if(P.UsarNivelesSesion && prevH!==null){
+        agrega(prevH,"PDH",1440,true,false,i);
+        agrega(prevL,"PDL",1440,false,false,i);
+        if(P.UsarCierreAnterior) agrega(prevC,"Cierre",1440,prevC>=b.c,true,i);
+        if(P.UsarPuntoMedio) agrega((prevH+prevL)/2,"Medio",1440,((prevH+prevL)/2)>=b.c,true,i);
+      }
+      if(P.UsarAperturaDiaria) agrega(b.o,"AbreD",1440,true,true,i);
+      const sem = Math.floor((velas[i].t + 4*86400000)/(7*86400000));
+      if(P.UsarAperturaSemanal && sem!==semanaAct){ semanaAct=sem; aperturaSem=b.o; }
+      if(P.UsarAperturaSemanal && aperturaSem!==null) agrega(aperturaSem,"AbreS",1440,true,true,i);
+      prevH = sesH>-Infinity?sesH:null; prevL = sesL<Infinity?sesL:null;
+      prevC = velas[i-1].c;
+      sesH=b.h; sesL=b.l; sesIni=i; asiaH=b.h; asiaL=b.l; asiaCerr=false;
+    } else {
+      sesH=Math.max(sesH,b.h); sesL=Math.min(sesL,b.l);
+      if(P.UsarAsia && !asiaCerr && sesIni>=0){
+        if((velas[i].t-velas[sesIni].t)/60000 <= P.HorasAsia*60){
+          asiaH=Math.max(asiaH,b.h); asiaL=Math.min(asiaL,b.l);
+        } else {
+          asiaCerr=true;
+          if(P.UsarNivelesSesion && asiaH>-Infinity){
+            agrega(asiaH,"AsiaH",1440,true,false,i);
+            agrega(asiaL,"AsiaL",1440,false,false,i);
+          }
+        }
+      }
+    }
+
+    /* ---------- swings que ya se pueden usar ---------- */
+    for(let f=0;f<fuentes.length;f++){
+      const lista=fuentes[f];
+      while(punteros[f]<lista.length && lista[punteros[f]].desde<=i){
+        const s=lista[punteros[f]++];
+        agrega(s.precio, s.tf+"m", s.tf, s.esAlto, false, i);
+      }
+    }
+
+    /* ---------- mantenimiento del mapa ---------- */
+    if(i%5===0){
+      const lejos=b.c*0.02;
+      niveles = niveles.filter(n=>{
+        if(Math.abs(n.precio-b.c)>lejos) return false;
+        if(n.tf>=1440) return true;
+        if(P.VidaNivelVelas>0 && (i-n.nace) > P.VidaNivelVelas*Math.max(1,n.tf)) return false;
+        return true;
+      });
+    }
+
+    /* ---------- regimen ---------- */
+    if(i>P.PeriodoRegimen){
+      let suma=0;
+      for(let k=0;k<P.PeriodoRegimen;k++) suma += velas[i-k].h - velas[i-k].l;
+      ef = suma>0 ? Math.abs(b.c - velas[i-P.PeriodoRegimen].c)/suma : 0;
+      histEf.push(ef);
+      if(histEf.length>1500) histEf.shift();
+      if(histEf.length>=120 && i%20===0){
+        const ord=histEf.slice().sort((x,y)=>x-y);
+        cortaTend=ord[Math.min(ord.length-1,Math.floor(ord.length*(1-P.PctTendencia/100)))];
+        cortaLat =ord[Math.min(ord.length-1,Math.floor(ord.length*(P.PctLateral/100)))];
+      }
+      const corte=Math.max(cortaTend, P.PisoTendencia||0);
+      regimen = (corte>0 && ef>=corte) ? 1 : (cortaLat>0 && ef<=cortaLat) ? -1 : 0;
+    }
+
+    /* ---------- resolver trades abiertos con esta vela ---------- */
+    for(let k=abiertos.length-1;k>=0;k--){
+      const t=abiertos[k];
+      const tocaTP = t.dir===1 ? b.h>=t.tp : b.l<=t.tp;
+      const tocaSL = t.dir===1 ? b.l<=t.sl : b.h>=t.sl;
+      let res=null;
+      if(tocaTP&&tocaSL) res=0;          // ambiguo -> cuenta como perdida
+      else if(tocaTP) res=1;
+      else if(tocaSL) res=-1;
+      else if(i-t.barra > P.VelasVidaTrade) res=-2;  // caduca
+      if(res!==null){
+        t.res=res;
+        const slDist=Math.abs(t.sl-t.entrada);
+        let brutoPts;
+        if(res===1){ t.r=t.rPlan; brutoPts=Math.abs(t.tp-t.entrada); }
+        else if(res===-1){ t.r=-1; brutoPts=-slDist; }
+        else if(res===0){ t.r=-1; brutoPts=-slDist; }        // ambiguo = perdida
+        else {                                                // caduco: se cierra a mercado
+          brutoPts = t.dir*(b.c-t.entrada);
+          t.r = slDist>0 ? brutoPts/slDist : 0;
+          t.caduco = true;
+        }
+        t.costo = t.ctr*(comision + slipTicks*tick*valorPto*2);
+        t.usd = brutoPts*valorPto*t.ctr - t.costo;
+        trades.push(t); abiertos.splice(k,1);
+      }
+    }
+
+    /* ---------- print-through de los gatillos vivos ---------- */
+    for(let k=gatillos.length-1;k>=0;k--){
+      const g=gatillos[k];
+      if(i<=g.barra){ continue; }
+      if(i-g.barra > P.VelasGatillo){ gatillos.splice(k,1); continue; }
+      if(P.CancelarSiCierraEnContra){
+        const dv = b.c>=b.o?1:-1, rango=b.h-b.l;
+        const fz = rango>0 ? Math.abs(b.c-b.o)/rango : 0;
+        if(dv!==g.dir && fz>=0.5){ gatillos.splice(k,1); continue; }
+      }
+      const cruza = g.dir===1 ? b.h>=g.precio : b.l<=g.precio;
+      if(!cruza) continue;
+      gatillos.splice(k,1);
+      if(abiertos.length>0) continue;              // una posicion a la vez
+      const sl = a*P.MultiploSL;
+      if(!(sl>0)) continue;
+      const entrada = g.precio;
+      const esp = espacioHasta(g.dir, entrada);
+      const estrecho = esp>0 && esp < sl*P.MinRecorridoR;
+      if(estrecho && P.IgnorarEstrechas) continue;
+      if(modo==="tendencia" && g.regimen!==1) continue;
+      if(modo==="lateral"   && g.regimen!==-1) continue;
+      const tp = (P.ObjetivoEnNivel && esp>0) ? entrada+g.dir*esp
+                                              : entrada+g.dir*sl*P.MultiploTP;
+      const ctr = contratos(sl);
+      abiertos.push({
+        dir:g.dir, entrada:entrada, sl:entrada-g.dir*sl, tp:tp, barra:i,
+        rPlan: Math.abs(tp-entrada)/sl, ctr:ctr, estrecho:estrecho,
+        regimen:g.regimen, tfNivel:g.tf, origen:g.origen, esp:esp
+      });
+    }
+
+    /* ---------- señales sobre la vela recien cerrada ---------- */
+    if(vsm[i]<=0 || !(a>0)) continue;
+    const rango=b.h-b.l;
+    const fuerza = rango>0 ? Math.abs(b.c-b.o)/rango : 0;
+    const rvol = b.v/vsm[i];
+    const conFuerza = fuerza>=P.MinFuerza && rvol>=P.MinRVOL;
+
+    for(const n of niveles){
+      if(n.roto) continue;
+      const rArriba = b.o<=n.precio && b.c>n.precio && (n.bidir||n.esAlto);
+      const rAbajo  = b.o>=n.precio && b.c<n.precio && (n.bidir||!n.esAlto);
+      if(rArriba||rAbajo){
+        n.roto=true; n.dirRuptura=rArriba?1:-1;
+        if(!P.DetectarRupturas || !P.UsarGatillo) continue;
+        if(!conFuerza || n.gatilloCreado) continue;
+        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n);
+        if(!pasa) continue;
+        if(modo==="tendencia" && regimen!==1) continue;
+        n.gatilloCreado=true;
+        const dir=rArriba?1:-1;
+        gatillos.push({dir:dir, precio:n.precio+dir*a*P.FactorGatilloATR,
+                       barra:i, regimen:regimen, tf:n.tf, origen:n.origen});
+        continue;
+      }
+      // barrido silencioso
+      const supA = n.bidir ? (velas[i-1].c<=n.precio && b.c>n.precio) : (n.esAlto  && b.c>n.precio);
+      const supB = n.bidir ? (velas[i-1].c>=n.precio && b.c<n.precio) : (!n.esAlto && b.c<n.precio);
+      if(supA||supB){ n.roto=true; n.dirRuptura=supA?1:-1; }
+    }
+  }
+
+  return reporte(trades, velas, opc);
+}
+
+/* =====================================================================
+   REPORTE
+   ===================================================================== */
+function metricas(ts){
+  if(!ts.length) return {n:0,pf:0,r:0,acierto:0,usd:0,costos:0,rTrade:0,dd:0};
+  let g=0,p=0,r=0,gan=0,usd=0,costos=0;
+  let pico=0,acum=0,dd=0;
+  for(const t of ts){
+    r+=t.r; usd+=t.usd; costos+=t.costo;
+    if(t.usd>0){ g+=t.usd; gan++; } else p+=Math.abs(t.usd);
+    acum+=t.r; pico=Math.max(pico,acum); dd=Math.max(dd,pico-acum);
+  }
+  return {n:ts.length, pf: p>0? g/p : (g>0?99:0), r:r, acierto:100*gan/ts.length,
+          usd:usd, costos:costos, rTrade:r/ts.length, dd:dd};
+}
+function reporte(trades, velas, opc){
+  const R = {total:metricas(trades), trades:trades.length};
+  const corte=Math.floor(trades.length*0.7);
+  R.dentro=metricas(trades.slice(0,corte));
+  R.fuera =metricas(trades.slice(corte));
+  R.tramos=[];
+  for(let k=0;k<4;k++){
+    const a=Math.floor(trades.length*k/4), b=Math.floor(trades.length*(k+1)/4);
+    R.tramos.push(metricas(trades.slice(a,b)));
+  }
+  const por=(f)=>{const m={};for(const t of trades){const k=f(t);(m[k]=m[k]||[]).push(t);}
+                  const o={};for(const k in m)o[k]=metricas(m[k]);return o;};
+  R.porRegimen = por(t=>t.regimen===1?"tendencia":t.regimen===-1?"lateral":"mixto");
+  R.porEspacio = por(t=>t.estrecho?"estrecha":"conEspacio");
+  R.porTF      = por(t=>t.tfNivel>=1440?"sesion":t.tfNivel+"m");
+  R.curva=[]; let acc=0;
+  for(const t of trades){ acc+=t.r; R.curva.push(acc); }
+  const ctr=trades.map(t=>t.ctr);
+  R.contratos = ctr.length ? {min:Math.min(...ctr),max:Math.max(...ctr),
+                  prom:ctr.reduce((a,b)=>a+b,0)/ctr.length} : null;
+  R.caducados = trades.filter(t=>t.caduco).length;
+  R.ambiguos  = trades.filter(t=>t.res===0).length;
+  R.resueltos = metricas(trades.filter(t=>!t.caduco));
+  return R;
+}
+
+const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder};
+if(typeof module!=="undefined"&&module.exports) module.exports=API;
+else raiz.MotorMNQ=API;
+})(typeof globalThis!=="undefined"?globalThis:this);
+
+</script>
+<script>
+"use strict";
+/* ===== parametros que el motor SI usa ===== */
+const MOTOR_USA = new Set(["MinFuerza","MinRVOL","PeriodoVolumen","FuerzaSwingPrimaria",
+"FuerzaSwingSuperior","UsarTF2","MinutosTF2","UsarTF3","MinutosTF3","UsarTF4","MinutosTF4",
+"ToleranciaTicks","VidaNivelVelas","UsarNivelesSesion","UsarAsia","HorasAsia",
+"UsarAperturaDiaria","UsarCierreAnterior","UsarAperturaSemanal","UsarPuntoMedio",
+"PeriodoATR","FactorGatilloATR","VelasGatillo","MultiploSL","MultiploTP","MinRecorridoR",
+"IgnorarEstrechas","DetectarRupturas","UsarGatillo","CancelarSiCierraEnContra",
+"ObjetivoEnNivel","VelasVidaTrade","PeriodoRegimen","PctTendencia","PctLateral",
+"PisoTendencia","SoloEnTendencia","MinutosNivelMinimo","TamanoPorRiesgo",
+"RiesgoObjetivoUSD","MaxContratos","ContratosATR"]);
+const GRUPOS_VIS=new Set(["3 Visual de niveles","6 Parpadeo y velas"]);
+const PREF_VIS=["Color","Mostrar","Dibujar","Alerta","Etiqueta","Parpadear","Ancho",
+"Grosor","Velocidad","Ocultar","Lineas","Separacion","Ensanchar"];
+const BARRIBLES=["MinFuerza","MinRVOL","MultiploSL","MultiploTP","MinRecorridoR",
+"FactorGatilloATR","VelasGatillo","PctTendencia","PisoTendencia","MinutosNivelMinimo",
+"RiesgoObjetivoUSD","VidaNivelVelas"];
+
+/* ===== lector de C# ===== */
+function limpiar(s){let o="",i=0,st="c";while(i<s.length){const c=s[i],n=s[i+1]||"";
+if(st==="c"){if(c==="/"&&n==="/"){st="l";i+=2;continue}if(c==="/"&&n==="*"){st="b";i+=2;continue}
+if(c==='"'){o+=" ";st="s";i++;continue}if(c==="'"){o+=" ";st="h";i++;continue}o+=c;i++;continue}
+if(st==="l"){if(c==="\n"){st="c";o+="\n"}i++;continue}
+if(st==="b"){if(c==="*"&&n==="/"){st="c";i+=2;continue}i++;continue}
+if(st==="s"){if(c==="\\"){i+=2;continue}if(c==='"')st="c";i++;continue}
+if(st==="h"){if(c==="\\"){i+=2;continue}if(c==="'")st="c";i++;continue}}return o}
+
+function leerCS(src){
+  const L=limpiar(src);
+  const mc=L.match(/public\s+class\s+(\w+)\s*:\s*(Indicator|Strategy)\b/);
+  const mv=src.match(/VERSION\s*=\s*"([^"]+)"/);
+  const def={};const pr=L.split("State.SetDefaults");
+  if(pr.length>1){const bl=pr[1].split("else if (State")[0];
+    const re=/(\w+)\s*=\s*([^;=]+);/g;let m;while((m=re.exec(bl))!==null)def[m[1]]=m[2].trim();}
+  const props=[];
+  const rp=/((?:\[[^\]]*\]\s*)+)public\s+(int|double|bool|string|Brush)\s+(\w+)\s*\{\s*get;\s*set;\s*\}/g;
+  let p;while((p=rp.exec(src))!==null){
+    const a=p[1],t=p[2],n=p[3];
+    if(a.indexOf("Browsable(false)")!==-1)continue;
+    const d=a.match(/Display\s*\(([\s\S]*?)\)\]/),cu=d?d[1]:"";
+    const mn=cu.match(/Name\s*=\s*"([^"]*)"/),mo=cu.match(/Order\s*=\s*(\d+)/),
+          mg=cu.match(/GroupName\s*=\s*"([^"]*)"/),mr=a.match(/Range\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)/);
+    props.push({nombre:n,tipo:t,etiqueta:mn?mn[1]:n,orden:mo?+mo[1]:999,
+      grupo:mg?mg[1]:"Sin grupo",min:mr?+mr[1]:null,max:mr?+mr[2]:null,
+      def:def[n]!==undefined?def[n]:""});
+  }
+  return {clase:mc?mc[1]:"(sin clase)",tipo:mc?mc[2]:"?",version:mv?mv[1]:"sin version",props:props};
+}
+function clasificar(p){
+  if(MOTOR_USA.has(p.nombre))return "M";
+  if(p.tipo==="Brush"||GRUPOS_VIS.has(p.grupo))return "V";
+  for(const x of PREF_VIS)if(p.nombre.indexOf(x)===0)return "V";
+  return "F";
+}
+
+/* ===== estado ===== */
+let CS=null,VELAS=null,RES=null;
+const $=id=>document.getElementById(id);
+function avisar(t,mal){const a=$("aviso");a.textContent=t;a.className="aviso"+(mal?" mal":"");}
+
+/* ===== carga ===== */
+function conectar(dropId,inputId,fn){
+  const d=$(dropId),i=$(inputId);
+  d.addEventListener("click",()=>i.click());
+  d.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();i.click()}});
+  i.addEventListener("change",e=>{if(e.target.files[0])fn(e.target.files[0])});
+  ["dragenter","dragover"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add("sobre")}));
+  ["dragleave","drop"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove("sobre")}));
+  d.addEventListener("drop",e=>{if(e.dataTransfer.files[0])fn(e.dataTransfer.files[0])});
+}
+function leerArchivo(f,fn,err){
+  const r=new FileReader();
+  r.onload=e=>{try{fn(e.target.result)}catch(x){avisar(err+" "+x.message,true)}};
+  r.onerror=()=>avisar(T().errArchivo,true);
+  r.readAsText(f);
+}
+conectar("dropCS","fCS",f=>leerArchivo(f,txt=>{
+  const d=leerCS(txt);
+  if(!d.props.length){avisar(T().sinProps,true);return}
+  CS=d;
+  $("dropCS").classList.add("listo");
+  $("gCS").textContent=d.clase+" "+d.version;
+  $("cCS").textContent=d.props.length+" "+T().params;
+  pintarCobertura();pintarParams();listarBarrido();
+  avisar(T().csOK.replace("{n}",d.props.length),false);
+  revisar();
+},T().errLeer));
+conectar("dropCSV","fCSV",f=>leerArchivo(f,txt=>{
+  const v=MotorMNQ.leerVelas(txt);
+  if(v.length<500){avisar(T().pocasVelas,true);return}
+  VELAS=v;
+  const f1=new Date(v[0].t).toISOString().slice(0,10),
+        f2=new Date(v[v.length-1].t).toISOString().slice(0,10);
+  $("dropCSV").classList.add("listo");
+  $("gCSV").textContent=v.length.toLocaleString()+" "+T().velas;
+  $("cCSV").textContent=f1+"  →  "+f2;
+  avisar(T().csvOK.replace("{n}",v.length.toLocaleString()),false);
+  revisar();
+},T().errLeer));
+function revisar(){
+  const ok=!!(CS&&VELAS);
+  $("btnCorrer").disabled=!ok;
+  ["secCob","secParam","secCorrer"].forEach(s=>{if(CS)$(s).classList.remove("oculto")});
+}
+
+/* ===== cobertura ===== */
+function pintarCobertura(){
+  const c={M:0,V:0,F:0};
+  CS.props.forEach(p=>{p.est=clasificar(p);c[p.est]++});
+  const t=CS.props.length||1;
+  $("bm").style.width=100*c.M/t+"%";$("bv").style.width=100*c.V/t+"%";
+  $("bf").style.width=100*c.F/t+"%";
+  $("nm").textContent=c.M;$("nv").textContent=c.V;$("nf").textContent=c.F;
+  $("idCS").textContent=CS.clase+" · "+CS.tipo;
+  const f=CS.props.filter(p=>p.est==="F").map(p=>p.nombre);
+  $("notaFaltan").textContent=f.length?T().faltanTxt+" "+f.join(", "):T().nadaFalta;
+}
+
+/* ===== panel de parametros ===== */
+function valIni(p){
+  if(p.tipo==="bool")return /true/i.test(p.def)?"true":"false";
+  if(p.tipo==="Brush"||p.tipo==="string")return p.def;
+  const n=parseFloat(p.def);return isNaN(n)?"":String(n);
+}
+function pintarParams(){
+  const cont=$("grupos");cont.innerHTML="";
+  const g={};CS.props.forEach(p=>{(g[p.grupo]=g[p.grupo]||[]).push(p)});
+  Object.keys(g).sort((a,b)=>{const x=parseInt(a,10),y=parseInt(b,10);
+    return(!isNaN(x)&&!isNaN(y)&&x!==y)?x-y:a.localeCompare(b)}).forEach(k=>{
+    const d=document.createElement("div");d.className="grupo";
+    const t=document.createElement("div");t.className="gt";t.textContent=k;d.appendChild(t);
+    g[k].sort((a,b)=>a.orden-b.orden).forEach(p=>{
+      const fi=document.createElement("div");fi.className="fila";
+      const lb=document.createElement("label");lb.setAttribute("for","i_"+p.nombre);
+      lb.textContent=p.etiqueta;
+      const nm=document.createElement("span");nm.className="nm";nm.textContent=p.nombre;
+      lb.appendChild(nm);
+      let inp;
+      if(p.tipo==="bool"){inp=document.createElement("select");
+        ["true","false"].forEach(v=>{const o=document.createElement("option");
+          o.value=v;o.textContent=v;inp.appendChild(o)})}
+      else if(p.tipo==="Brush"||p.tipo==="string"){inp=document.createElement("input");inp.type="text"}
+      else{inp=document.createElement("input");inp.type="number";
+        inp.step=p.tipo==="int"?"1":"any";
+        if(p.min!==null)inp.min=p.min;if(p.max!==null)inp.max=p.max}
+      inp.id="i_"+p.nombre;inp.value=valIni(p);p.valor=inp.value;
+      inp.addEventListener("input",()=>{p.valor=inp.value});
+      if(p.est!=="M")inp.disabled=true;
+      const e=document.createElement("div");e.className="est "+p.est;
+      e.textContent=T().est[p.est];
+      fi.appendChild(lb);fi.appendChild(inp);fi.appendChild(e);d.appendChild(fi)});
+    cont.appendChild(d)});
+}
+function listarBarrido(){
+  const s=$("barrer");s.innerHTML="";
+  const o0=document.createElement("option");o0.value="";o0.textContent=T().ninguno;s.appendChild(o0);
+  CS.props.filter(p=>p.est==="M"&&BARRIBLES.indexOf(p.nombre)!==-1).forEach(p=>{
+    const o=document.createElement("option");o.value=p.nombre;o.textContent=p.etiqueta;s.appendChild(o)});
+}
+function paquete(){
+  const P={};
+  CS.props.forEach(p=>{
+    let v=p.valor;
+    if(p.tipo==="bool")v=(v==="true");
+    else if(p.tipo!=="Brush"&&p.tipo!=="string"){const n=parseFloat(v);v=isNaN(n)?0:n}
+    P[p.nombre]=v});
+  ["PisoTendencia","MinutosNivelMinimo","MaxContratos","RiesgoObjetivoUSD","MinutosTF4"]
+    .forEach(k=>{if(P[k]===undefined)P[k]=k==="MinutosNivelMinimo"?1:0});
+  if(P.UsarTF4===undefined)P.UsarTF4=false;
+  return P;
+}
+
+/* ===== correr ===== */
+$("btnCorrer").addEventListener("click",()=>{
+  const b=$("btnCorrer");b.disabled=true;b.textContent=T().corriendo;
+  setTimeout(()=>{
+    try{
+      const P=paquete(),modo=$("modo").value;
+      RES=MotorMNQ.correr(VELAS,P,{modo:modo});
+      if(RES.error){avisar(RES.error,true);return}
+      const cual=$("barrer").value;
+      RES.barrido=cual?barrer(P,modo,cual):null;
+      pintarRes();
+      $("secRes").classList.remove("oculto");
+      $("btnJSON").disabled=false;
+      $("secRes").scrollIntoView({behavior:"smooth",block:"start"});
+      avisar(T().listo,false);
+    }catch(e){avisar(T().errCorrer+" "+e.message,true)}
+    finally{b.disabled=false;b.textContent=T().correr}
+  },40);
+});
+function barrer(P,modo,nombre){
+  const p=CS.props.find(x=>x.nombre===nombre);
+  const base=parseFloat(p.valor)||0;
+  const pasos=[];
+  const ent=(p.tipo==="int");
+  for(let k=-3;k<=3;k++){
+    let v = ent ? Math.max(1,Math.round(base+k*Math.max(1,Math.round(base*0.25))))
+                : +(base*(1+k*0.25)).toFixed(4);
+    if(p.min!==null&&v<p.min)v=p.min;
+    if(p.max!==null&&v>p.max)v=p.max;
+    if(pasos.indexOf(v)===-1)pasos.push(v);
+  }
+  return pasos.sort((a,b)=>a-b).map(v=>{
+    const Q=Object.assign({},P);Q[nombre]=v;
+    const R=MotorMNQ.correr(VELAS,Q,{modo:modo});
+    return {v:v,pf:R.total.pf,n:R.total.n,r:R.total.r};
+  });
+}
+
+/* ===== reporte ===== */
+function pintarRes(){
+  const t=RES.total,f=RES.fuera;
+  let cls,txt,sub;
+  if(t.n<100){cls="duda";txt=T().vMuestra;sub=T().vMuestraSub.replace("{n}",t.n)}
+  else if(t.pf>=1.2&&f.pf>=1.0&&RES.tramos.filter(x=>x.pf>=1).length>=3){
+    cls="si";txt=T().vSi;sub=T().vSiSub}
+  else if(t.pf<1){cls="no";txt=T().vNo;sub=T().vNoSub}
+  else{cls="duda";txt=T().vDuda;sub=T().vDudaSub}
+  $("vered").className="vered "+cls;$("vered").textContent=txt;$("veredsub").textContent=sub;
+
+  const m=[[t.n,T().mTrades],[t.pf.toFixed(2),"Profit Factor"],[t.r.toFixed(1),T().mR],
+    [t.rTrade.toFixed(3),T().mRT],[t.acierto.toFixed(1)+"%",T().mAcierto],
+    ["$"+Math.round(t.usd).toLocaleString(),T().mNeto],
+    ["$"+Math.round(t.costos).toLocaleString(),T().mCostos],
+    [t.dd.toFixed(1)+"R",T().mDD]];
+  if(RES.contratos)m.push([RES.contratos.min+"-"+RES.contratos.max,T().mCtr]);
+  $("met").innerHTML=m.map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
+
+  curva();
+  const fila=(n,x)=>`<tr><td>${n}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>${x.acierto.toFixed(0)}%</td></tr>`;
+  let h=`<tr><th>${T().hFamilia}</th><th>n</th><th>PF</th><th>R</th><th>%</th></tr>`;
+  h+=fila(T().hDentro,RES.dentro)+fila(T().hFuera,RES.fuera);
+  for(const k in RES.porRegimen)h+=fila(k,RES.porRegimen[k]);
+  for(const k in RES.porEspacio)h+=fila(k==="estrecha"?T().hEstrecha:T().hEspacio,RES.porEspacio[k]);
+  for(const k in RES.porTF)h+=fila(T().hNivel+" "+k,RES.porTF[k]);
+  $("tDesg").innerHTML=h;
+
+  $("tRob").innerHTML=`<tr><th>${T().hTramo}</th><th>n</th><th>PF</th><th>R</th></tr>`+
+    RES.tramos.map((x,i)=>`<tr><td>${i+1}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td></tr>`).join("");
+
+  if(RES.barrido){
+    $("wrapBarrido").classList.remove("oculto");
+    const pf=RES.barrido.map(x=>x.pf),dif=Math.max(...pf)-Math.min(...pf);
+    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th></tr>`+
+      RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td></tr>`).join("")+
+      `<tr><td colspan="4" style="color:${dif>0.6?'var(--rojo)':'var(--jade)'}">${dif>0.6?T().sPico:T().sMeseta} (${dif.toFixed(2)})</td></tr>`;
+  } else $("wrapBarrido").classList.add("oculto");
+}
+function curva(){
+  const c=RES.curva,s=$("svg");
+  if(!c.length){s.innerHTML="";return}
+  const W=900,H=190,mn=Math.min(0,...c),mx=Math.max(0,...c),rg=(mx-mn)||1;
+  const x=i=>i*W/Math.max(1,c.length-1),y=v=>H-8-((v-mn)/rg)*(H-16);
+  let d="M "+x(0)+" "+y(c[0]);
+  for(let i=1;i<c.length;i++)d+=" L "+x(i).toFixed(1)+" "+y(c[i]).toFixed(1);
+  const cero=y(0),corte=x(Math.floor(c.length*0.7));
+  s.innerHTML=
+   `<line x1="0" y1="${cero}" x2="${W}" y2="${cero}" stroke="#2C333C" stroke-width="1"/>`+
+   `<line x1="${corte}" y1="0" x2="${corte}" y2="${H}" stroke="#E8A33D" stroke-width="1" stroke-dasharray="4 4"/>`+
+   `<path d="${d}" fill="none" stroke="${c[c.length-1]>=0?'#4FB286':'#D8544F'}" stroke-width="1.6"/>`;
+}
+$("btnJSON").addEventListener("click",()=>{
+  const o={indicador:CS.clase,version:CS.version,modo:$("modo").value,
+    parametros:paquete(),resultado:RES};
+  const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);
+  a.download=CS.clase+"_"+CS.version.replace(/[^\w.]/g,"")+"_backtest.json";
+  a.click();URL.revokeObjectURL(a.href);
+});
+
+/* ===== bilingue ===== */
+const I18N={es:{titulo:"Lab MNQ",sub:"Sube el indicador y sus velas. El motor corre lo que dice el .cs.",
+cabCarga:"Carga",subeCS:"1 · Indicador .cs",subeCS2:"MomentumVolumen.cs o el que quieras probar",
+subeCSV:"2 · Velas de 1 minuto",subeCSV2:"CSV o TXT exportado de NinjaTrader",
+cabCob:"Cobertura del motor",enMotor:"en el motor",soloVis:"solo visual",faltan:"sin usar",
+cabParam:"Parámetros del .cs",cabCorrer:"Correr",queOperar:"Qué operar",
+mAmbos:"Ambos regímenes",mTend:"Solo tendencia",mLat:"Solo lateral",
+barrerLbl:"Barrer un parámetro",ninguno:"Ninguno",correr:"Correr backtest",
+corriendo:"Corriendo…",bajarJSON:"Descargar JSON",cabRes:"Resultado",curva:"Curva en R",
+curvaNota:"La línea vertical marca el corte 70/30. Lo de la derecha es la prueba honesta.",
+desglose:"Desglose",robustez:"Robustez en el tiempo",sens:"Sensibilidad",
+sensNota:"Busca una meseta, no un pico. Si el PF sube mientras los trades se desploman, estás midiendo una muestra chica, no una ventaja.",
+pie:"El motor implementa el embudo del .cs: niveles multi-temporalidad, niveles de sesión, régimen, gatillo, print-through, filtro de espacio y tamaño por riesgo. Los parámetros marcados \"sin usar\" son visuales o todavía no están en el motor. Resultados pasados no garantizan resultados futuros.",
+est:{M:"motor",V:"visual",F:"—"},params:"parámetros",velas:"velas",
+csOK:"Leídos {n} parámetros del .cs.",csvOK:"Cargadas {n} velas.",
+sinProps:"No encontré propiedades NinjaScript en ese archivo.",
+pocasVelas:"Muy pocas velas para un backtest.",errLeer:"No pude leer el archivo:",
+errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:"Listo.",
+faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
+mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
+mCostos:"costos",mDD:"drawdown",mCtr:"contratos",
+hFamilia:"familia",hDentro:"dentro (70%)",hFuera:"fuera (30%)",hTramo:"tramo",
+hEstrecha:"estrechas",hEspacio:"con espacio",hNivel:"nivel",
+vSi:"Aguanta",vSiSub:"PF por encima de 1.2, la muestra fuera no se cae y al menos 3 de los 4 tramos no pierden.",
+vNo:"No aguanta",vNoSub:"El Profit Factor está por debajo de 1. Con estos parámetros el sistema pierde.",
+vDuda:"No concluyente",vDudaSub:"Hay ventaja dentro de muestra pero se debilita fuera o en algún tramo. Con esto no se opera en vivo.",
+vMuestra:"Muestra insuficiente",vMuestraSub:"Solo {n} operaciones. Por debajo de 100 el Profit Factor es ruido, sea alto o bajo. Afloja los filtros o consigue más datos.",
+sMeseta:"Meseta: la diferencia entre extremos es chica, no parece ruido",
+sPico:"Pico: la diferencia entre extremos es grande, probablemente estás ajustando a la muestra"},
+en:{titulo:"MNQ Lab",sub:"Upload the indicator and its bars. The engine runs what the .cs says.",
+cabCarga:"Load",subeCS:"1 · Indicator .cs",subeCS2:"MomentumVolumen.cs or any you want to test",
+subeCSV:"2 · One-minute bars",subeCSV2:"CSV or TXT exported from NinjaTrader",
+cabCob:"Engine coverage",enMotor:"in the engine",soloVis:"display only",faltan:"unused",
+cabParam:"Parameters from the .cs",cabCorrer:"Run",queOperar:"What to trade",
+mAmbos:"Both regimes",mTend:"Trend only",mLat:"Range only",
+barrerLbl:"Sweep a parameter",ninguno:"None",correr:"Run backtest",
+corriendo:"Running…",bajarJSON:"Download JSON",cabRes:"Result",curva:"Equity in R",
+curvaNota:"The vertical line marks the 70/30 split. What's to the right is the honest test.",
+desglose:"Breakdown",robustez:"Robustness over time",sens:"Sensitivity",
+sensNota:"Look for a plateau, not a peak. If PF climbs while the trade count collapses, you're measuring a small sample, not an edge.",
+pie:"The engine implements the funnel from the .cs: multi-timeframe levels, session levels, regime, trigger, print-through, space filter and risk-based sizing. Parameters marked \"unused\" are display-only or not in the engine yet. Past results do not guarantee future results.",
+est:{M:"engine",V:"display",F:"—"},params:"parameters",velas:"bars",
+csOK:"Read {n} parameters from the .cs.",csvOK:"Loaded {n} bars.",
+sinProps:"No NinjaScript properties found in that file.",
+pocasVelas:"Too few bars for a backtest.",errLeer:"Couldn't read the file:",
+errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Done.",
+faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
+mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
+mCostos:"costs",mDD:"drawdown",mCtr:"contracts",
+hFamilia:"family",hDentro:"in-sample (70%)",hFuera:"out-of-sample (30%)",hTramo:"segment",
+hEstrecha:"tight",hEspacio:"with room",hNivel:"level",
+vSi:"Holds up",vSiSub:"PF above 1.2, the out-of-sample doesn't collapse and at least 3 of 4 segments don't lose.",
+vNo:"Doesn't hold",vNoSub:"Profit Factor is below 1. With these parameters the system loses.",
+vDuda:"Inconclusive",vDudaSub:"There's an edge in-sample but it weakens out-of-sample or in a segment. Not enough to trade live.",
+vMuestra:"Sample too small",vMuestraSub:"Only {n} trades. Below 100 the Profit Factor is noise, high or low. Loosen the filters or get more data.",
+sMeseta:"Plateau: the spread between extremes is small, doesn't look like noise",
+sPico:"Peak: the spread between extremes is large, you're probably curve fitting"}};
+let idioma="es";function T(){return I18N[idioma]}
+$("lang").addEventListener("click",()=>{
+  idioma=idioma==="es"?"en":"es";
+  $("lang").textContent=idioma==="es"?"EN":"ES";
+  document.documentElement.lang=idioma;
+  document.querySelectorAll("[data-i]").forEach(el=>{
+    const k=el.getAttribute("data-i");if(T()[k])el.textContent=T()[k]});
+  if(CS){pintarCobertura();pintarParams();listarBarrido()}
+  if(RES)pintarRes();
+});
+
+</script>
+</body></html>
