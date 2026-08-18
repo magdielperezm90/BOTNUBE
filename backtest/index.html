@@ -283,57 +283,100 @@ const TICK=0.25, VALOR_PUNTO=2;   // MNQ
 let bars=[], res=null;
 
 /* ═══════════ CARGA DEL CSV ═══════════ */
-function parsear(texto){
-  const lineas=texto.split(/\r?\n/).filter(l=>l.trim().length>0);
-  if(lineas.length<10) throw new Error('archivo muy corto');
+let diagCSV = '';
 
-  let sep=';';
-  const cand=[',',';','\t','|'];
-  let mejor=0;
-  cand.forEach(c=>{const n=lineas[Math.floor(lineas.length/2)].split(c).length; if(n>mejor){mejor=n;sep=c;}});
+const limpiar = s => (s||'').trim().replace(/^"|"$/g,'').trim();
 
-  let inicio=0, mapa={t:0,o:1,h:2,l:3,c:4,v:5};
-  const cab=lineas[0].toLowerCase();
-  if(/[a-z]{3,}/.test(cab) && !/^\d/.test(lineas[0].trim())){
-    inicio=1;
-    const cols=cab.split(sep).map(x=>x.trim().replace(/"/g,''));
-    const buscar=(...ns)=>{for(const n of ns){const i=cols.findIndex(c=>c===n||c.includes(n));if(i>=0)return i;}return -1;};
-    const it=buscar('time','date','fecha','datetime','timestamp');
-    const io=buscar('open','apertura');
-    const ih=buscar('high','maximo','máximo');
-    const il=buscar('low','minimo','mínimo');
-    const ic=buscar('close','cierre','last');
-    const iv=buscar('volume','volumen','vol');
-    if(it>=0&&io>=0&&ih>=0&&il>=0&&ic>=0) mapa={t:it,o:io,h:ih,l:il,c:ic,v:iv>=0?iv:-1};
+function aNum(s){
+  s = limpiar(s);
+  if (/^-?\d{1,3}(\.\d{3})+,\d+$/.test(s)) s = s.replace(/\./g,'').replace(',','.');  // 21.000,50
+  else if (/^-?\d+,\d+$/.test(s))          s = s.replace(',','.');                     // 21000,50
+  else if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(s)) s = s.replace(/,/g,'');             // 21,000.50
+  const v = parseFloat(s);
+  return isFinite(v) ? v : NaN;
+}
+const esNum = s => !isNaN(aNum(s)) && /\d/.test(limpiar(s));
+
+function aFecha(s, s2){
+  let a = limpiar(s), b = limpiar(s2||'');
+  // fecha y hora en columnas separadas
+  if (b && /^\d{1,2}[:.]\d{2}([:.]\d{2})?$/.test(b)) a = a + ' ' + b.replace(/\./g,':');
+  const compacto = a.replace(/\s+/g,'');
+
+  if (/^\d{8}\d{6}$/.test(compacto))
+    return new Date(+compacto.slice(0,4), +compacto.slice(4,6)-1, +compacto.slice(6,8),
+                    +compacto.slice(8,10), +compacto.slice(10,12), +compacto.slice(12,14));
+  if (/^\d{8}$/.test(compacto))
+    return new Date(+compacto.slice(0,4), +compacto.slice(4,6)-1, +compacto.slice(6,8));
+  if (/^\d{10}$/.test(compacto)) return new Date(+compacto*1000);
+  if (/^\d{13}$/.test(compacto)) return new Date(+compacto);
+
+  // dd/MM/yyyy o MM/dd/yyyy con hora opcional
+  let m = a.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[ T]?(\d{1,2})?:?(\d{2})?:?(\d{2})?/);
+  if (m){
+    let d1 = +m[1], d2 = +m[2];
+    let dia = d1 > 12 ? d1 : d2, mes = d1 > 12 ? d2 : d1;   // si uno pasa de 12, ese es el dia
+    return new Date(+m[3], mes-1, dia, +(m[4]||0), +(m[5]||0), +(m[6]||0));
   }
+  const d = new Date(a.replace(' ','T'));
+  if (!isNaN(d)) return d;
+  return new Date(a);
+}
+const esFecha = (s,s2) => { const d = aFecha(s,s2); return d instanceof Date && !isNaN(d); };
 
-  const fecha=s=>{
-    s=s.trim().replace(/"/g,'');
-    if(/^\d{8}[ T]?\d{6}$/.test(s.replace(/\s/g,''))){
-      const x=s.replace(/\s/g,'');
-      return new Date(+x.slice(0,4),+x.slice(4,6)-1,+x.slice(6,8),+x.slice(8,10),+x.slice(10,12),+x.slice(12,14));
-    }
-    if(/^\d{10}$/.test(s)) return new Date(+s*1000);
-    if(/^\d{13}$/.test(s)) return new Date(+s);
-    const d=new Date(s.replace(' ','T'));
-    if(!isNaN(d)) return d;
-    return new Date(s);
-  };
+function parsear(texto){
+  const lineas = texto.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  diagCSV = lineas.slice(0,3).join('\n');
+  if (lineas.length < 20) throw new Error('el archivo tiene ' + lineas.length + ' lineas');
 
-  const out=[];
-  for(let i=inicio;i<lineas.length;i++){
-    const p=lineas[i].split(sep);
-    if(p.length<5) continue;
-    const d=fecha(p[mapa.t]);
-    if(isNaN(d)) continue;
-    const o=parseFloat(p[mapa.o]), h=parseFloat(p[mapa.h]),
-          l=parseFloat(p[mapa.l]), c=parseFloat(p[mapa.c]);
-    const v=mapa.v>=0?parseFloat(p[mapa.v]):1;
-    if(![o,h,l,c].every(isFinite)) continue;
-    out.push({t:d.getTime(),o,h,l,c,v:isFinite(v)?v:1});
+  // --- separador: el que parta de forma consistente en 5+ columnas ---
+  const muestra = lineas.slice(Math.floor(lineas.length/2), Math.floor(lineas.length/2)+30);
+  let sep = null, mejor = 0;
+  for (const c of [';','\t',',','|',' ']){
+    const cuentas = muestra.map(l => l.split(c).length);
+    const moda = cuentas.sort((a,b)=>cuentas.filter(x=>x===a).length - cuentas.filter(x=>x===b).length).pop();
+    const consistentes = muestra.filter(l => l.split(c).length === moda).length;
+    if (moda >= 5 && consistentes >= muestra.length*0.8 && moda > mejor){ mejor = moda; sep = c; }
+  }
+  if (!sep) throw new Error('no reconozco el separador de columnas');
+
+  // --- primera fila de datos (saltar cabecera si la hay) ---
+  let inicio = 0;
+  while (inicio < 5 && !esFecha(lineas[inicio].split(sep)[0], lineas[inicio].split(sep)[1])) inicio++;
+  if (inicio >= 5) throw new Error('no encuentro una columna de fecha');
+
+  // --- mapa de columnas por tipo ---
+  const ref = lineas[inicio].split(sep);
+  let colHora = -1;
+  if (ref.length > 1 && /^\d{1,2}[:.]\d{2}/.test(limpiar(ref[1]))) colHora = 1;
+  const primeraNum = colHora >= 0 ? 2 : 1;
+
+  const nums = [];
+  for (let i = primeraNum; i < ref.length; i++) if (esNum(ref[i])) nums.push(i);
+  if (nums.length < 4) throw new Error('solo veo ' + nums.length + ' columnas numericas, necesito 4');
+
+  const mapa = { o:nums[0], h:nums[1], l:nums[2], c:nums[3], v: nums.length>4 ? nums[4] : -1 };
+
+  const out = [];
+  let malas = 0;
+  for (let i = inicio; i < lineas.length; i++){
+    const p = lineas[i].split(sep);
+    if (p.length <= mapa.c){ malas++; continue; }
+    const d = aFecha(p[0], colHora>=0 ? p[1] : '');
+    if (isNaN(d)){ malas++; continue; }
+    const o=aNum(p[mapa.o]), h=aNum(p[mapa.h]), l=aNum(p[mapa.l]), c=aNum(p[mapa.c]);
+    if (![o,h,l,c].every(isFinite) || h < l){ malas++; continue; }
+    const v = mapa.v >= 0 ? aNum(p[mapa.v]) : 1;
+    out.push({t:d.getTime(), o, h, l, c, v: isFinite(v) && v>0 ? v : 1});
   }
   out.sort((a,b)=>a.t-b.t);
-  if(out.length<200) throw new Error('pocas velas válidas: '+out.length);
+
+  diagCSV = 'separador "' + (sep==='\t'?'TAB':sep==='  '?'espacio':sep) + '"  ·  columnas O/H/L/C = '
+          + mapa.o + '/' + mapa.h + '/' + mapa.l + '/' + mapa.c
+          + (mapa.v>=0 ? '  vol=' + mapa.v : '  sin volumen')
+          + '  ·  filas descartadas: ' + malas;
+
+  if (out.length < 200) throw new Error('solo ' + out.length + ' velas validas de ' + lineas.length + ' lineas');
   return out;
 }
 
@@ -678,9 +721,18 @@ function cargar(f){
         [idioma==='es'?'Días de calendario':'Calendar days', dias, dias>=60?'jade':'ambar'],
         [idioma==='es'?'Precio final':'Last price', bars[bars.length-1].c.toFixed(2)]
       ]);
+      $('filasDatos').insertAdjacentHTML('beforeend',
+        '<div class="nota" style="font-family:var(--dato);font-size:10.5px">'+diagCSV+'</div>');
       $('zona').querySelector('h2').textContent = (idioma==='es'?'Archivo cargado ✓':'File loaded ✓');
     }catch(err){
-      alert((idioma==='es'?'No pude leer el archivo: ':'Could not read file: ')+err.message);
+      $('resumen').classList.remove('oculto');
+      $('config').classList.add('oculto');
+      $('filasDatos').innerHTML =
+        '<div class="fila"><span class="k">'+(idioma==='es'?'No pude leerlo':'Could not read it')+
+        '</span><span class="v rojo">'+err.message+'</span></div>'+
+        '<div class="nota" style="white-space:pre-wrap;font-family:var(--dato);font-size:11px">'+
+        (idioma==='es'?'Primeras lineas del archivo:\n\n':'First lines of the file:\n\n')+
+        (diagCSV||'').replace(/</g,'&lt;')+'</div>';
     }
   };
   r.readAsText(f);
