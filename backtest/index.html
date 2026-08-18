@@ -232,6 +232,38 @@ footer{text-align:center;padding:20px 0 8px;font-family:var(--dato);font-size:10
       <h3 data-t="desglose">Desglose</h3>
       <div id="filasDesglose"></div>
     </div>
+
+    <div class="seccion">
+      <h3 data-t="robustez">Robustez en el tiempo</h3>
+      <div id="filasRobustez"></div>
+      <div class="nota" data-t="notaRobustez">
+        Un edge real se repite en los cuatro tramos. Si solo uno es bueno y los demás no, ese tramo fue suerte.
+      </div>
+    </div>
+
+    <div class="seccion">
+      <h3 data-t="sensibilidad">Sensibilidad de un parámetro</h3>
+      <div class="campos">
+        <div class="campo ancho">
+          <label data-t="lParam">Parámetro a barrer</label>
+          <select id="param">
+            <option value="minFuerza">Fuerza mínima</option>
+            <option value="minRvol">RVOL mínimo</option>
+            <option value="mulSl">Stop (× ATR)</option>
+            <option value="mulTp">Objetivo (R)</option>
+            <option value="minR">Recorrido mínimo (R)</option>
+            <option value="facGat">Gatillo (× ATR)</option>
+            <option value="velGat">Velas del gatillo</option>
+            <option value="pctTend">% de velas en tendencia</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" id="barrer" style="margin-top:10px" data-t="bBarrer">Barrer</button>
+      <div id="filasSens"></div>
+      <div class="nota" data-t="notaSens">
+        Busca una meseta, no un pico. Si el PF sube y baja sin patrón, estás midiendo ruido y el mejor valor es casualidad.
+      </div>
+    </div>
   </div>
 
   <footer><span data-t="pie">Resultados pasados no garantizan resultados futuros</span></footer>
@@ -255,6 +287,10 @@ const T={es:{
  curva:'Curva de resultados (en R)',
  notaCurva:'La línea vertical marca el corte 70/30. Lo que pasa a la derecha es la prueba honesta.',
  split:'Dentro y fuera de muestra',desglose:'Desglose',
+ robustez:'Robustez en el tiempo',
+ notaRobustez:'Un edge real se repite en los cuatro tramos. Si solo uno es bueno y los demás no, ese tramo fue suerte.',
+ sensibilidad:'Sensibilidad de un parámetro',lParam:'Parámetro a barrer',bBarrer:'Barrer',
+ notaSens:'Busca una meseta, no un pico. Si el PF sube y baja sin patrón, estás midiendo ruido y el mejor valor es casualidad.',
  pie:'Resultados pasados no garantizan resultados futuros'
 },en:{
  titulo:'MNQ Lab',sub:'Level and volume backtest',
@@ -272,6 +308,10 @@ const T={es:{
  curva:'Equity curve (in R)',
  notaCurva:'The vertical line marks the 70/30 split. What happens to the right is the honest test.',
  split:'In sample and out of sample',desglose:'Breakdown',
+ robustez:'Robustness over time',
+ notaRobustez:'A real edge repeats across all four segments. If only one is good, that segment was luck.',
+ sensibilidad:'Parameter sensitivity',lParam:'Parameter to sweep',bBarrer:'Sweep',
+ notaSens:'Look for a plateau, not a peak. If PF jumps around with no pattern, you are measuring noise.',
  pie:'Past results do not guarantee future results'
 }};
 let idioma='es';
@@ -280,7 +320,7 @@ const $=id=>document.getElementById(id);
 const nm=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:0;};
 
 const TICK=0.25, VALOR_PUNTO=2;   // MNQ
-let bars=[], res=null, diagRegimen='';
+let bars=[], res=null, diagRegimen='', ultP=null;
 
 /* ═══════════ CARGA DEL CSV ═══════════ */
 let diagCSV = '';
@@ -633,6 +673,7 @@ function correr(){
 
   setTimeout(()=>{
     const ts=simular(P);
+    ultP=P;
     res=metricas(ts);
     $('progreso').classList.add('oculto');
     if(!res){
@@ -708,6 +749,20 @@ function mostrar(ts,m,P){
   // desglose
   const grupo=(fil,etq)=>{const s=ts.filter(fil);const q=metricas(s);
     return [etq, q?`PF ${fmt(q.pf)} · ${q.n} · ${fmt(q.r,1)}R`:'—', q&&q.pf>=1.3?'jade':(q&&q.pf>=1?'ambar':'rojo')];};
+  // robustez: cuatro tramos cronologicos
+  const tramos=[];
+  for(let k=0;k<4;k++){
+    const a=Math.floor(ts.length*k/4), b2=Math.floor(ts.length*(k+1)/4);
+    const q=metricas(ts.slice(a,b2));
+    tramos.push([(idioma==='es'?'Tramo ':'Segment ')+(k+1),
+      q?`PF ${fmt(q.pf)} · ${q.n} · ${fmt(q.r,1)}R`:'—',
+      q&&q.pf>=1.3?'jade':(q&&q.pf>=1?'ambar':'rojo')]);
+  }
+  const buenos=tramos.filter(x=>x[2]==='jade'||x[2]==='ambar').length;
+  tramos.push([idioma==='es'?'Tramos que no pierden':'Segments not losing', buenos+' / 4',
+    buenos>=3?'jade':(buenos===2?'ambar':'rojo')]);
+  filas($('filasRobustez'),tramos);
+
   filas($('filasDesglose'),[
     grupo(x=>x.regimen===1, idioma==='es'?'En tendencia':'In trend'),
     grupo(x=>x.regimen===-1, idioma==='es'?'En lateral':'In range'),
@@ -758,6 +813,42 @@ $('archivo').addEventListener('change',e=>{ if(e.target.files[0]) cargar(e.targe
 ['dragleave','drop'].forEach(ev=>$('zona').addEventListener(ev,e=>{e.preventDefault();$('zona').classList.remove('activa');}));
 $('zona').addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) cargar(e.dataTransfer.files[0]); });
 $('correr').addEventListener('click',correr);
+
+const RANGOS={
+  minFuerza:[0.3,0.4,0.5,0.6,0.7,0.8],
+  minRvol:[1.0,1.25,1.5,1.75,2.0,2.5],
+  mulSl:[1.0,1.25,1.5,1.75,2.0,2.5],
+  mulTp:[1.0,1.5,2.0,2.5,3.0,4.0],
+  minR:[0.5,1.0,1.5,2.0,2.5,3.0],
+  facGat:[0.2,0.3,0.5,0.7,1.0,1.5],
+  velGat:[1,2,3,5,8,12],
+  pctTend:[10,15,20,25,35,50]
+};
+
+$('barrer').addEventListener('click',()=>{
+  if(!ultP){ alert(idioma==='es'?'Corre primero el backtest':'Run the backtest first'); return; }
+  const clave=$('param').value, vals=RANGOS[clave];
+  $('progreso').classList.remove('oculto');
+  $('progreso').textContent=idioma==='es'?'Barriendo…':'Sweeping…';
+
+  setTimeout(()=>{
+    const out=[];
+    for(const v of vals){
+      const Q=Object.assign({},ultP); Q[clave]=v;
+      const m=metricas(simular(Q));
+      out.push([String(v), m?`PF ${fmt(m.pf)} · ${m.n} · ${fmt(m.r,1)}R`:'—',
+        m&&m.pf>=1.3?'jade':(m&&m.pf>=1?'ambar':'rojo'), m?m.pf:0]);
+    }
+    const pfs=out.map(x=>x[3]).filter(x=>x>0);
+    const disp=pfs.length>1 ? Math.max(...pfs)-Math.min(...pfs) : 0;
+    out.push([idioma==='es'?'Diferencia entre extremos':'Spread across the range',
+      fmt(disp), disp>0.6?'rojo':(disp>0.3?'ambar':'jade')]);
+    if(disp>0.6) out.push([idioma==='es'?'Lectura':'Reading',
+      idioma==='es'?'muy sensible: probable ruido':'very sensitive: likely noise','rojo']);
+    filas($('filasSens'),out.map(x=>[x[0],x[1],x[2]]));
+    $('progreso').classList.add('oculto');
+  },40);
+});
 $('btnIdioma').addEventListener('click',()=>{ idioma=idioma==='es'?'en':'es'; aplicar(); });
 
 function aplicar(){
