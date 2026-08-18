@@ -1,13 +1,13 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-08-14 22:59 UTC",
- "ultima_vela": "2026-08-14",
- "precio_qqq": 731.07,
+ "actualizado": "2026-08-17 22:59 UTC",
+ "ultima_vela": "2026-08-17",
+ "precio_qqq": 729.87,
  "indicadores": {
-  "roc10": 6.26,
-  "valor_smc": 9990.92,
-  "valor_bh": 10097.6,
+  "roc10": 4.26,
+  "valor_smc": 9960.49,
+  "valor_bh": 10081.02,
   "tickers_alcistas": 9,
   "tickers_total": 20
  },
@@ -19,28 +19,28 @@
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 87.71
+    "precio_actual": 86.98
    },
    "SPY": {
     "unidades": 2.63684,
     "costo": 1971.77,
     "entrada": 747.03,
     "fecha": "2026-07-31",
-    "precio_actual": 776.34
+    "precio_actual": 772.67
    },
    "IWM": {
     "unidades": 6.716801,
     "costo": 1991.64,
     "entrada": 296.22,
     "fecha": "2026-08-03",
-    "precio_actual": 305.09
+    "precio_actual": 304.06
    },
    "XLK": {
     "unidades": 10.097903,
     "costo": 1889.19,
     "entrada": 186.9,
     "fecha": "2026-08-04",
-    "precio_actual": 190.01
+    "precio_actual": 190.32
    }
   },
   "operaciones": [
@@ -302,6 +302,12 @@
    "smc": 9990.92,
    "bh": 10097.6,
    "roc10": 6.26
+  },
+  {
+   "fecha": "2026-08-17",
+   "smc": 9960.49,
+   "bh": 10081.02,
+   "roc10": 4.26
   }
  ]
 }
