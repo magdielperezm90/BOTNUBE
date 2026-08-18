@@ -1,6 +1,6 @@
 /* MAGMAX Scanner - service worker
    Cachea la app completa para que funcione sin internet. */
-const CACHE = "magmax-v1";
+const CACHE = "magmax-v2";
 const ARCHIVOS = ["./", "./index.html", "./datos.js", "./manifest.json", "./icon.png"];
 
 self.addEventListener("install", e => {

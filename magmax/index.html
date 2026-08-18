@@ -99,11 +99,13 @@ background:var(--panel);padding:10px 12px;margin-top:14px}
   <div class="cab" data-i="cabCaptura">1 · Captura (opcional)</div>
   <div class="cuerpo">
     <div id="zona" role="button" tabindex="0">
-      <div class="g" id="zt" data-i="subeFoto">Toca para subir la captura</div>
-      <div class="c" data-i="subeFoto2">Se queda en tu teléfono. Sirve para la bitácora.</div>
+      <div class="g" id="zt" data-i="subeFoto">Ctrl+V para pegar la captura</div>
+      <div class="c" data-i="subeFoto2">O toca aquí para elegir un archivo. Se queda en tu equipo.</div>
     </div>
     <input type="file" id="fFoto" accept="image/*">
+    <button class="acc sec" id="btnPegar" type="button" style="margin-top:9px" data-i="btnPegar">Pegar del portapapeles</button>
     <img id="foto" class="oculto" alt="captura">
+    <div id="flash" style="font-size:11.5px;min-height:15px;margin-top:7px"></div>
   </div>
 </section>
 
@@ -174,7 +176,7 @@ function pintar(){
   $("reiniciar").onclick=()=>{
     estructura=evento=null; fotoData=null;
     $("foto").classList.add("oculto"); $("zona").classList.remove("listo");
-    $("zt").textContent=T().subeFoto;
+    $("zt").textContent=T().subeFoto; $("flash").textContent="";
     opciones(); $("secRes").classList.add("oculto");
     window.scrollTo({top:0,behavior:"smooth"});
   };
@@ -195,25 +197,64 @@ function opciones(){
   mk($("q2"),T().op2,evento,v=>evento=v);
 }
 
-/* ---------------- captura ---------------- */
-$("zona").onclick=()=>$("fFoto").click();
-$("fFoto").onchange=e=>{
-  const f=e.target.files[0]; if(!f) return;
+/* ---------------- captura: archivo, Ctrl+V o boton ---------------- */
+function usarImagen(blob){
+  if(!blob||!/^image\//.test(blob.type||"")){ flash(T().noImagen,true); return; }
   const r=new FileReader();
   r.onload=ev=>{
     const im=new Image();
     im.onload=()=>{
       const c=document.createElement("canvas");
       const esc=Math.min(1,900/Math.max(im.width,im.height));
-      c.width=im.width*esc; c.height=im.height*esc;
+      c.width=Math.round(im.width*esc); c.height=Math.round(im.height*esc);
       c.getContext("2d").drawImage(im,0,0,c.width,c.height);
       fotoData=c.toDataURL("image/jpeg",0.6);
       $("foto").src=fotoData; $("foto").classList.remove("oculto");
       $("zona").classList.add("listo"); $("zt").textContent=T().fotoOk;
+      flash(T().pegado,false);
     };
+    im.onerror=()=>flash(T().noImagen,true);
     im.src=ev.target.result;
   };
-  r.readAsDataURL(f);
+  r.onerror=()=>flash(T().noImagen,true);
+  r.readAsDataURL(blob);
+}
+function flash(txt,mal){
+  const e=$("flash"); e.textContent=txt;
+  e.style.color=mal?"var(--rojo)":"var(--jade)";
+  clearTimeout(flash._t); flash._t=setTimeout(()=>{e.textContent="";},2600);
+}
+$("zona").onclick=()=>$("fFoto").click();
+$("fFoto").onchange=e=>{ if(e.target.files[0]) usarImagen(e.target.files[0]); };
+
+/* Ctrl+V en cualquier parte de la app */
+window.addEventListener("paste",e=>{
+  const it=(e.clipboardData||window.clipboardData);
+  if(!it) return;
+  if(it.files&&it.files.length){ e.preventDefault(); usarImagen(it.files[0]); return; }
+  for(const x of (it.items||[])){
+    if(x.type&&x.type.indexOf("image")===0){ e.preventDefault(); usarImagen(x.getAsFile()); return; }
+  }
+});
+/* arrastrar y soltar */
+["dragenter","dragover"].forEach(ev=>$("zona").addEventListener(ev,e=>{
+  e.preventDefault(); $("zona").style.borderColor="var(--ambar)";
+}));
+["dragleave","drop"].forEach(ev=>$("zona").addEventListener(ev,e=>{
+  e.preventDefault(); $("zona").style.borderColor="";
+}));
+$("zona").addEventListener("drop",e=>{ if(e.dataTransfer.files[0]) usarImagen(e.dataTransfer.files[0]); });
+
+/* boton: para moviles y navegadores donde Ctrl+V no llega */
+$("btnPegar").onclick=async()=>{
+  if(!navigator.clipboard||!navigator.clipboard.read){ flash(T().sinApi,true); return; }
+  try{
+    const items=await navigator.clipboard.read();
+    for(const it of items)
+      for(const tipo of it.types)
+        if(tipo.indexOf("image")===0){ usarImagen(await it.getType(tipo)); return; }
+    flash(T().nadaPortapapeles,true);
+  }catch(err){ flash(T().permiso,true); }
 };
 
 /* ---------------- bitácora ---------------- */
