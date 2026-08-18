@@ -119,9 +119,10 @@ body{
 
 /* ---------- pestañas ---------- */
 .pestanas{
-  display:flex;gap:2px;background:var(--panel2);
+  display:flex;flex-wrap:wrap;gap:2px;background:var(--panel2);
   border-radius:5px;padding:3px;margin-bottom:16px;
 }
+.pestanas button{flex:1 1 30%}
 .pestanas button{
   flex:1;background:transparent;border:0;color:var(--mudo);
   font-family:var(--display);font-size:14px;font-weight:600;
@@ -190,6 +191,84 @@ body{
   font-family:var(--dato);font-size:10px;color:var(--mudo2);letter-spacing:.06em;
 }
 
+/* reloj de sesion */
+.reloj{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--panel);border:1px solid var(--linea);border-radius:6px;
+  padding:10px 13px;margin-bottom:14px;
+}
+.reloj .rk{font-family:var(--dato);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mudo2)}
+.reloj .rv{font-family:var(--dato);font-size:15px;font-weight:600;color:var(--ambar);margin-top:3px}
+.reloj .rv.jade{color:var(--jade)} .reloj .rv.rojo{color:var(--rojo)}
+.reloj > div{min-width:0}
+.reloj > div:last-child{text-align:right}
+
+/* secuencia del simulador */
+.sec-botones{display:flex;gap:8px;margin-bottom:10px}
+.sec-botones button{
+  flex:1;font-family:var(--display);font-weight:600;font-size:14px;
+  letter-spacing:.06em;text-transform:uppercase;padding:11px 0;
+  border-radius:4px;cursor:pointer;border:1px solid var(--linea);background:var(--panel2);color:var(--texto);
+}
+.sec-botones .bg{border-color:var(--jade-tenue);color:var(--jade)}
+.sec-botones .bp{border-color:var(--rojo-tenue);color:var(--rojo)}
+.sec-botones .bx{color:var(--mudo)}
+.sec-cadena{
+  display:flex;flex-wrap:wrap;gap:4px;min-height:26px;margin-bottom:10px;
+}
+.chip{
+  width:22px;height:22px;border-radius:3px;font-family:var(--dato);font-size:11px;
+  display:flex;align-items:center;justify-content:center;font-weight:600;
+}
+.chip.g{background:var(--jade-tenue);color:var(--jade)}
+.chip.p{background:var(--rojo-tenue);color:var(--rojo)}
+
+/* calendario */
+.cal-rejilla{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dia{
+  aspect-ratio:1;border:1px solid var(--linea);border-radius:4px;
+  background:var(--panel2);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;cursor:pointer;padding:2px;
+}
+.cal-dia .cd{font-family:var(--dato);font-size:10px;color:var(--mudo2)}
+.cal-dia .cm{font-family:var(--dato);font-size:9px;font-weight:600}
+.cal-dia.gan{border-color:var(--jade);background:rgba(79,178,134,.16)}
+.cal-dia.gan .cm{color:var(--jade)}
+.cal-dia.chico{border-color:var(--ambar-tenue);background:rgba(232,163,61,.12)}
+.cal-dia.chico .cm{color:var(--ambar)}
+.cal-dia.perd{border-color:var(--rojo-tenue);background:rgba(216,84,79,.12)}
+.cal-dia.perd .cm{color:var(--rojo)}
+
+/* comparador */
+.comp{width:100%;border-collapse:collapse;font-size:13px}
+.comp th{
+  font-family:var(--dato);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--mudo2);font-weight:500;padding:0 6px 8px;border-bottom:1px solid var(--linea);text-align:left;
+}
+.comp th:first-child{width:38%}
+.comp td{padding:9px 6px;border-bottom:1px solid rgba(46,53,66,.5);vertical-align:top}
+.comp td:first-child{color:var(--mudo);font-size:12.5px}
+.comp .ts{color:var(--jade)} .comp .ap{color:var(--ambar)}
+.comp tr.peligro td{background:rgba(216,84,79,.08)}
+
+/* lista de retiros */
+.ret-item{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid rgba(46,53,66,.5);
+}
+.ret-item .rf{font-family:var(--dato);font-size:11px;color:var(--mudo2)}
+.ret-item .rm{font-family:var(--dato);font-size:15px;font-weight:600;color:var(--jade)}
+.ret-item button{
+  background:none;border:0;color:var(--mudo2);font-size:18px;cursor:pointer;padding:0 4px;
+}
+.btn-accion{
+  width:100%;font-family:var(--display);font-weight:600;font-size:15px;
+  letter-spacing:.08em;text-transform:uppercase;padding:12px;margin-top:10px;
+  background:var(--panel2);border:1px solid var(--ambar-tenue);color:var(--ambar);
+  border-radius:4px;cursor:pointer;
+}
+.btn-accion:hover{border-color:var(--ambar)}
+
 .plan-tabla{width:100%;border-collapse:collapse;font-family:var(--dato);font-size:12.5px}
 .plan-tabla th{
   font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mudo2);
@@ -236,6 +315,17 @@ footer{
     <button class="btn-idioma" id="btnIdioma" type="button">EN</button>
   </header>
 
+  <div class="reloj" id="reloj">
+    <div>
+      <div class="rk" data-t="rDia">Día de trading</div>
+      <div class="rv" id="rDiaVal">—</div>
+    </div>
+    <div>
+      <div class="rk" data-t="rCierra">Cierra en</div>
+      <div class="rv" id="rCierraVal">—</div>
+    </div>
+  </div>
+
   <!-- ══════════ ANUNCIADOR ══════════ -->
   <section class="anunciador" id="anunciador" data-estado="espera" aria-live="polite">
     <div class="eyebrow" data-t="veredicto">Veredicto de hoy</div>
@@ -265,6 +355,9 @@ footer{
     <button role="tab" aria-selected="false" data-tab="retiros" data-t="tabRetiros">Retiros</button>
     <button role="tab" aria-selected="false" data-tab="plan" data-t="tabPlan">Plan</button>
     <button role="tab" aria-selected="false" data-tab="riesgo" data-t="tabRiesgo">Riesgo</button>
+    <button role="tab" aria-selected="false" data-tab="sim" data-t="tabSim">Simular</button>
+    <button role="tab" aria-selected="false" data-tab="cal" data-t="tabCal">Días</button>
+    <button role="tab" aria-selected="false" data-tab="comp" data-t="tabComp">vs Apex</button>
   </div>
 
   <!-- ══════════ HOY ══════════ -->
@@ -419,6 +512,13 @@ footer{
       </div>
       <div id="filasNeto"></div>
     </section>
+
+    <section class="seccion">
+      <h3 data-t="registro">Registro de retiros</h3>
+      <button type="button" class="btn-accion" id="retAgregar" data-t="bRegistrar">Registrar este retiro</button>
+      <div id="retLista" style="margin-top:12px"></div>
+      <div id="filasRetTotal"></div>
+    </section>
   </div>
 
   <!-- ══════════ PLAN ══════════ -->
@@ -512,6 +612,60 @@ footer{
     </section>
   </div>
 
+  <!-- ══════════ SIMULADOR ══════════ -->
+  <div id="pan-sim" class="oculto">
+    <section class="seccion">
+      <h3 data-t="secuencia">Arma una secuencia</h3>
+      <div class="sec-botones">
+        <button type="button" class="bg" id="secGana" data-t="bGana">Gano</button>
+        <button type="button" class="bp" id="secPierde" data-t="bPierde">Pierdo</button>
+        <button type="button" class="bx" id="secBorra" data-t="bBorra">Borrar</button>
+      </div>
+      <div class="sec-cadena" id="secCadena"></div>
+      <div id="filasSim"></div>
+      <div id="simAviso"></div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="peorCaso">El peor caso desde hoy</h3>
+      <div id="filasPeor"></div>
+      <div class="nota" data-t="notaPeor">
+        Cuántos stops seguidos aguantas antes de tocar el MLL. Si el número es menor a 3, tu tamaño es demasiado grande para tu colchón.
+      </div>
+    </section>
+  </div>
+
+  <!-- ══════════ CALENDARIO ══════════ -->
+  <div id="pan-cal" class="oculto">
+    <section class="seccion">
+      <h3 data-t="diasGanadores">Días ganadores del ciclo</h3>
+      <div class="campos">
+        <div class="campo ancho">
+          <label data-t="lNuevoDia">Agregar resultado de un día</label>
+          <input type="number" id="calNuevo" inputmode="decimal" step="0.01" placeholder="400">
+        </div>
+      </div>
+      <button type="button" class="btn-accion" id="calAgregar" data-t="bAgregar">Agregar día</button>
+      <div class="cal-rejilla" id="calRejilla" style="margin-top:14px"></div>
+      <div id="filasCal" style="margin-top:12px"></div>
+      <button type="button" class="btn-accion" id="calReset" data-t="bReset">Vaciar ciclo</button>
+    </section>
+  </div>
+
+  <!-- ══════════ COMPARADOR ══════════ -->
+  <div id="pan-comp" class="oculto">
+    <section class="seccion">
+      <h3 data-t="dosReglas">Dos cuentas, dos reglamentos</h3>
+      <table class="comp">
+        <thead><tr><th></th><th>Topstep</th><th>Apex</th></tr></thead>
+        <tbody id="compFilas"></tbody>
+      </table>
+      <div class="nota" data-t="notaComp">
+        La diferencia que cuesta cuentas: en Apex Intraday, una ganancia flotante que se te regresa sube tu umbral para siempre. En Topstep solo cuenta el cierre del día.
+      </div>
+    </section>
+  </div>
+
   <footer>
     <span data-t="pie">No es asesoría financiera · Verifica siempre tu panel de Topstep</span>
   </footer>
@@ -545,6 +699,16 @@ const T = {
     titulo:'Límites operativos', sub:'Topstep · calculadora de reglas',
     veredicto:'Veredicto de hoy', corredorTit:'Corredor del día',
     tabHoy:'Hoy', tabMeta:'Meta', tabRetiros:'Retiros', tabPlan:'Plan', tabRiesgo:'Riesgo',
+    tabSim:'Simular', tabCal:'Días', tabComp:'vs Apex',
+    rDia:'Día de trading', rCierra:'Cierra en',
+    secuencia:'Arma una secuencia', bGana:'Gano', bPierde:'Pierdo', bBorra:'Borrar',
+    peorCaso:'El peor caso desde hoy',
+    notaPeor:'Cuántos stops seguidos aguantas antes de tocar el MLL. Si el número es menor a 3, tu tamaño es demasiado grande para tu colchón.',
+    diasGanadores:'Días ganadores del ciclo', lNuevoDia:'Agregar resultado de un día',
+    bAgregar:'Agregar día', bReset:'Vaciar ciclo',
+    dosReglas:'Dos cuentas, dos reglamentos',
+    notaComp:'La diferencia que cuesta cuentas: en Apex Intraday, una ganancia flotante que se te regresa sube tu umbral para siempre. En Topstep solo cuenta el cierre del día.',
+    registro:'Registro de retiros', bRegistrar:'Registrar este retiro',
     deDonde:'De dónde a dónde', lBalHoy:'Balance de hoy', lBalMeta:'Balance objetivo',
     lWinRate:'Tu tasa de acierto por sesión (%)',
     pistaWr:'Sé honesto. Cuenta tus sesiones verdes entre el total.',
@@ -577,6 +741,16 @@ const T = {
     titulo:'Operating limits', sub:'Topstep · rules calculator',
     veredicto:"Today's verdict", corredorTit:"Today's corridor",
     tabHoy:'Today', tabMeta:'Target', tabRetiros:'Payouts', tabPlan:'Plan', tabRiesgo:'Risk',
+    tabSim:'Simulate', tabCal:'Days', tabComp:'vs Apex',
+    rDia:'Trading day', rCierra:'Closes in',
+    secuencia:'Build a sequence', bGana:'Win', bPierde:'Lose', bBorra:'Clear',
+    peorCaso:'Worst case from today',
+    notaPeor:'How many consecutive stops you survive before hitting the MLL. Below 3, your size is too big for your cushion.',
+    diasGanadores:'Winning days this cycle', lNuevoDia:"Add a day's result",
+    bAgregar:'Add day', bReset:'Clear cycle',
+    dosReglas:'Two accounts, two rulebooks',
+    notaComp:'The difference that costs accounts: on Apex Intraday, an open profit that comes back raises your threshold forever. On Topstep only the daily close counts.',
+    registro:'Payout log', bRegistrar:'Log this payout',
     deDonde:'From where to where', lBalHoy:"Today's balance", lBalMeta:'Target balance',
     lWinRate:'Your win rate per session (%)',
     pistaWr:'Be honest. Count your green sessions over the total.',
@@ -607,6 +781,9 @@ const T = {
   }
 };
 let idioma = 'es';
+let secuencia = [];   // 'g' | 'p'
+let diasCiclo = [];   // resultados por dia
+let retiros   = [];   // {f: fecha, n: neto}
 const t = k => (T[idioma][k] || T.es[k] || k);
 
 /* ═══════════════ UTILIDADES ═══════════════ */
@@ -951,6 +1128,143 @@ function render(){
   }
   $('planFilas').innerHTML = html || `<tr><td colspan="4" style="text-align:center;color:var(--mudo2);padding:14px 0">${idioma==='es'?'Ajusta el objetivo del día en la pestaña Hoy':'Set your daily target in the Today tab'}</td></tr>`;
 
+  /* ---- reloj de sesión Topstep (día corre 17:00 CT → 16:00 CT) ---- */
+  (function(){
+    const ahora = new Date();
+    const ct = new Date(ahora.toLocaleString('en-US',{timeZone:'America/Chicago'}));
+    const h = ct.getHours(), m = ct.getMinutes();
+    // el día de trading arranca a las 17:00 CT del día anterior
+    const dt = new Date(ct);
+    if (h >= 17) dt.setDate(dt.getDate() + 1);
+    const nombres = idioma==='es'
+      ? ['domingo','lunes','martes','miércoles','jueves','viernes','sábado']
+      : ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const dia = nombres[dt.getDay()];
+    $('rDiaVal').textContent = dia.charAt(0).toUpperCase()+dia.slice(1)+' '+dt.getDate();
+
+    // minutos hasta el cierre (16:00 CT)
+    let mins = (16*60) - (h*60+m);
+    if (mins <= 0) mins += 24*60;
+    const hh = Math.floor(mins/60), mm = mins%60;
+    const cv = $('rCierraVal');
+    cv.textContent = hh+'h '+String(mm).padStart(2,'0')+'m';
+    cv.className = 'rv ' + (mins < 60 ? 'rojo' : mins < 180 ? '' : 'jade');
+
+    // domingo/lunes = mismo día de trading
+    if (dt.getDay() === 1){
+      $('rDiaVal').textContent += idioma==='es' ? ' · incluye domingo' : ' · includes Sunday';
+    }
+  })();
+
+  /* ---- simulador de secuencias ---- */
+  const balSim0 = num('planDesde');
+  let bS = balSim0, pS = Math.min(inicial, balSim0 - P.mll), muerto = false, muertoEn = 0;
+  secuencia.forEach((r, i) => {
+    if (muerto) return;
+    bS += (r === 'g' ? objetivo : -stopPersonal);
+    if (bS <= pS){ muerto = true; muertoEn = i+1; return; }
+    pS = Math.max(pS, Math.min(inicial, bS - P.mll));
+  });
+  $('secCadena').innerHTML = secuencia.length
+    ? secuencia.map((r,i) => `<span class="chip ${r}">${i+1}</span>`).join('')
+    : `<span style="font-size:12px;color:var(--mudo2)">${idioma==='es'?'Toca Gano o Pierdo para armar el escenario':'Tap Win or Lose to build the scenario'}</span>`;
+
+  const gan = secuencia.filter(r=>r==='g').length, per = secuencia.length - gan;
+  filas($('filasSim'), [
+    [idioma==='es'?'Sesiones simuladas':'Simulated sessions', `${gan}G / ${per}P`],
+    [idioma==='es'?'Balance final':'Ending balance', muerto ? (idioma==='es'?'CUENTA MUERTA':'ACCOUNT DEAD') : usd(bS), muerto?'rojo':(bS>=balSim0?'jade':'ambar')],
+    [idioma==='es'?'MLL final':'Ending MLL', usd(pS)],
+    [idioma==='es'?'Colchón final':'Ending cushion', muerto ? '—' : usd(bS-pS), (!muerto && bS-pS>=stopPersonal*3)?'jade':'ambar'],
+    [idioma==='es'?'Resultado neto':'Net result', muerto ? '—' : usd(bS-balSim0), (bS-balSim0)>=0?'jade':'rojo']
+  ]);
+  $('simAviso').innerHTML = muerto
+    ? `<div class="hito-aviso" style="border-left-color:var(--rojo);background:rgba(216,84,79,.09)">${
+        idioma==='es'
+        ? `La cuenta muere en la sesión <b>${muertoEn}</b> de esta secuencia. Con objetivo de ${usd0(objetivo)} y stop de ${usd0(stopPersonal)}, esa racha te saca.`
+        : `The account dies on session <b>${muertoEn}</b> of this sequence. With a ${usd0(objetivo)} target and ${usd0(stopPersonal)} stop, that streak ends it.`}</div>`
+    : (secuencia.length ? `<div class="hito-aviso">${
+        idioma==='es'
+        ? `Sobrevives la secuencia completa. Colchón restante: <b>${usd(bS-pS)}</b>.`
+        : `You survive the full sequence. Remaining cushion: <b>${usd(bS-pS)}</b>.`}</div>` : '');
+
+  // peor caso: stops seguidos desde hoy
+  let bP = balSim0, pP = Math.min(inicial, balSim0 - P.mll), aguanta = 0;
+  while (aguanta < 60){
+    if (bP - stopPersonal <= pP) break;
+    bP -= stopPersonal; aguanta++;
+  }
+  filas($('filasPeor'), [
+    [idioma==='es'?'Balance de partida':'Starting balance', usd(balSim0)],
+    [idioma==='es'?'MLL actual':'Current MLL', usd(pP)],
+    [idioma==='es'?'Colchón':'Cushion', usd(balSim0-pP), 'ambar'],
+    [idioma==='es'?'Stops seguidos que aguantas':'Consecutive stops survived', aguanta, aguanta>=3?'jade':'rojo'],
+    [idioma==='es'?'Días malos hasta morir':'Bad days until death', aguanta+1, 'rojo'],
+    [idioma==='es'?'Stop máximo sano (colchón/3)':'Healthy max stop (cushion/3)', usd((balSim0-pP)/3), 'jade']
+  ]);
+
+  /* ---- calendario de días ganadores ---- */
+  const reqDias = ruta==='standard' ? 5 : 3;
+  const ganadores = diasCiclo.filter(d => d >= 150).length;
+  const totalDias = diasCiclo.reduce((a,b)=>a+b, 0);
+  const mayorD = diasCiclo.length ? Math.max(...diasCiclo) : 0;
+  const consD = totalDias > 0 ? mayorD/totalDias : 0;
+
+  $('calRejilla').innerHTML = diasCiclo.length
+    ? diasCiclo.map((d,i) => {
+        const cls = d >= 150 ? 'gan' : (d > 0 ? 'chico' : 'perd');
+        return `<div class="cal-dia ${cls}" data-i="${i}"><span class="cd">${i+1}</span><span class="cm">${usd0(d)}</span></div>`;
+      }).join('')
+    : `<div style="grid-column:1/-1;text-align:center;color:var(--mudo2);font-size:12px;padding:16px 0">${idioma==='es'?'Sin días registrados':'No days logged'}</div>`;
+
+  filas($('filasCal'), [
+    [idioma==='es'?'Días ganadores ($150+)':'Winning days ($150+)', `${ganadores} / ${reqDias}`, ganadores>=reqDias?'jade':'ambar'],
+    [idioma==='es'?'Faltan':'Missing', Math.max(0, reqDias-ganadores), ganadores>=reqDias?'jade':'ambar'],
+    [idioma==='es'?'Ganancia del ciclo':'Cycle profit', usd(totalDias)],
+    [idioma==='es'?'Mayor día':'Largest day', usd(mayorD)],
+    [idioma==='es'?'Consistencia del ciclo':'Cycle consistency', totalDias>0?pct(consD):'—',
+      (ruta==='consistencia' && consD>0.4)?'rojo':'jade'],
+    [idioma==='es'?'Tope de tu ruta':'Your path cap', ruta==='consistencia'?'40%':(idioma==='es'?'sin tope':'no cap'), 'ambar']
+  ]);
+
+  /* ---- comparador Topstep vs Apex ---- */
+  const C = idioma==='es' ? [
+    ['Trailing', 'Cierre del día (EOD)', 'En vivo, con flotante', true],
+    ['Límite diario', usd0(P.dll), 'No existe (Intraday)', true],
+    ['Consistencia en eval', '50% del mejor día', 'No aplica', false],
+    ['Reparto', '90 / 10', '100% primeros $25K', false],
+    ['Retiro mínimo', '$125', '$500', false],
+    ['Posición al cierre', 'Te aplanan', 'Pierdes la cuenta', true],
+    ['Automatización', 'Permitida con reglas', 'Prohibida', true],
+    ['Órdenes a ambos lados', 'Permitido', 'Prohibido', true],
+    ['Día de trading', '5 PM – 4 PM CT', 'Cierra 4:59 PM ET', false]
+  ] : [
+    ['Trailing', 'End-of-day close', 'Live, includes open P&L', true],
+    ['Daily limit', usd0(P.dll), 'None (Intraday)', true],
+    ['Eval consistency', '50% of best day', 'Not applied', false],
+    ['Split', '90 / 10', '100% first $25K', false],
+    ['Minimum payout', '$125', '$500', false],
+    ['Position at close', 'Auto-flattened', 'Account forfeited', true],
+    ['Automation', 'Allowed with rules', 'Prohibited', true],
+    ['Both-side orders', 'Allowed', 'Prohibited', true],
+    ['Trading day', '5 PM – 4 PM CT', 'Closes 4:59 PM ET', false]
+  ];
+  $('compFilas').innerHTML = C.map(r =>
+    `<tr class="${r[3]?'peligro':''}"><td>${r[0]}</td><td class="ts">${r[1]}</td><td class="ap">${r[2]}</td></tr>`
+  ).join('');
+
+  /* ---- registro de retiros ---- */
+  const totalRet = retiros.reduce((a,r)=>a+r.n, 0);
+  $('retLista').innerHTML = retiros.length
+    ? retiros.map((r,i) =>
+        `<div class="ret-item"><span class="rf">${r.f}</span><span class="rm">${usd(r.n)}</span><button type="button" data-ret="${i}">×</button></div>`
+      ).join('')
+    : `<div style="text-align:center;color:var(--mudo2);font-size:12px;padding:12px 0">${idioma==='es'?'Sin retiros registrados':'No payouts logged'}</div>`;
+  filas($('filasRetTotal'), [
+    [idioma==='es'?'Retiros registrados':'Payouts logged', retiros.length],
+    [idioma==='es'?'Total neto recibido':'Total net received', usd(totalRet), 'jade'],
+    [idioma==='es'?'Promedio por retiro':'Average per payout', retiros.length?usd(totalRet/retiros.length):'—']
+  ]);
+
   guardar();
 }
 
@@ -962,7 +1276,7 @@ const CAMPOS = ['tamano','fase','totalPrevio','mejorDia','pnlHoy','objetivoDia',
 
 function guardar(){
   try{
-    const d = {idioma};
+    const d = {idioma, secuencia, diasCiclo, retiros};
     CAMPOS.forEach(c => { if($(c)) d[c] = $(c).value; });
     localStorage.setItem('topstep_calc', JSON.stringify(d));
   }catch(e){}
@@ -971,6 +1285,9 @@ function cargar(){
   try{
     const d = JSON.parse(localStorage.getItem('topstep_calc') || '{}');
     if (d.idioma) idioma = d.idioma;
+    if (Array.isArray(d.secuencia)) secuencia = d.secuencia;
+    if (Array.isArray(d.diasCiclo)) diasCiclo = d.diasCiclo;
+    if (Array.isArray(d.retiros))   retiros   = d.retiros;
     CAMPOS.forEach(c => { if($(c) && d[c] !== undefined) $(c).value = d[c]; });
   }catch(e){}
 }
@@ -995,9 +1312,43 @@ document.querySelectorAll('.pestanas button').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.pestanas button').forEach(x => x.setAttribute('aria-selected','false'));
     b.setAttribute('aria-selected','true');
-    ['hoy','meta','retiros','plan','riesgo'].forEach(p =>
+    ['hoy','meta','retiros','plan','riesgo','sim','cal','comp'].forEach(p =>
       $('pan-'+p).classList.toggle('oculto', p !== b.dataset.tab));
   });
+});
+
+$('secGana').addEventListener('click',   () => { if(secuencia.length<40){secuencia.push('g'); render();} });
+$('secPierde').addEventListener('click', () => { if(secuencia.length<40){secuencia.push('p'); render();} });
+$('secBorra').addEventListener('click',  () => { secuencia = []; render(); });
+
+$('calAgregar').addEventListener('click', () => {
+  const v = parseFloat($('calNuevo').value);
+  if (isFinite(v)) { diasCiclo.push(v); $('calNuevo').value = ''; render(); }
+});
+$('calReset').addEventListener('click', () => {
+  if (confirm(idioma==='es' ? '¿Vaciar todos los días del ciclo?' : 'Clear all days in this cycle?')){
+    diasCiclo = []; render();
+  }
+});
+$('calRejilla').addEventListener('click', e => {
+  const d = e.target.closest('[data-i]');
+  if (!d) return;
+  if (confirm(idioma==='es' ? '¿Quitar este día?' : 'Remove this day?')){
+    diasCiclo.splice(parseInt(d.dataset.i,10), 1); render();
+  }
+});
+
+$('retAgregar').addEventListener('click', () => {
+  const bruto = num('montoRetiro');
+  if (bruto <= 0) return;
+  const f = new Date().toLocaleDateString(idioma==='es'?'es-MX':'en-US',{day:'2-digit',month:'short',year:'numeric'});
+  retiros.push({f, n: bruto * 0.90});
+  render();
+});
+$('retLista').addEventListener('click', e => {
+  const b = e.target.closest('[data-ret]');
+  if (!b) return;
+  retiros.splice(parseInt(b.dataset.ret,10), 1); render();
 });
 
 document.addEventListener('input', e => { if (e.target.matches('input,select')) render(); });
