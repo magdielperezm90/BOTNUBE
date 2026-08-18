@@ -551,7 +551,91 @@ function reporte(trades, velas, opc){
   return R;
 }
 
-const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder};
+
+/* =====================================================================
+   ESTRUCTURA (para MAGMAX): eventos BOS/CHoCH, retest, sweep
+   ===================================================================== */
+function swingsTF(velas,minutos,F){
+  const b=agregar(velas,minutos),out=[];
+  for(let i=F;i<b.length-F;i++){
+    let alto=true,bajo=true;
+    for(let k=1;k<=F;k++){
+      if(b[i].h<=b[i+k].h||b[i].h<=b[i-k].h)alto=false;
+      if(b[i].l>=b[i+k].l||b[i].l>=b[i-k].l)bajo=false;
+      if(!alto&&!bajo)break;
+    }
+    if(alto)out.push({p:b[i].h,alto:true, desde:b[i+F].cierraEn});
+    if(bajo)out.push({p:b[i].l,alto:false,desde:b[i+F].cierraEn});
+  }
+  return out.sort((a,b)=>a.desde-b.desde);
+}
+function correrEstructura(velas,P){
+  const F=P.FuerzaSwing||5, mins=P.MinutosEstructura||15;
+  const VR=P.VentanaRetest||60, VS=P.VentanaSweep||30;
+  const tol=(P.ToleranciaTicks!==undefined?P.ToleranciaTicks:2)*0.25;
+  const uma=P.UmbralReversionATR||1.0;
+  const atr=atrWilder(velas,P.PeriodoATR||14);
+  const sw=swingsTF(velas,mins,F);
+  let k=0,SH=[],SL=[],tend=0;
+  const evs=[];let sweeps=0,sweepRev=0;const pend=[];
+  let rNivel=0,rBarra=-1,rDir=0,rToc=false;
+  let retSi=0,retNo=0;
+  function cerrarRetest(){ if(rBarra>=0){ if(rToc)retSi++; else retNo++; rBarra=-1; } }
+  for(let i=1;i<velas.length;i++){
+    while(k<sw.length&&sw[k].desde<=i){
+      const s=sw[k++];
+      if(s.alto){SH.push(s.p);if(SH.length>2)SH.shift();}
+      else{SL.push(s.p);if(SL.length>2)SL.shift();}
+      if(SH.length===2&&SL.length===2){
+        if(SH[1]>SH[0]&&SL[1]>SL[0])tend=1;
+        else if(SH[1]<SH[0]&&SL[1]<SL[0])tend=-1;
+      }
+    }
+    const c=velas[i].c,h=velas[i].h,l=velas[i].l;
+    const sh=SH[SH.length-1],sl=SL[SL.length-1];
+    if(sh!==undefined&&h>sh+tol&&c<sh){sweeps++;pend.push({i:i,dir:-1,ref:c});}
+    if(sl!==undefined&&l<sl-tol&&c>sl){sweeps++;pend.push({i:i,dir:1, ref:c});}
+    for(let q=pend.length-1;q>=0;q--){
+      const s=pend[q];
+      if(i-s.i>VS){pend.splice(q,1);continue;}
+      if((c-s.ref)*s.dir>=atr[i]*uma){sweepRev++;pend.splice(q,1);}
+    }
+    if(sh!==undefined&&c>sh){
+      evs.push({t:tend>=0?"BOS_arriba":"CHoCH_arriba",i:i});
+      cerrarRetest();rNivel=sh;rBarra=i;rDir=1;rToc=false;
+      SH.pop();if(tend<0)tend=0;
+    }
+    if(sl!==undefined&&c<sl){
+      evs.push({t:tend<=0?"BOS_abajo":"CHoCH_abajo",i:i});
+      cerrarRetest();rNivel=sl;rBarra=i;rDir=-1;rToc=false;
+      SL.pop();if(tend>0)tend=0;
+    }
+    if(rBarra>=0&&!rToc&&i>rBarra){
+      const toca=rDir===1?l<=rNivel+tol:h>=rNivel-tol;
+      if(toca)rToc=true;
+      else if(i-rBarra>VR)cerrarRetest();
+    }
+  }
+  cerrarRetest();
+  function tasas(lista){
+    const tr={};const tot={};
+    for(let j=0;j<lista.length-1;j++){
+      const a=lista[j].t,b=lista[j+1].t;
+      tr[a]=tr[a]||{};tr[a][b]=(tr[a][b]||0)+1;tot[a]=(tot[a]||0)+1;
+    }
+    function p(a,b){return tot[a]?100*(tr[a]&&tr[a][b]||0)/tot[a]:0;}
+    return {contUp:p("BOS_arriba","BOS_arriba"),contDn:p("BOS_abajo","BOS_abajo"),
+            chUp:p("CHoCH_arriba","BOS_arriba"),chDn:p("CHoCH_abajo","BOS_abajo"),
+            nUp:tot["BOS_arriba"]||0,nDn:tot["BOS_abajo"]||0,
+            nChUp:tot["CHoCH_arriba"]||0,nChDn:tot["CHoCH_abajo"]||0};
+  }
+  const corte=Math.floor(evs.length*0.7);
+  return {nEventos:evs.length,
+    total:tasas(evs),dentro:tasas(evs.slice(0,corte)),fuera:tasas(evs.slice(corte)),
+    retest:{si:retSi,no:retNo,pct:retSi+retNo?100*retSi/(retSi+retNo):0},
+    sweep:{n:sweeps,rev:sweepRev,pct:sweeps?100*sweepRev/sweeps:0}};
+}
+const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,correrEstructura:correrEstructura};
 if(typeof module!=="undefined"&&module.exports) module.exports=API;
 else raiz.MotorMNQ=API;
 })(typeof globalThis!=="undefined"?globalThis:this);
@@ -575,6 +659,9 @@ const PREF_VIS=["Color","Mostrar","Dibujar","Alerta","Etiqueta","Parpadear","Anc
 const BARRIBLES=["MinFuerza","MinRVOL","MultiploSL","MultiploTP","MinRecorridoR",
 "FactorGatilloATR","VelasGatillo","PctTendencia","PisoTendencia","MinutosNivelMinimo",
 "RiesgoObjetivoUSD","VidaNivelVelas"];
+const MOTOR_MAGMAX=new Set(["MinutosEstructura","FuerzaSwing","ToleranciaTicks",
+"VentanaRetest","VentanaSweep","UmbralReversionATR","PeriodoATR"]);
+function esMagmax(){return CS&&CS.clase==="MAGMAX";}
 
 /* ===== lector de C# ===== */
 function limpiar(s){let o="",i=0,st="c";while(i<s.length){const c=s[i],n=s[i+1]||"";
@@ -607,6 +694,7 @@ function leerCS(src){
   return {clase:mc?mc[1]:"(sin clase)",tipo:mc?mc[2]:"?",version:mv?mv[1]:"sin version",props:props};
 }
 function clasificar(p){
+  if(esMagmax())return MOTOR_MAGMAX.has(p.nombre)?"M":"V";
   if(MOTOR_USA.has(p.nombre))return "M";
   if(p.tipo==="Brush"||GRUPOS_VIS.has(p.grupo))return "V";
   for(const x of PREF_VIS)if(p.nombre.indexOf(x)===0)return "V";
@@ -713,6 +801,8 @@ function pintarParams(){
 }
 function listarBarrido(){
   const s=$("barrer");s.innerHTML="";
+  s.disabled=esMagmax();
+  document.getElementById("modo").disabled=esMagmax();
   const o0=document.createElement("option");o0.value="";o0.textContent=T().ninguno;s.appendChild(o0);
   CS.props.filter(p=>p.est==="M"&&BARRIBLES.indexOf(p.nombre)!==-1).forEach(p=>{
     const o=document.createElement("option");o.value=p.nombre;o.textContent=p.etiqueta;s.appendChild(o)});
@@ -736,11 +826,17 @@ $("btnCorrer").addEventListener("click",()=>{
   setTimeout(()=>{
     try{
       const P=paquete(),modo=$("modo").value;
-      RES=MotorMNQ.correr(VELAS,P,{modo:modo});
-      if(RES.error){avisar(RES.error,true);return}
-      const cual=$("barrer").value;
-      RES.barrido=cual?barrer(P,modo,cual):null;
-      pintarRes();
+      if(esMagmax()){
+        RES=MotorMNQ.correrEstructura(VELAS,P);
+        RES.magmax=true;
+        pintarResMagmax();
+      } else {
+        RES=MotorMNQ.correr(VELAS,P,{modo:modo});
+        if(RES.error){avisar(RES.error,true);return}
+        const cual=$("barrer").value;
+        RES.barrido=cual?barrer(P,modo,cual):null;
+        pintarRes();
+      }
       $("secRes").classList.remove("oculto");
       $("btnJSON").disabled=false;
       $("secRes").scrollIntoView({behavior:"smooth",block:"start"});
@@ -806,6 +902,37 @@ function pintarRes(){
       RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td></tr>`).join("")+
       `<tr><td colspan="4" style="color:${dif>0.6?'var(--rojo)':'var(--jade)'}">${dif>0.6?T().sPico:T().sMeseta} (${dif.toFixed(2)})</td></tr>`;
   } else $("wrapBarrido").classList.add("oculto");
+}
+function pintarResMagmax(){
+  const T=RES.total,D=RES.dentro,F=RES.fuera;
+  const estable = RES.nEventos>=300
+    && Math.abs(D.contUp-F.contUp)<=12 && Math.abs(D.contDn-F.contDn)<=12;
+  let cls,txt,sub;
+  if(RES.nEventos<300){cls="duda";txt="MUESTRA CHICA";
+    sub="Solo "+RES.nEventos+" eventos estructurales. Con menos de 300 las frecuencias bailan.";}
+  else if(estable){cls="si";txt="FRECUENCIAS ESTABLES";
+    sub="Las tasas del 30% final se parecen a las del 70% inicial (diferencia <= 12 puntos). Lo que narra MAGMAX se sostiene en datos que no vio.";}
+  else{cls="no";txt="FRECUENCIAS CON DERIVA";
+    sub="Las tasas del 30% final se alejan mas de 12 puntos de las del 70% inicial. Usa los numeros del panel con margen, no como ley.";}
+  $("vered").className="vered "+cls;$("vered").textContent=txt;$("veredsub").textContent=sub;
+
+  $("met").innerHTML=[
+    [RES.nEventos,"eventos"],
+    [T.contUp.toFixed(0)+"%","BOS↑ sigue ↑ (n "+T.nUp+")"],
+    [T.contDn.toFixed(0)+"%","BOS↓ sigue ↓ (n "+T.nDn+")"],
+    [RES.retest.pct.toFixed(0)+"%","retest ("+RES.retest.si+"/"+(RES.retest.si+RES.retest.no)+")"],
+    [RES.sweep.pct.toFixed(0)+"%","sweep revierte (n "+RES.sweep.n+")"],
+    [T.chUp.toFixed(0)+"%","CHoCH↑ confirma (n "+T.nChUp+")"],
+    [T.chDn.toFixed(0)+"%","CHoCH↓ confirma (n "+T.nChDn+")"]
+  ].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
+
+  $("svg").innerHTML="";
+  const fila=(n,d,f)=>`<tr><td>${n}</td><td>${d.toFixed(0)}%</td><td>${f.toFixed(0)}%</td><td class="${Math.abs(d-f)<=12?'b':'m'}">${Math.abs(d-f).toFixed(0)}</td></tr>`;
+  $("tDesg").innerHTML=`<tr><th>tasa</th><th>dentro 70%</th><th>fuera 30%</th><th>dif</th></tr>`
+    +fila("BOS↑ sigue ↑",D.contUp,F.contUp)
+    +fila("BOS↓ sigue ↓",D.contDn,F.contDn);
+  $("tRob").innerHTML="";
+  $("wrapBarrido").classList.add("oculto");
 }
 function curva(){
   const c=RES.curva,s=$("svg");
