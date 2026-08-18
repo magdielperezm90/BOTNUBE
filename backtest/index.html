@@ -192,8 +192,8 @@ footer{text-align:center;padding:20px 0 8px;font-family:var(--dato);font-size:10
       <h3 data-t="regimen">Régimen y costos</h3>
       <div class="campos">
         <div class="campo"><label data-t="lPerReg">Velas del régimen</label><input type="number" id="perReg" value="20" step="5"></div>
-        <div class="campo"><label data-t="lUmbT">Umbral tendencia</label><input type="number" id="umbT" value="0.35" step="0.05"></div>
-        <div class="campo"><label data-t="lUmbL">Umbral lateral</label><input type="number" id="umbL" value="0.2" step="0.05"></div>
+        <div class="campo"><label data-t="lUmbT">% de velas en tendencia</label><input type="number" id="umbT" value="25" step="5"></div>
+        <div class="campo"><label data-t="lUmbL">% de velas en lateral</label><input type="number" id="umbL" value="25" step="5"></div>
         <div class="campo"><label data-t="lSlip">Slippage (ticks)</label><input type="number" id="slip" value="1" step="1"></div>
         <div class="campo ancho"><label data-t="lCom">Comisión por contrato ida y vuelta (USD)</label><input type="number" id="comision" value="1.34" step="0.01"></div>
       </div>
@@ -249,7 +249,7 @@ const T={es:{
  niveles:'Niveles',lF1:'Fuerza swing 1m',lFsup:'Fuerza swing 5m/15m',lTol:'Tolerancia (ticks)',lVida:'Vida del nivel (velas)',
  riesgo:'Gatillo y riesgo',lAtr:'Periodo ATR',lGat:'Gatillo (× ATR)',lVelGat:'Velas del gatillo',
  lSl:'Stop (× ATR)',lTp:'Objetivo (R)',lMinR:'Recorrido mínimo (R)',
- regimen:'Régimen y costos',lPerReg:'Velas del régimen',lUmbT:'Umbral tendencia',lUmbL:'Umbral lateral',
+ regimen:'Régimen y costos',lPerReg:'Velas del régimen',lUmbT:'% de velas en tendencia',lUmbL:'% de velas en lateral',
  lSlip:'Slippage (ticks)',lCom:'Comisión por contrato ida y vuelta (USD)',
  bCorrer:'Correr backtest',veredictoTit:'Veredicto',metricas:'Métricas',
  curva:'Curva de resultados (en R)',
@@ -266,7 +266,7 @@ const T={es:{
  niveles:'Levels',lF1:'Swing strength 1m',lFsup:'Swing strength 5m/15m',lTol:'Tolerance (ticks)',lVida:'Level life (bars)',
  riesgo:'Trigger and risk',lAtr:'ATR period',lGat:'Trigger (× ATR)',lVelGat:'Trigger life (bars)',
  lSl:'Stop (× ATR)',lTp:'Target (R)',lMinR:'Minimum room (R)',
- regimen:'Regime and costs',lPerReg:'Regime lookback',lUmbT:'Trend threshold',lUmbL:'Range threshold',
+ regimen:'Regime and costs',lPerReg:'Regime lookback',lUmbT:'% of bars in trend',lUmbL:'% of bars in range',
  lSlip:'Slippage (ticks)',lCom:'Commission per contract round turn (USD)',
  bCorrer:'Run backtest',veredictoTit:'Verdict',metricas:'Metrics',
  curva:'Equity curve (in R)',
@@ -280,7 +280,7 @@ const $=id=>document.getElementById(id);
 const nm=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:0;};
 
 const TICK=0.25, VALOR_PUNTO=2;   // MNQ
-let bars=[], res=null;
+let bars=[], res=null, diagRegimen='';
 
 /* ═══════════ CARGA DEL CSV ═══════════ */
 let diagCSV = '';
@@ -440,6 +440,17 @@ function simular(P){
     ef[i]= (i>=P.perReg && sRango>0) ? Math.abs(b[i].c-b[i-P.perReg].c)/sRango : 0;
   }
 
+  // umbrales de regimen relativos a ESTOS datos, no absolutos:
+  // en 1 minuto la eficiencia casi nunca llega a valores altos, asi que
+  // un umbral fijo deja el regimen "tendencia" practicamente vacio.
+  const ord=ef.slice(P.perReg+1).filter(x=>x>0).sort((a,c)=>a-c);
+  const q=(f)=> ord.length ? ord[Math.min(ord.length-1,Math.floor(ord.length*f))] : 0;
+  const cortaTend = q(1 - P.pctTend/100);
+  const cortaLat  = q(P.pctLat/100);
+  diagRegimen = 'tendencia si ef ≥ ' + cortaTend.toFixed(3)
+              + '  ·  lateral si ef ≤ ' + cortaLat.toFixed(3)
+              + '  ·  mediana ' + q(0.5).toFixed(3);
+
   const espacioHasta=(dir,desde)=>{
     let mejor=Infinity;
     for(const L of niveles){
@@ -471,7 +482,7 @@ function simular(P){
       const slHit = pos.dir===1 ? B.l<=pos.sl : B.h>=pos.sl;
       if(tpHit||slHit){
         const gano = tpHit && !slHit;              // ambiguo cuenta como perdida
-        const rBruto = gano ? P.mulTp : -1;
+        const rBruto = gano ? pos.rMult : -1;      // el objetivo real, no un 2R supuesto
         const riesgoUSD = Math.abs(pos.entrada-pos.sl)*VALOR_PUNTO*P.contratos;
         const costo = P.comision*P.contratos + P.slip*TICK*VALOR_PUNTO*P.contratos*2;
         const usd = rBruto*riesgoUSD - costo;
@@ -497,7 +508,8 @@ function simular(P){
         const ent = gat.precio + gat.dir*P.slip*TICK;
         const sl  = ent - gat.dir*gat.slDist;
         const tp  = ent + gat.dir*gat.slDist*P.mulTp;
-        pos={dir:gat.dir,entrada:ent,sl,tp,regimen:gat.regimen,estrecho:gat.estrecho,tf:gat.tf,i};
+        pos={dir:gat.dir,entrada:ent,sl,tp,regimen:gat.regimen,estrecho:gat.estrecho,tf:gat.tf,i,
+             rMult:Math.abs(tp-ent)/Math.max(TICK,Math.abs(ent-sl))};
         gat=null;
         continue;
       }
@@ -507,7 +519,7 @@ function simular(P){
     const rango=B.h-B.l;
     const fuerza=rango>0?Math.abs(B.c-B.o)/rango:0;
     const rvol=B.v/volProm[i];
-    const reg = P.modo===3 ? 1 : (ef[i]>=P.umbT?1:(ef[i]<=P.umbL?-1:0));
+    const reg = P.modo===3 ? 1 : (ef[i]>=cortaTend?1:(ef[i]<=cortaLat?-1:0));
     const conFuerza=fuerza>=P.minFuerza&&rvol>=P.minRvol;
     const absorcion=fuerza<=P.maxAbs&&rvol>=P.minRvol;
 
@@ -548,7 +560,8 @@ function simular(P){
           if(esp<=slDist) continue;
           const ent=B.c+dir*P.slip*TICK;
           pos={dir,entrada:ent,sl:ent-dir*slDist,tp:ent+dir*esp,
-               regimen:-1,estrecho:false,tf:L.tf,i};
+               regimen:-1,estrecho:false,tf:L.tf,i,
+               rMult:esp/Math.max(TICK,slDist)};
           break;
         }
       }
@@ -612,7 +625,7 @@ function correr(){
     f1:Math.round(nm('f1')), fsup:Math.round(nm('fsup')), tol:nm('tol'), vida:Math.round(nm('vida')),
     perAtr:Math.round(nm('perAtr')), facGat:nm('facGat'), velGat:Math.round(nm('velGat')),
     mulSl:nm('mulSl'), mulTp:nm('mulTp'), minR:nm('minR'),
-    perReg:Math.round(nm('perReg')), umbT:nm('umbT'), umbL:nm('umbL'),
+    perReg:Math.round(nm('perReg')), pctTend:nm('umbT'), pctLat:nm('umbL'),
     slip:nm('slip'), comision:nm('comision')
   };
   $('progreso').classList.remove('oculto');
@@ -675,6 +688,8 @@ function mostrar(ts,m,P){
       usd(ts.length*(P.comision*P.contratos+P.slip*TICK*VALOR_PUNTO*P.contratos*2)),'rojo'],
     [idioma==='es'?'Contratos':'Contracts',P.contratos]
   ]);
+  $('filasMetricas').insertAdjacentHTML('beforeend',
+    '<div class="nota" style="font-family:var(--dato);font-size:10.5px">'+diagRegimen+'</div>');
 
   dibujar(m.curva,0.7);
 
