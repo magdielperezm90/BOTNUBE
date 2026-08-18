@@ -190,6 +190,23 @@ body{
   font-family:var(--dato);font-size:10px;color:var(--mudo2);letter-spacing:.06em;
 }
 
+.plan-tabla{width:100%;border-collapse:collapse;font-family:var(--dato);font-size:12.5px}
+.plan-tabla th{
+  font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mudo2);
+  font-weight:500;text-align:right;padding:0 0 8px;border-bottom:1px solid var(--linea);
+}
+.plan-tabla th:first-child{text-align:left}
+.plan-tabla td{padding:8px 0;text-align:right;border-bottom:1px solid rgba(46,53,66,.5)}
+.plan-tabla td:first-child{text-align:left;color:var(--mudo)}
+.plan-tabla tr.hito td{background:rgba(79,178,134,.09)}
+.plan-tabla tr.hito td:first-child{color:var(--jade);font-weight:600}
+.plan-tabla .col-col{color:var(--ambar)}
+.hito-aviso{
+  display:flex;gap:8px;align-items:flex-start;margin-top:12px;
+  font-size:12.5px;color:var(--texto);line-height:1.5;
+  padding:10px 12px;background:rgba(79,178,134,.08);
+  border-left:2px solid var(--jade);border-radius:4px;
+}
 .nota{
   font-size:12.5px;color:var(--mudo);line-height:1.5;
   padding:10px 12px;background:var(--panel2);border-radius:4px;
@@ -246,6 +263,7 @@ footer{
     <button role="tab" aria-selected="true" data-tab="hoy" data-t="tabHoy">Hoy</button>
     <button role="tab" aria-selected="false" data-tab="meta" data-t="tabMeta">Meta</button>
     <button role="tab" aria-selected="false" data-tab="retiros" data-t="tabRetiros">Retiros</button>
+    <button role="tab" aria-selected="false" data-tab="plan" data-t="tabPlan">Plan</button>
     <button role="tab" aria-selected="false" data-tab="riesgo" data-t="tabRiesgo">Riesgo</button>
   </div>
 
@@ -403,6 +421,55 @@ footer{
     </section>
   </div>
 
+  <!-- ══════════ PLAN ══════════ -->
+  <div id="pan-plan" class="oculto">
+    <section class="seccion">
+      <h3 data-t="deDonde">De dónde a dónde</h3>
+      <div class="campos">
+        <div class="campo">
+          <label data-t="lBalHoy">Balance de hoy</label>
+          <input type="number" id="planDesde" inputmode="decimal" step="0.01" value="50909">
+        </div>
+        <div class="campo">
+          <label data-t="lBalMeta">Balance objetivo</label>
+          <input type="number" id="planHasta" inputmode="decimal" step="0.01" value="53000">
+        </div>
+        <div class="campo ancho">
+          <label data-t="lWinRate">Tu tasa de acierto por sesión (%)</label>
+          <input type="number" id="winRate" inputmode="decimal" step="1" min="1" max="100" value="55">
+          <span class="pista" data-t="pistaWr">Sé honesto. Cuenta tus sesiones verdes entre el total.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion">
+      <div class="cifra">
+        <div class="n" id="planSesiones">—</div>
+        <div class="l" data-t="lSesionesReales">Sesiones realistas para llegar</div>
+      </div>
+      <div id="filasPlan"></div>
+      <div id="planAviso"></div>
+    </section>
+
+    <section class="seccion">
+      <h3 data-t="pasoAPaso">Paso a paso</h3>
+      <table class="plan-tabla">
+        <thead>
+          <tr>
+            <th data-t="thSesion">Sesión</th>
+            <th data-t="thCierra">Cierra en</th>
+            <th data-t="thMll">MLL</th>
+            <th data-t="thColchon">Colchón</th>
+          </tr>
+        </thead>
+        <tbody id="planFilas"></tbody>
+      </table>
+      <div class="nota" data-t="notaPlanTabla">
+        Cada fila es una sesión ganada a tu objetivo. El MLL sube contigo hasta que se fija; a partir de ahí el colchón crece solo.
+      </div>
+    </section>
+  </div>
+
   <!-- ══════════ RIESGO ══════════ -->
   <div id="pan-riesgo" class="oculto">
     <section class="seccion">
@@ -477,7 +544,13 @@ const T = {
   es:{
     titulo:'Límites operativos', sub:'Topstep · calculadora de reglas',
     veredicto:'Veredicto de hoy', corredorTit:'Corredor del día',
-    tabHoy:'Hoy', tabMeta:'Meta', tabRetiros:'Retiros', tabRiesgo:'Riesgo',
+    tabHoy:'Hoy', tabMeta:'Meta', tabRetiros:'Retiros', tabPlan:'Plan', tabRiesgo:'Riesgo',
+    deDonde:'De dónde a dónde', lBalHoy:'Balance de hoy', lBalMeta:'Balance objetivo',
+    lWinRate:'Tu tasa de acierto por sesión (%)',
+    pistaWr:'Sé honesto. Cuenta tus sesiones verdes entre el total.',
+    lSesionesReales:'Sesiones realistas para llegar', pasoAPaso:'Paso a paso',
+    thSesion:'Sesión', thCierra:'Cierra en', thMll:'MLL', thColchon:'Colchón',
+    notaPlanTabla:'Cada fila es una sesión ganada a tu objetivo. El MLL sube contigo hasta que se fija; a partir de ahí el colchón crece solo.',
     tuCuenta:'Tu cuenta', lTamano:'Tamaño', lFase:'Fase',
     oCombine:'Combine', oXfa:'Fondeada (XFA)',
     dondeVas:'Dónde vas', lTotalPrevio:'Ganancia acumulada (sin hoy)',
@@ -503,7 +576,13 @@ const T = {
   en:{
     titulo:'Operating limits', sub:'Topstep · rules calculator',
     veredicto:"Today's verdict", corredorTit:"Today's corridor",
-    tabHoy:'Today', tabMeta:'Target', tabRetiros:'Payouts', tabRiesgo:'Risk',
+    tabHoy:'Today', tabMeta:'Target', tabRetiros:'Payouts', tabPlan:'Plan', tabRiesgo:'Risk',
+    deDonde:'From where to where', lBalHoy:"Today's balance", lBalMeta:'Target balance',
+    lWinRate:'Your win rate per session (%)',
+    pistaWr:'Be honest. Count your green sessions over the total.',
+    lSesionesReales:'Realistic sessions to get there', pasoAPaso:'Step by step',
+    thSesion:'Session', thCierra:'Close at', thMll:'MLL', thColchon:'Cushion',
+    notaPlanTabla:'Each row is one session won at your target. The MLL climbs with you until it locks; after that the cushion grows on its own.',
     tuCuenta:'Your account', lTamano:'Size', lFase:'Phase',
     oCombine:'Combine', oXfa:'Funded (XFA)',
     dondeVas:'Where you stand', lTotalPrevio:'Profit so far (excluding today)',
@@ -802,13 +881,84 @@ function render(){
     [idioma==='es'?'Tras el 1er retiro':'After 1st payout', idioma==='es'?'MLL queda en $0':'MLL resets to $0', 'jade']
   ]);
 
+  /* ---- plan ---- */
+  const inicial = parseFloat($('tamano').value);
+  const desde = num('planDesde'), hasta = num('planHasta');
+  const wr = Math.min(100, Math.max(1, num('winRate'))) / 100;
+  const faltaBal = Math.max(0, hasta - desde);
+
+  // el piso del MLL persigue el cierre del dia y se congela al llegar al balance inicial
+  const piso = b => Math.min(inicial, b - P.mll);
+  const pisoHoy = piso(desde), colchonHoy = desde - pisoHoy;
+  const balanceCongela = inicial + P.mll;          // aqui el piso deja de subir
+
+  const esperanza = wr*objetivo - (1-wr)*stopPersonal;
+  const sesionesIdeal = objetivo > 0 ? Math.ceil(faltaBal/objetivo) : 0;
+  const sesionesReal = esperanza > 0 ? Math.ceil(faltaBal/esperanza) : null;
+  const stopsSeguidos = stopPersonal > 0 ? Math.floor(colchonHoy/stopPersonal) : 0;
+
+  $('planSesiones').textContent = faltaBal <= 0
+    ? (idioma==='es'?'Ya llegaste':'Already there')
+    : (sesionesReal !== null ? sesionesReal : (idioma==='es'?'Nunca':'Never'));
+  $('planSesiones').className = 'n ' + (faltaBal<=0 ? 'jade' : (sesionesReal===null ? 'rojo' : ''));
+
+  filas($('filasPlan'), [
+    [idioma==='es'?'Falta subir':'Left to climb', usd(faltaBal), 'ambar'],
+    [idioma==='es'?'Sesiones ganadas necesarias':'Winning sessions needed', sesionesIdeal || '—'],
+    [idioma==='es'?'Ganancia esperada por sesión':'Expected profit per session', usd(esperanza), esperanza>0?'jade':'rojo'],
+    [idioma==='es'?'Colchón real de hoy':'Real cushion today', usd(colchonHoy), colchonHoy>=stopPersonal*2?'jade':'rojo'],
+    [idioma==='es'?'Stops seguidos que aguantas':'Consecutive stops you survive', stopsSeguidos, stopsSeguidos>=2?'jade':'rojo'],
+    [idioma==='es'?'El MLL se congela en':'MLL freezes at', usd0(balanceCongela), desde>=balanceCongela?'jade':'ambar']
+  ]);
+
+  // aviso del hito
+  let aviso = '';
+  if (esperanza <= 0){
+    aviso = idioma==='es'
+      ? `Con ${Math.round(wr*100)}% de acierto, objetivo de ${usd0(objetivo)} y stop de ${usd0(stopPersonal)}, tu esperanza es <b>${usd(esperanza)}</b> por sesión: este plan no llega nunca. Sube el objetivo, baja el stop o mejora la tasa.`
+      : `At ${Math.round(wr*100)}% win rate with a ${usd0(objetivo)} target and ${usd0(stopPersonal)} stop, your expectancy is <b>${usd(esperanza)}</b> per session: this plan never arrives. Raise the target, cut the stop, or improve the rate.`;
+  } else if (desde < balanceCongela){
+    aviso = idioma==='es'
+      ? `Hasta <b>${usd0(balanceCongela)}</b> tu colchón se queda clavado en ${usd0(P.mll)}: el piso sube contigo. Ese es el primer hito real, a <b>${usd(balanceCongela-desde)}</b> de aquí.`
+      : `Until <b>${usd0(balanceCongela)}</b> your cushion stays pinned at ${usd0(P.mll)}: the floor climbs with you. That is the first real milestone, <b>${usd(balanceCongela-desde)}</b> away.`;
+  } else {
+    aviso = idioma==='es'
+      ? `El piso ya está congelado en <b>${usd0(inicial)}</b>. De aquí en adelante cada dólar que ganes es colchón que nadie te quita.`
+      : `The floor is already locked at <b>${usd0(inicial)}</b>. From here every dollar you earn is cushion nobody takes back.`;
+  }
+  if (stopsSeguidos < 2 && faltaBal > 0){
+    aviso += idioma==='es'
+      ? ` Cuidado: solo aguantas <b>${stopsSeguidos}</b> stop(s) seguidos. Baja el tamaño hasta tener margen para dos.`
+      : ` Careful: you only survive <b>${stopsSeguidos}</b> consecutive stop(s). Cut size until you have room for two.`;
+  }
+  $('planAviso').innerHTML = `<div class="hito-aviso">${aviso}</div>`;
+
+  // tabla sesión por sesión
+  let bal = desde, pisoAcum = pisoHoy, html = '', marcado = false;
+  const maxFilas = Math.min(sesionesIdeal, 40);
+  for (let i = 1; i <= maxFilas; i++){
+    bal = Math.min(hasta, bal + objetivo);
+    pisoAcum = Math.max(pisoAcum, piso(bal));
+    const col = bal - pisoAcum;
+    const esHito = !marcado && pisoAcum >= inicial - 0.01;
+    if (esHito) marcado = true;
+    html += `<tr class="${esHito?'hito':''}">`
+         +  `<td>${esHito ? (idioma==='es'?'★ ':'★ ') : ''}${i}</td>`
+         +  `<td>${usd0(bal)}</td>`
+         +  `<td>${usd0(pisoAcum)}</td>`
+         +  `<td class="col-col">${usd0(col)}</td></tr>`;
+    if (bal >= hasta) break;
+  }
+  $('planFilas').innerHTML = html || `<tr><td colspan="4" style="text-align:center;color:var(--mudo2);padding:14px 0">${idioma==='es'?'Ajusta el objetivo del día en la pestaña Hoy':'Set your daily target in the Today tab'}</td></tr>`;
+
   guardar();
 }
 
 /* ═══════════════ PERSISTENCIA ═══════════════ */
 const CAMPOS = ['tamano','fase','totalPrevio','mejorDia','pnlHoy','objetivoDia','stopDia',
   'ruta','conDll','balanceXfa','diasGanadores','mayorCiclo','totalCiclo','montoRetiro',
-  'balanceAct','mllAct','instrumento','contratos','riesgoTrade'];
+  'balanceAct','mllAct','instrumento','contratos','riesgoTrade',
+  'planDesde','planHasta','winRate'];
 
 function guardar(){
   try{
@@ -845,7 +995,7 @@ document.querySelectorAll('.pestanas button').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.pestanas button').forEach(x => x.setAttribute('aria-selected','false'));
     b.setAttribute('aria-selected','true');
-    ['hoy','meta','retiros','riesgo'].forEach(p =>
+    ['hoy','meta','retiros','plan','riesgo'].forEach(p =>
       $('pan-'+p).classList.toggle('oculto', p !== b.dataset.tab));
   });
 });
