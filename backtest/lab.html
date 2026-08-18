@@ -155,12 +155,12 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
 <div class="cuerpo">
   <div class="vered" id="vered">—</div><div class="veredsub" id="veredsub"></div>
   <div class="met" id="met" style="margin-top:16px"></div>
-  <div class="gt" style="margin-top:20px" data-i="curva">Curva en R</div>
+  <div class="gt" id="hCurva" style="margin-top:20px" data-i="curva">Curva en R</div>
   <svg id="svg" viewBox="0 0 900 190" preserveAspectRatio="none" role="img"></svg>
-  <div class="sub" data-i="curvaNota">La línea vertical marca el corte 70/30. Lo de la derecha es la prueba honesta.</div>
+  <div class="sub" id="nCurva" data-i="curvaNota">La línea vertical marca el corte 70/30. Lo de la derecha es la prueba honesta.</div>
   <div class="gt" style="margin-top:20px" data-i="desglose">Desglose</div>
   <table id="tDesg"></table>
-  <div class="gt" style="margin-top:20px" data-i="robustez">Robustez en el tiempo</div>
+  <div class="gt" id="hRob" style="margin-top:20px" data-i="robustez">Robustez en el tiempo</div>
   <table id="tRob"></table>
   <div id="wrapBarrido" class="oculto">
     <div class="gt" style="margin-top:20px" data-i="sens">Sensibilidad</div>
@@ -866,6 +866,7 @@ function barrer(P,modo,nombre){
 
 /* ===== reporte ===== */
 function pintarRes(){
+  ["hCurva","nCurva","hRob","svg"].forEach(x=>$(x).classList.remove("oculto"));
   const t=RES.total,f=RES.fuera;
   let cls,txt,sub;
   if(t.n<100){cls="duda";txt=T().vMuestra;sub=T().vMuestraSub.replace("{n}",t.n)}
@@ -927,6 +928,7 @@ function pintarResMagmax(){
   ].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
 
   $("svg").innerHTML="";
+  ["hCurva","nCurva","hRob","svg"].forEach(x=>$(x).classList.add("oculto"));
   const fila=(n,d,f)=>`<tr><td>${n}</td><td>${d.toFixed(0)}%</td><td>${f.toFixed(0)}%</td><td class="${Math.abs(d-f)<=12?'b':'m'}">${Math.abs(d-f).toFixed(0)}</td></tr>`;
   $("tDesg").innerHTML=`<tr><th>tasa</th><th>dentro 70%</th><th>fuera 30%</th><th>dif</th></tr>`
     +fila("BOS↑ sigue ↑",D.contUp,F.contUp)
