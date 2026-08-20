@@ -111,10 +111,10 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
     </div>
     <div class="drop" id="dropCSV" tabindex="0" role="button">
       <div class="g" id="gCSV" data-i="subeCSV">2 · Velas de 1 minuto</div>
-      <div class="c" id="cCSV" data-i="subeCSV2">CSV o TXT exportado de NinjaTrader</div>
+      <div class="c" id="cCSV" data-i="subeCSV2">Puedes soltar varios archivos: se corren juntos</div>
     </div>
   </div>
-  <input type="file" id="fCS" accept=".cs"><input type="file" id="fCSV" accept=".csv,.txt">
+  <input type="file" id="fCS" accept=".cs"><input type="file" id="fCSV" accept=".csv,.txt" multiple>
   <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
 </div></section>
 
@@ -142,6 +142,14 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
         <option value="tendencia" data-i="mTend">Solo tendencia</option>
         <option value="lateral" data-i="mLat">Solo lateral</option>
       </select></div>
+    <div><label class="gt" for="cContratos" data-i="costosLbl">Costos y tamaño</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <input type="number" id="cContratos" value="3" min="1" step="1">
+        <input type="number" id="cComision" value="1.34" min="0" step="0.01">
+        <input type="number" id="cSlip" value="1" min="0" step="1">
+      </div>
+      <div style="font-size:10.5px;color:var(--tenue);margin-top:4px" data-i="costosAyuda">contratos · comisión · slippage (ticks)</div>
+    </div>
     <div><label class="gt" for="barrer" data-i="barrerLbl">Barrer un parámetro</label>
       <select id="barrer"><option value="" data-i="ninguno">Ninguno</option></select></div>
   </div>
@@ -727,7 +735,7 @@ function clasificar(p){
 }
 
 /* ===== estado ===== */
-let CS=null,VELAS=null,RES=null;
+let CS=null,VELAS=null,RES=null,VENTANAS=[];
 const $=id=>document.getElementById(id);
 function avisar(t,mal){const a=$("aviso");a.textContent=t;a.className="aviso"+(mal?" mal":"");}
 
@@ -758,20 +766,38 @@ conectar("dropCS","fCS",f=>leerArchivo(f,txt=>{
   avisar(T().csOK.replace("{n}",d.props.length),false);
   revisar();
 },T().errLeer));
-conectar("dropCSV","fCSV",f=>leerArchivo(f,txt=>{
-  const v=MotorMNQ.leerVelas(txt);
-  if(v.length<500){avisar(T().pocasVelas,true);return}
-  VELAS=v;
-  const f1=new Date(v[0].t).toISOString().slice(0,10),
-        f2=new Date(v[v.length-1].t).toISOString().slice(0,10);
+function pintarVentanas(){
+  if(!VENTANAS.length){ $("dropCSV").classList.remove("listo");
+    $("gCSV").textContent=T().subeCSV; $("cCSV").textContent=T().subeCSV2; VELAS=null; return; }
+  const tot=VENTANAS.reduce((a,x)=>a+x.velas.length,0);
   $("dropCSV").classList.add("listo");
-  $("gCSV").textContent=v.length.toLocaleString()+" "+T().velas;
-  $("cCSV").textContent=f1+"  →  "+f2;
-  avisar(T().csvOK.replace("{n}",v.length.toLocaleString()),false);
-  revisar();
-},T().errLeer));
+  $("gCSV").textContent=VENTANAS.length+" "+(VENTANAS.length===1?T().ventana:T().ventanas)
+    +" · "+tot.toLocaleString()+" "+T().velas;
+  $("cCSV").textContent=VENTANAS.map(x=>x.nombre+" ("+x.desde+"→"+x.hasta+")").join("  ·  ");
+  VELAS=VENTANAS[0].velas;
+}
+function agregarVelas(file){
+  leerArchivo(file,txt=>{
+    const v=MotorMNQ.leerVelas(txt);
+    if(v.length<500){avisar(T().pocasVelas,true);return}
+    const nom=file.name.replace(/\.[^.]+$/,"").replace(/_Last$/,"");
+    if(!VENTANAS.some(x=>x.nombre===nom))
+      VENTANAS.push({nombre:nom,velas:v,
+        desde:new Date(v[0].t).toISOString().slice(0,10),
+        hasta:new Date(v[v.length-1].t).toISOString().slice(0,10)});
+    VENTANAS.sort((a,b)=>a.velas[0].t-b.velas[0].t);
+    pintarVentanas();
+    avisar(T().csvOK.replace("{n}",v.length.toLocaleString()),false);
+    revisar();
+  },T().errLeer);
+}
+$("dropCSV").onclick=()=>$("fCSV").click();
+$("fCSV").addEventListener("change",e=>{ for(const f of e.target.files) agregarVelas(f); });
+["dragenter","dragover"].forEach(ev=>$("dropCSV").addEventListener(ev,e=>{e.preventDefault();$("dropCSV").classList.add("sobre")}));
+["dragleave","drop"].forEach(ev=>$("dropCSV").addEventListener(ev,e=>{e.preventDefault();$("dropCSV").classList.remove("sobre")}));
+$("dropCSV").addEventListener("drop",e=>{ for(const f of e.dataTransfer.files) agregarVelas(f); });
 function revisar(){
-  const ok=!!(CS&&VELAS);
+  const ok=!!(CS&&VENTANAS.length);
   $("btnCorrer").disabled=!ok;
   ["secCob","secParam","secCorrer"].forEach(s=>{if(CS)$(s).classList.remove("oculto")});
 }
@@ -884,13 +910,16 @@ $("btnCorrer").addEventListener("click",()=>{
   setTimeout(()=>{
     try{
       const P=paquete(),modo=$("modo").value;
-      if(!VELAS||!VELAS.length){ avisar(T().sinVelas,true); return; }
+      if(!VENTANAS.length){ avisar(T().sinVelas,true); return; }
+      const OPC={comision:parseFloat($("cComision").value)||0,
+                 slippage:parseFloat($("cSlip").value)||0, modo:modo};
+      P.ContratosATR=parseInt($("cContratos").value,10)||3;
       if(esMagmax()){
-        RES=MotorMNQ.correrEstructura(VELAS,P);
+        RES=MotorMNQ.correrEstructura(VENTANAS[0].velas,P);
         RES.magmax=true;
         pintarResMagmax();
       } else {
-        RES=MotorMNQ.correr(VELAS,P,{modo:modo});
+        RES=correrTodas(P,OPC);
         if(RES.error){avisar(RES.error,true);return}
         if(P._faltan&&P._faltan.length)
           console.log("El .cs no traia estos parametros; se usaron los del motor: "+P._faltan.join(", "));
@@ -906,6 +935,47 @@ $("btnCorrer").addEventListener("click",()=>{
     finally{b.disabled=false;b.textContent=T().correr}
   },40);
 });
+function correrTodas(P,OPC){
+  const partes=[];
+  for(const v of VENTANAS){
+    const R=MotorMNQ.correr(v.velas,P,OPC);
+    if(R.error) return R;
+    R._nombre=v.nombre; partes.push(R);
+  }
+  if(partes.length===1){ partes[0].porVentana=null; return partes[0]; }
+  const rs=[]; let usd=0,cos=0;
+  const acum={porTF:{},porEspacio:{},porRegimen:{}};
+  for(const R of partes){
+    const c=R.curva;
+    for(let i=0;i<c.length;i++) rs.push(i?c[i]-c[i-1]:c[0]);
+    usd+=R.total.usd; cos+=R.total.costos;
+    for(const fam of ["porTF","porEspacio","porRegimen"]){
+      const src=R[fam]||{};
+      for(const k in src){
+        if(!acum[fam][k]) acum[fam][k]={n:0,r:0,gan:0};
+        acum[fam][k].n+=src[k].n; acum[fam][k].r+=src[k].r;
+        acum[fam][k].gan+=src[k].acierto*src[k].n/100;
+      }
+    }
+  }
+  const met=(sub)=>{ let p=0,q=0,g=0,rr=0,pico=0,ac=0,dd=0;
+    for(const r of sub){ if(r>0){p+=r;g++;} else q+=-r; rr+=r; ac+=r; pico=Math.max(pico,ac); dd=Math.max(dd,pico-ac); }
+    return {n:sub.length,pf:q>0?p/q:(p>0?99:0),r:rr,
+            acierto:sub.length?100*g/sub.length:0,usd:0,costos:0,
+            rTrade:sub.length?rr/sub.length:0,dd:dd}; };
+  const n=rs.length, corte=Math.floor(n*0.7);
+  const tot=met(rs); tot.usd=usd; tot.costos=cos;
+  const curva=[]; let a2=0; for(const r of rs){ a2+=r; curva.push(a2); }
+  const out={ total:tot, dentro:met(rs.slice(0,corte)), fuera:met(rs.slice(corte)),
+    tramos:[0,1,2,3].map(k=>met(rs.slice(Math.floor(n*k/4),Math.floor(n*(k+1)/4)))),
+    curva:curva, contratos:partes[0].contratos,
+    porRegimen:{},porEspacio:{},porTF:{},
+    porVentana:partes.map(R=>({nombre:R._nombre,n:R.total.n,pf:R.total.pf,r:R.total.r,usd:R.total.usd})) };
+  for(const fam of ["porTF","porEspacio","porRegimen"])
+    for(const k in acum[fam]){ const x=acum[fam][k];
+      out[fam][k]={n:x.n,pf:0,r:x.r,acierto:100*x.gan/x.n,usd:0,costos:0,rTrade:x.r/x.n,dd:0}; }
+  return out;
+}
 function barrer(P,modo,nombre){
   const p=CS.props.find(x=>x.nombre===nombre);
   const base=parseFloat(p.valor)||0;
@@ -949,6 +1019,9 @@ function pintarRes(){
   const fila=(n,x)=>`<tr><td>${n}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>${x.acierto.toFixed(0)}%</td></tr>`;
   let h=`<tr><th>${T().hFamilia}</th><th>n</th><th>PF</th><th>R</th><th>%</th></tr>`;
   h+=fila(T().hDentro,RES.dentro)+fila(T().hFuera,RES.fuera);
+  if(RES.porVentana&&RES.porVentana.length>1)
+    for(const v of RES.porVentana)
+      h+=`<tr><td>${v.nombre}</td><td>${v.n}</td><td class="${v.pf>=1?'b':'m'}">${v.pf.toFixed(2)}</td><td>${v.r.toFixed(1)}</td><td>$${Math.round(v.usd)}</td></tr>`;
   for(const k in RES.porRegimen)h+=fila(k,RES.porRegimen[k]);
   for(const k in RES.porEspacio)h+=fila(k==="estrecha"?T().hEstrecha:T().hEspacio,RES.porEspacio[k]);
   for(const k in RES.porTF)h+=fila(T().hNivel+" "+k,RES.porTF[k]);
@@ -1036,7 +1109,7 @@ est:{M:"motor",V:"visual",F:"—"},params:"parámetros",velas:"velas",
 csOK:"Leídos {n} parámetros del .cs.",csvOK:"Cargadas {n} velas.",
 sinProps:"No encontré propiedades NinjaScript en ese archivo.",
 pocasVelas:"Muy pocas velas para un backtest.",errLeer:"No pude leer el archivo:",
-errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:"Listo.",
+errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:"Listo.",ventana:"ventana",ventanas:"ventanas",costosLbl:"Costos y tamaño",costosAyuda:"contratos · comisión · slippage (ticks)",
 faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
 mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
 mCostos:"costos",mDD:"drawdown",mCtr:"contratos",
@@ -1064,7 +1137,7 @@ est:{M:"engine",V:"display",F:"—"},params:"parameters",velas:"bars",
 csOK:"Read {n} parameters from the .cs.",csvOK:"Loaded {n} bars.",
 sinProps:"No NinjaScript properties found in that file.",
 pocasVelas:"Too few bars for a backtest.",errLeer:"Couldn't read the file:",
-errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Done.",
+errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Done.",ventana:"window",ventanas:"windows",costosLbl:"Costs and size",costosAyuda:"contracts · commission · slippage (ticks)",
 faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
 mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
 mCostos:"costs",mDD:"drawdown",mCtr:"contracts",
