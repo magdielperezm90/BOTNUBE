@@ -398,6 +398,15 @@ function correr(velas, P, opc){
         if(P.VidaNivelVelas>0 && (i-n.nace) > P.VidaNivelVelas*Math.max(1,n.tf)) return false;
         return true;
       });
+      // tope por familia de origen, igual que PodarNiveles() del .cs
+      const tope = P.TopePorOrigen>0 ? P.TopePorOrigen : 14;
+      const cuenta={}, keep=new Array(niveles.length).fill(true);
+      for(let q=niveles.length-1;q>=0;q--){
+        const o=niveles[q].origen;
+        cuenta[o]=(cuenta[o]||0)+1;
+        if(cuenta[o]>tope) keep[q]=false;
+      }
+      niveles = niveles.filter((n,q)=>keep[q]);
     }
 
     /* ---------- regimen ---------- */
@@ -466,7 +475,8 @@ function correr(velas, P, opc){
       if(estrecho && P.IgnorarEstrechas) continue;
       if(modo==="tendencia" && g.regimen!==1) continue;
       if(modo==="lateral"   && g.regimen!==-1) continue;
-      const tp = (P.ObjetivoEnNivel && esp>0) ? entrada+g.dir*esp
+      const tp = P.PuntosObjetivo>0 ? entrada+g.dir*P.PuntosObjetivo
+               : (P.ObjetivoEnNivel && esp>0) ? entrada+g.dir*esp
                                               : entrada+g.dir*sl*P.MultiploTP;
       const ctr = contratos(sl);
       abiertos.push({
@@ -491,7 +501,21 @@ function correr(velas, P, opc){
         n.roto=true; n.dirRuptura=rArriba?1:-1;
         if(!P.DetectarRupturas || !P.UsarGatillo) continue;
         if(!conFuerza || n.gatilloCreado) continue;
-        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n);
+        // filtro de contexto: ATR minimo
+        const atrOK = !(P.ATRMinimo>0) || a >= P.ATRMinimo;
+        // filtro de contexto: continuidad = avance neto / recorrido total,
+        // con signo, en la direccion de la ruptura
+        let contOK = true;
+        if(P.MinContinuidad>0){
+          const K=P.VelasContinuidad||15;
+          let neto=0,bruto=0;
+          for(let q=0;q<K && i-q-1>=0;q++){
+            const d=velas[i-q].c-velas[i-q-1].c; neto+=d; bruto+=Math.abs(d);
+          }
+          const dcc = bruto>0 ? neto/bruto : 0;
+          contOK = (dcc*(rArriba?1:-1)) >= P.MinContinuidad;
+        }
+        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n) && atrOK && contOK;
         if(!pasa) continue;
         if(modo==="tendencia" && regimen!==1) continue;
         n.gatilloCreado=true;
@@ -652,13 +676,14 @@ const MOTOR_USA = new Set(["MinFuerza","MinRVOL","PeriodoVolumen","FuerzaSwingPr
 "IgnorarEstrechas","DetectarRupturas","UsarGatillo","CancelarSiCierraEnContra",
 "ObjetivoEnNivel","VelasVidaTrade","PeriodoRegimen","PctTendencia","PctLateral",
 "PisoTendencia","SoloEnTendencia","MinutosNivelMinimo","TamanoPorRiesgo",
-"RiesgoObjetivoUSD","MaxContratos","ContratosATR"]);
+"RiesgoObjetivoUSD","MaxContratos","ContratosATR",
+"ATRMinimo","VelasContinuidad","MinContinuidad","PuntosObjetivo"]);
 const GRUPOS_VIS=new Set(["3 Visual de niveles","6 Parpadeo y velas"]);
 const PREF_VIS=["Color","Mostrar","Dibujar","Alerta","Etiqueta","Parpadear","Ancho",
 "Grosor","Velocidad","Ocultar","Lineas","Separacion","Ensanchar"];
 const BARRIBLES=["MinFuerza","MinRVOL","MultiploSL","MultiploTP","MinRecorridoR",
 "FactorGatilloATR","VelasGatillo","PctTendencia","PisoTendencia","MinutosNivelMinimo",
-"RiesgoObjetivoUSD","VidaNivelVelas"];
+"RiesgoObjetivoUSD","VidaNivelVelas","ATRMinimo","MinContinuidad","VelasContinuidad","PuntosObjetivo"];
 const MOTOR_MAGMAX=new Set(["MinutosEstructura","FuerzaSwing","ToleranciaTicks",
 "VentanaRetest","VentanaSweep","UmbralReversionATR","PeriodoATR"]);
 function esMagmax(){return CS&&CS.clase==="MAGMAX";}
@@ -826,6 +851,7 @@ $("btnCorrer").addEventListener("click",()=>{
   setTimeout(()=>{
     try{
       const P=paquete(),modo=$("modo").value;
+      if(!VELAS||!VELAS.length){ avisar(T().sinVelas,true); return; }
       if(esMagmax()){
         RES=MotorMNQ.correrEstructura(VELAS,P);
         RES.magmax=true;

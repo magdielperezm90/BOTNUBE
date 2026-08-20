@@ -1,6 +1,6 @@
 /* MAGMAX Scanner - service worker
    La app vive completa en index.html; el resto es opcional. */
-const CACHE = "magmax-v4";
+const CACHE = "magmax-v5";
 const ARCHIVOS = ["./", "./index.html", "./manifest.json", "./icon.png"];
 
 self.addEventListener("install", e => {
