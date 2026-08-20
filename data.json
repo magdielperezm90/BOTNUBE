@@ -1,49 +1,69 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-08-17 22:59 UTC",
- "ultima_vela": "2026-08-17",
- "precio_qqq": 729.87,
+ "actualizado": "2026-08-19 23:00 UTC",
+ "ultima_vela": "2026-08-19",
+ "precio_qqq": 716.08,
  "indicadores": {
-  "roc10": 4.26,
-  "valor_smc": 9960.49,
-  "valor_bh": 10081.02,
-  "tickers_alcistas": 9,
+  "roc10": -0.17,
+  "valor_smc": 9936.02,
+  "valor_bh": 9890.55,
+  "tickers_alcistas": 8,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 1937.0589881182352,
+  "efectivo": 3823.6004405576737,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 86.98
-   },
-   "SPY": {
-    "unidades": 2.63684,
-    "costo": 1971.77,
-    "entrada": 747.03,
-    "fecha": "2026-07-31",
-    "precio_actual": 772.67
+    "precio_actual": 90.35
    },
    "IWM": {
     "unidades": 6.716801,
     "costo": 1991.64,
     "entrada": 296.22,
     "fecha": "2026-08-03",
-    "precio_actual": 304.06
+    "precio_actual": 301.72
    },
-   "XLK": {
-    "unidades": 10.097903,
-    "costo": 1889.19,
-    "entrada": 186.9,
-    "fecha": "2026-08-04",
-    "precio_actual": 190.32
+   "AAPL": {
+    "unidades": 6.26713,
+    "costo": 1987.6,
+    "entrada": 316.83,
+    "fecha": "2026-08-19",
+    "precio_actual": 316.83
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-08-19",
+    "tipo": "COMPRA (CHoCH +0.3%)",
+    "ticker": "AAPL",
+    "precio": 316.83,
+    "unidades": 6.2671,
+    "valor": 1987.6,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-08-19",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "XLK",
+    "precio": 183.64,
+    "unidades": 10.0979,
+    "valor": 1852.52,
+    "pnl": -36.67
+   },
+   {
+    "fecha": "2026-08-18",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "SPY",
+    "precio": 767.45,
+    "unidades": 2.6368,
+    "valor": 2021.62,
+    "pnl": 49.85
+   },
    {
     "fecha": "2026-08-12",
     "tipo": "VENTA (estructura rota)",
@@ -308,6 +328,18 @@
    "smc": 9960.49,
    "bh": 10081.02,
    "roc10": 4.26
+  },
+  {
+   "fecha": "2026-08-18",
+   "smc": 9914.29,
+   "bh": 9910.3,
+   "roc10": -0.88
+  },
+  {
+   "fecha": "2026-08-19",
+   "smc": 9936.02,
+   "bh": 9890.55,
+   "roc10": -0.17
   }
  ]
 }
