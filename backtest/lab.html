@@ -832,6 +832,28 @@ function listarBarrido(){
   CS.props.filter(p=>p.est==="M"&&BARRIBLES.indexOf(p.nombre)!==-1).forEach(p=>{
     const o=document.createElement("option");o.value=p.nombre;o.textContent=p.etiqueta;s.appendChild(o)});
 }
+// Todo lo que el motor necesita, con su valor por defecto.
+// Si el .cs no lo trae (p.ej. la estrategia no tiene DetectarRupturas),
+// se usa este valor en vez de dejarlo en undefined y romper el embudo.
+const DEF_MOTOR={
+  MinFuerza:0.6, MinRVOL:1.5, PeriodoVolumen:20,
+  FuerzaSwingPrimaria:5, FuerzaSwingSuperior:5,
+  UsarTF2:true, MinutosTF2:5, UsarTF3:true, MinutosTF3:15,
+  UsarTF4:false, MinutosTF4:60,
+  ToleranciaTicks:2, VidaNivelVelas:30, TopePorOrigen:14,
+  UsarNivelesSesion:true, UsarAsia:true, HorasAsia:9,
+  UsarAperturaDiaria:true, UsarCierreAnterior:true,
+  UsarAperturaSemanal:true, UsarPuntoMedio:true,
+  PeriodoATR:14, FactorGatilloATR:0.5, VelasGatillo:3,
+  MultiploSL:1.5, MultiploTP:2.0, MinRecorridoR:1.5,
+  IgnorarEstrechas:true, DetectarRupturas:true, UsarGatillo:true,
+  CancelarSiCierraEnContra:true, ObjetivoEnNivel:false, VelasVidaTrade:60,
+  PeriodoRegimen:20, PctTendencia:25, PctLateral:25, PisoTendencia:0,
+  SoloEnTendencia:true, MinutosNivelMinimo:15,
+  ATRMinimo:0, VelasContinuidad:15, MinContinuidad:0,
+  PuntosObjetivo:0, TamanoPorRiesgo:false, ContratosATR:3,
+  RiesgoObjetivoUSD:150, MaxContratos:10
+};
 function paquete(){
   const P={};
   CS.props.forEach(p=>{
@@ -839,9 +861,20 @@ function paquete(){
     if(p.tipo==="bool")v=(v==="true");
     else if(p.tipo!=="Brush"&&p.tipo!=="string"){const n=parseFloat(v);v=isNaN(n)?0:n}
     P[p.nombre]=v});
-  ["PisoTendencia","MinutosNivelMinimo","MaxContratos","RiesgoObjetivoUSD","MinutosTF4"]
-    .forEach(k=>{if(P[k]===undefined)P[k]=k==="MinutosNivelMinimo"?1:0});
-  if(P.UsarTF4===undefined)P.UsarTF4=false;
+  // --- nombres propios de la ESTRATEGIA -> nombres del motor ---
+  if(P.Contratos!==undefined && P.ContratosATR===undefined) P.ContratosATR=P.Contratos;
+  if(P.Modo!==undefined && CS.tipo==="Strategy"){
+    // 0 = solo tendencia | 1 = solo lateral | 2 = ambos
+    P.SoloEnTendencia = (P.Modo===0);
+  }
+  // --- rellenar todo lo que el motor necesita y el .cs no trae ---
+  const faltan=[];
+  for(const k in DEF_MOTOR){
+    if(P[k]===undefined || P[k]===null || (typeof P[k]==="number" && isNaN(P[k]))){
+      P[k]=DEF_MOTOR[k]; faltan.push(k);
+    }
+  }
+  P._faltan=faltan;
   return P;
 }
 
@@ -859,6 +892,8 @@ $("btnCorrer").addEventListener("click",()=>{
       } else {
         RES=MotorMNQ.correr(VELAS,P,{modo:modo});
         if(RES.error){avisar(RES.error,true);return}
+        if(P._faltan&&P._faltan.length)
+          console.log("El .cs no traia estos parametros; se usaron los del motor: "+P._faltan.join(", "));
         const cual=$("barrer").value;
         RES.barrido=cual?barrer(P,modo,cual):null;
         pintarRes();
