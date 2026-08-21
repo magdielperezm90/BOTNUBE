@@ -509,6 +509,11 @@ function correr(velas, P, opc){
         n.roto=true; n.dirRuptura=rArriba?1:-1;
         if(!P.DetectarRupturas || !P.UsarGatillo) continue;
         if(!conFuerza || n.gatilloCreado) continue;
+        // filtro horario: horas del reloj donde no nace gatillo
+        let horaOK = true;
+        if(P._horasBloq && P._horasBloq.length){
+          horaOK = P._horasBloq.indexOf(new Date(velas[i].t).getUTCHours()) < 0;
+        }
         // filtro de contexto: ATR minimo
         const atrOK = !(P.ATRMinimo>0) || a >= P.ATRMinimo;
         // filtro de contexto: continuidad = avance neto / recorrido total,
@@ -523,7 +528,7 @@ function correr(velas, P, opc){
           const dcc = bruto>0 ? neto/bruto : 0;
           contOK = (dcc*(rArriba?1:-1)) >= P.MinContinuidad;
         }
-        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n) && atrOK && contOK;
+        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n) && atrOK && contOK && horaOK;
         if(!pasa) continue;
         if(modo==="tendencia" && regimen!==1) continue;
         n.gatilloCreado=true;
@@ -685,7 +690,7 @@ const MOTOR_USA = new Set(["MinFuerza","MinRVOL","PeriodoVolumen","FuerzaSwingPr
 "ObjetivoEnNivel","VelasVidaTrade","PeriodoRegimen","PctTendencia","PctLateral",
 "PisoTendencia","SoloEnTendencia","MinutosNivelMinimo","TamanoPorRiesgo",
 "RiesgoObjetivoUSD","MaxContratos","ContratosATR",
-"ATRMinimo","VelasContinuidad","MinContinuidad","PuntosObjetivo"]);
+"ATRMinimo","VelasContinuidad","MinContinuidad","PuntosObjetivo","HorasExcluidas"]);
 const GRUPOS_VIS=new Set(["3 Visual de niveles","6 Parpadeo y velas"]);
 const PREF_VIS=["Color","Mostrar","Dibujar","Alerta","Etiqueta","Parpadear","Ancho",
 "Grosor","Velocidad","Ocultar","Lineas","Separacion","Ensanchar"];
@@ -902,6 +907,15 @@ function paquete(){
   for(const k in DEF_MOTOR){
     if(P[k]===undefined || P[k]===null || (typeof P[k]==="number" && isNaN(P[k]))){
       P[k]=DEF_MOTOR[k]; faltan.push(k);
+    }
+  }
+  // HorasExcluidas viene como texto del .cs (ej "18,19"): a lista de numeros
+  P._horasBloq=[];
+  if(typeof P.HorasExcluidas==="string"){
+    const limpio=P.HorasExcluidas.replace(/["']/g,"").trim();
+    if(limpio) for(const x of limpio.split(",")){
+      const v=parseInt(x.trim(),10);
+      if(!isNaN(v)&&v>=0&&v<24) P._horasBloq.push(v);
     }
   }
   P._faltan=faltan;
