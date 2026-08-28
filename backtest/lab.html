@@ -161,6 +161,8 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
         <input type="number" id="cSlip" value="1" min="0" step="1">
       </div>
       <div style="font-size:10.5px;color:var(--tenue);margin-top:4px" data-i="costosAyuda">contratos · comisión · slippage (ticks)</div>
+      <label class="gt" for="cLimite" style="margin-top:9px;display:block" data-i="limiteLbl">Límite de drawdown de la cuenta (USD)</label>
+      <input type="number" id="cLimite" value="2000" min="0" step="50">
     </div>
     <div><label class="gt" for="barrer" data-i="barrerLbl">Barrer un parámetro</label>
       <select id="barrer"><option value="" data-i="ninguno">Ninguno</option></select>
@@ -611,16 +613,20 @@ function correr(velas, P, opc){
    REPORTE
    ===================================================================== */
 function metricas(ts){
-  if(!ts.length) return {n:0,pf:0,r:0,acierto:0,usd:0,costos:0,rTrade:0,dd:0,pos:0,neg:0};
+  if(!ts.length) return {n:0,pf:0,r:0,acierto:0,usd:0,costos:0,rTrade:0,dd:0,ddUsd:0,pos:0,neg:0};
   let g=0,p=0,r=0,gan=0,usd=0,costos=0;
   let pico=0,acum=0,dd=0;
+  let picoU=0,acumU=0,ddU=0;
   for(const t of ts){
     r+=t.r; usd+=t.usd; costos+=t.costo;
     if(t.usd>0){ g+=t.usd; gan++; } else p+=Math.abs(t.usd);
     acum+=t.r; pico=Math.max(pico,acum); dd=Math.max(dd,pico-acum);
+    // drawdown en dinero: es el que cuenta para el limite de la cuenta,
+    // porque el mismo numero de R pesa distinto segun el tamano del stop
+    acumU+=t.usd; picoU=Math.max(picoU,acumU); ddU=Math.max(ddU,picoU-acumU);
   }
   return {n:ts.length, pf: p>0? g/p : (g>0?99:0), r:r, acierto:100*gan/ts.length,
-          usd:usd, costos:costos, rTrade:r/ts.length, dd:dd, pos:g, neg:p};
+          usd:usd, costos:costos, rTrade:r/ts.length, dd:dd, ddUsd:ddU, pos:g, neg:p};
 }
 function reporte(trades, velas, opc){
   const R = {total:metricas(trades), trades:trades.length};
@@ -645,6 +651,7 @@ function reporte(trades, velas, opc){
   R.caducados = trades.filter(t=>t.caduco).length;
   R.ambiguos  = trades.filter(t=>t.res===0).length;
   R.resueltos = metricas(trades.filter(t=>!t.caduco));
+  R._usds = trades.map(t=>t.usd);
   return R;
 }
 
@@ -1650,11 +1657,12 @@ function correrTodas(P,OPC){
     R._nombre=v.nombre; partes.push(R);
   }
   if(partes.length===1){ partes[0].porVentana=null; return partes[0]; }
-  const rs=[]; let usd=0,cos=0;
+  const rs=[], us=[]; let usd=0,cos=0;
   const acum={porTF:{},porEspacio:{},porRegimen:{}};
   for(const R of partes){
     const c=R.curva;
     for(let i=0;i<c.length;i++) rs.push(i?c[i]-c[i-1]:c[0]);
+    if(R._usds) for(const u of R._usds) us.push(u);
     usd+=R.total.usd; cos+=R.total.costos;
     for(const fam of ["porTF","porEspacio","porRegimen"]){
       const src=R[fam]||{};
@@ -1670,16 +1678,21 @@ function correrTodas(P,OPC){
       }
     }
   }
-  const met=(sub)=>{ let p=0,q=0,g=0,rr=0,pico=0,ac=0,dd=0;
+  const met=(sub,subU)=>{ let p=0,q=0,g=0,rr=0,pico=0,ac=0,dd=0;
     for(const r of sub){ if(r>0){p+=r;g++;} else q+=-r; rr+=r; ac+=r; pico=Math.max(pico,ac); dd=Math.max(dd,pico-ac); }
+    let ddU=0;
+    if(subU){ let pu=0,au=0;
+      for(const u of subU){ au+=u; pu=Math.max(pu,au); ddU=Math.max(ddU,pu-au); } }
     return {n:sub.length,pf:q>0?p/q:(p>0?99:0),r:rr,
             acierto:sub.length?100*g/sub.length:0,usd:0,costos:0,
-            rTrade:sub.length?rr/sub.length:0,dd:dd}; };
+            rTrade:sub.length?rr/sub.length:0,dd:dd,ddUsd:ddU}; };
   const n=rs.length, corte=Math.floor(n*0.7);
-  const tot=met(rs); tot.usd=usd; tot.costos=cos;
+  const tot=met(rs,us); tot.usd=usd; tot.costos=cos;
   const curva=[]; let a2=0; for(const r of rs){ a2+=r; curva.push(a2); }
-  const out={ total:tot, dentro:met(rs.slice(0,corte)), fuera:met(rs.slice(corte)),
-    tramos:[0,1,2,3].map(k=>met(rs.slice(Math.floor(n*k/4),Math.floor(n*(k+1)/4)))),
+  const out={ total:tot, dentro:met(rs.slice(0,corte),us.slice(0,corte)),
+    fuera:met(rs.slice(corte),us.slice(corte)),
+    tramos:[0,1,2,3].map(k=>met(rs.slice(Math.floor(n*k/4),Math.floor(n*(k+1)/4)),
+                                us.slice(Math.floor(n*k/4),Math.floor(n*(k+1)/4)))),
     curva:curva, contratos:partes[0].contratos,
     porRegimen:{},porEspacio:{},porTF:{},
     porVentana:partes.map(R=>({nombre:R._nombre,n:R.total.n,pf:R.total.pf,r:R.total.r,usd:R.total.usd})) };
@@ -1714,7 +1727,8 @@ function barrer(P,modo,nombre){
       comision:parseFloat($("cComision").value)||0,
       slippage:parseFloat($("cSlip").value)||0});
     return {v:v,pf:(R.total?R.total.pf:0),n:(R.total?R.total.n:0),
-            r:(R.total?R.total.r:0),dd:(R.total?R.total.dd:0)};
+            r:(R.total?R.total.r:0),dd:(R.total?R.total.dd:0),
+            ddUsd:(R.total?R.total.ddUsd:0),usd:(R.total?R.total.usd:0)};
   });
 }
 
@@ -1735,8 +1749,16 @@ function pintarRes(){
     ["$"+Math.round(t.usd).toLocaleString(),T().mNeto],
     ["$"+Math.round(t.costos).toLocaleString(),T().mCostos],
     [t.dd.toFixed(1)+"R",T().mDD]];
+  const lim=parseFloat($("cLimite").value)||0;
+  const ddU=t.ddUsd||0;
+  m.push(["$"+Math.round(ddU).toLocaleString(),T().mDDUsd]);
+  if(lim>0) m.push([ddU<=lim?"✓":"✕", T().mApex.replace("{l}","$"+lim.toLocaleString())]);
   if(RES.contratos)m.push([RES.contratos.min+"-"+RES.contratos.max,T().mCtr]);
-  $("met").innerHTML=m.map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
+  $("met").innerHTML=m.map((x,i)=>{
+    const ultimo=(lim>0 && i===m.length-1);
+    const col=ultimo?(ddU<=lim?"var(--jade)":"var(--rojo)"):"";
+    return `<div><b${col?' style="color:'+col+'"':''}>${x[0]}</b><span>${x[1]}</span></div>`;
+  }).join("");
 
   curva();
   const fila=(n,x)=>`<tr><td>${n}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>${x.acierto.toFixed(0)}%</td></tr>`;
@@ -1759,8 +1781,8 @@ function pintarRes(){
   if(RES.barrido){
     $("wrapBarrido").classList.remove("oculto");
     const pf=RES.barrido.map(x=>x.pf),dif=Math.max(...pf)-Math.min(...pf);
-    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th><th>DD</th></tr>`+
-      RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>${(x.dd||0).toFixed(1)}R</td></tr>`).join("")+
+    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th><th>DD $</th><th>neto</th></tr>`+
+      RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>$${Math.round(x.ddUsd||0).toLocaleString()}</td><td class="${(x.usd||0)>=0?'b':'m'}">$${Math.round(x.usd||0).toLocaleString()}</td></tr>`).join("")+
       `<tr><td colspan="4" style="color:${dif>0.6?'var(--rojo)':'var(--jade)'}">${dif>0.6?T().sPico:T().sMeseta} (${dif.toFixed(2)})</td></tr>`;
   } else $("wrapBarrido").classList.add("oculto");
 }
@@ -1921,7 +1943,9 @@ function analisisCompleto(){
         r:(R&&R.total)?R.total.r:0,
         pfFuera:(R&&R.fuera)?R.fuera.pf:0,
         nFuera:(R&&R.fuera)?R.fuera.n:0,
-        dd:(R&&R.total)?R.total.dd:0
+        dd:(R&&R.total)?R.total.dd:0,
+        ddUsd:(R&&R.total)?R.total.ddUsd:0,
+        usd:(R&&R.total)?R.total.usd:0
       });
     }
     const pct=Math.round(100*k/tareas.length);
@@ -1981,6 +2005,7 @@ function cuerpoInforme(){
    + '<tr><td>'+D.mRT+'</td><td>'+num(t.rTrade,3)+'</td></tr>'
    + '<tr><td>'+D.mAcierto+'</td><td>'+num(t.acierto,1)+' %</td></tr>'
    + '<tr><td>'+D.mDD+'</td><td>'+num(t.dd,1)+' R</td></tr>'
+   + '<tr><td>'+D.mDDUsd+'</td><td>$'+Math.round(t.ddUsd||0).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.mNeto+'</td><td>$'+Math.round(t.usd).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.mCostos+'</td><td>$'+Math.round(t.costos).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.hFuera+'</td><td>PF '+num(f.pf)+' · n '+f.n+'</td></tr>'
@@ -2023,11 +2048,12 @@ function cuerpoInforme(){
     h+='<p class="nota">'+D.iActual+': '+p.actual+' · '+D.diag[p.diag.clave]
       +' · '+D.iImpacto+' '+num(p.diag.impacto)+'</p>';
     h+='<table class="inf"><tr><th>'+D.iValor+'</th><th>n</th><th>PF</th><th>R</th><th>'
-      +D.iDD+'</th><th>'+D.iPFfuera+'</th><th>n</th></tr>';
+      +D.iDDUsd+'</th><th>'+D.iNeto+'</th><th>'+D.iPFfuera+'</th><th>n</th></tr>';
     p.filas.forEach(x=>{
       const marca=(p.diag.mejor&&x.v===p.diag.mejor.v)?' class="mej"':'';
       h+='<tr'+marca+'><td>'+x.v+'</td><td>'+x.n+'</td><td>'+num(x.pf)+'</td><td>'
-        +num(x.r,1)+'</td><td>'+num(x.dd,1)+'</td><td>'+num(x.pfFuera)+'</td><td>'
+        +num(x.r,1)+'</td><td>$'+Math.round(x.ddUsd||0).toLocaleString()+'</td><td>$'
+        +Math.round(x.usd||0).toLocaleString()+'</td><td>'+num(x.pfFuera)+'</td><td>'
         +x.nFuera+'</td></tr>';
     });
     h+='</table>';
@@ -2143,7 +2169,9 @@ pocasVelas:"Muy pocas velas para un backtest.",errLeer:"No pude leer el archivo:
 errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:"Listo.",duplicado:"{n} es idéntico a un archivo ya cargado. No se añadió.",ventana:"ventana",ventanas:"ventanas",costosLbl:"Costos y tamaño",costosAyuda:"contratos · comisión · slippage (ticks)",
 faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
 mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
-mCostos:"costos",mDD:"drawdown",mCtr:"contratos",
+mCostos:"costos",mDD:"drawdown",mDDUsd:"drawdown $",
+mApex:"cabe en {l}",limiteLbl:"Límite de drawdown de la cuenta (USD)",
+iDDUsd:"DD $",iNeto:"neto",mCtr:"contratos",
 hFamilia:"familia",hDentro:"dentro (70%)",hFuera:"fuera (30%)",hTramo:"tramo",
 hEstrecha:"estrechas",hEspacio:"con espacio",hNivel:"nivel",
 vSi:"Aguanta",vSiSub:"PF por encima de 1.2, la muestra fuera no se cae y al menos 3 de los 4 tramos no pierden.",
@@ -2196,7 +2224,9 @@ pocasVelas:"Too few bars for a backtest.",errLeer:"Couldn't read the file:",
 errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Done.",duplicado:"{n} is identical to a file already loaded. Not added.",ventana:"window",ventanas:"windows",costosLbl:"Costs and size",costosAyuda:"contracts · commission · slippage (ticks)",
 faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
 mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
-mCostos:"costs",mDD:"drawdown",mCtr:"contracts",
+mCostos:"costs",mDD:"drawdown",mDDUsd:"drawdown $",
+mApex:"fits {l}",limiteLbl:"Account drawdown limit (USD)",
+iDDUsd:"DD $",iNeto:"net",mCtr:"contracts",
 hFamilia:"family",hDentro:"in-sample (70%)",hFuera:"out-of-sample (30%)",hTramo:"segment",
 hEstrecha:"tight",hEspacio:"with room",hNivel:"level",
 vSi:"Holds up",vSiSub:"PF above 1.2, the out-of-sample doesn't collapse and at least 3 of 4 segments don't lose.",
