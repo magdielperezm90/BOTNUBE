@@ -1,42 +1,58 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-08-27 03:34 UTC",
- "ultima_vela": "2026-08-26",
- "precio_qqq": 711.37,
+ "actualizado": "2026-08-28 06:21 UTC",
+ "ultima_vela": "2026-08-27",
+ "precio_qqq": 721.11,
  "indicadores": {
-  "roc10": -1.7,
-  "valor_smc": 9889.83,
-  "valor_bh": 9825.5,
-  "tickers_alcistas": 4,
+  "roc10": -1.5,
+  "valor_smc": 9877.13,
+  "valor_bh": 9960.03,
+  "tickers_alcistas": 5,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 3823.6004405576737,
+  "efectivo": 1847.7789754927578,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 90.08
+    "precio_actual": 89.06
    },
    "IWM": {
     "unidades": 6.716801,
     "costo": 1991.64,
     "entrada": 296.22,
     "fecha": "2026-08-03",
-    "precio_actual": 298.93
+    "precio_actual": 299.81
    },
    "AAPL": {
     "unidades": 6.26713,
     "costo": 1987.6,
     "entrada": 316.83,
     "fecha": "2026-08-19",
-    "precio_actual": 313.45
+    "precio_actual": 314.58
+   },
+   "NVDA": {
+    "unidades": 8.657977,
+    "costo": 1975.82,
+    "entrada": 227.98,
+    "fecha": "2026-08-27",
+    "precio_actual": 227.98
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-08-27",
+    "tipo": "COMPRA (CHoCH +0.0%)",
+    "ticker": "NVDA",
+    "precio": 227.98,
+    "unidades": 8.658,
+    "valor": 1975.82,
+    "pnl": ""
+   },
    {
     "fecha": "2026-08-19",
     "tipo": "COMPRA (CHoCH +0.3%)",
@@ -370,6 +386,12 @@
    "smc": 9889.83,
    "bh": 9825.5,
    "roc10": -1.7
+  },
+  {
+   "fecha": "2026-08-27",
+   "smc": 9877.13,
+   "bh": 9960.03,
+   "roc10": -1.5
   }
  ]
 }
