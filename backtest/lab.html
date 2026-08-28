@@ -340,6 +340,7 @@ function correr(velas, P, opc){
   const histEf=[]; let cortaTend=0, cortaLat=0, regimen=0, ef=0;
   const gatillos=[]; const abiertos=[]; const trades=[];
   const tol = P.ToleranciaTicks*tick;
+  let ultimoGatillo = -1;
 
   function agrega(precio,origen,tf,esAlto,bidir,i){
     if(!isFinite(precio)) return;
@@ -513,6 +514,25 @@ function correr(velas, P, opc){
     const rvol = b.v/vsm[i];
     const conFuerza = fuerza>=P.MinFuerza && rvol>=P.MinRVOL;
 
+    /* ---- filtros de MOVIMIENTO (v9.5) ----
+       MinFuerza mide la proporcion del cuerpo, no su tamano: una vela
+       diminuta con cuerpo lleno da fuerza 1.00 sin que el precio se mueva. */
+    const cuerpo = Math.abs(b.c-b.o);
+    let movOK = true;
+    if(P.RangoMinimoATR>0)  movOK = (a>0) && rango  >= P.RangoMinimoATR*a;
+    if(movOK && P.CuerpoMinimoATR>0) movOK = (a>0) && cuerpo >= P.CuerpoMinimoATR*a;
+    if(movOK && P.ExpansionMinima>0){
+      const K=Math.max(2,P.VelasExpansion||10);
+      if(i<K+1) movOK=false;
+      else{
+        let sr=0; for(let q=1;q<=K;q++) sr += velas[i-q].h - velas[i-q].l;
+        const prom=sr/K;
+        movOK = prom>0 && rango >= P.ExpansionMinima*prom;
+      }
+    }
+    const cooldownOK = !(P.CooldownVelas>0) || ultimoGatillo<0
+                       || (i-ultimoGatillo) >= P.CooldownVelas;
+
     for(const n of niveles){
       if(n.roto) continue;
       const rArriba = b.o<=n.precio && b.c>n.precio && (n.bidir||n.esAlto);
@@ -540,10 +560,18 @@ function correr(velas, P, opc){
           const dcc = bruto>0 ? neto/bruto : 0;
           contOK = (dcc*(rArriba?1:-1)) >= P.MinContinuidad;
         }
-        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n) && atrOK && contOK && horaOK;
+        // penetracion: el cierre debe rebasar el nivel por un margen real
+        let penOK = true;
+        if(P.PenetracionMinimaATR>0){
+          const exceso = rArriba ? (b.c-n.precio) : (n.precio-b.c);
+          penOK = a>0 && exceso >= P.PenetracionMinimaATR*a;
+        }
+        const pasa = (!P.SoloEnTendencia || regimen===1) && califica(n) && atrOK
+                     && contOK && horaOK && movOK && penOK && cooldownOK;
         if(!pasa) continue;
         if(modo==="tendencia" && regimen!==1) continue;
         n.gatilloCreado=true;
+        ultimoGatillo=i;
         const dir=rArriba?1:-1;
         gatillos.push({dir:dir, precio:n.precio+dir*a*P.FactorGatilloATR,
                        barra:i, regimen:regimen, tf:n.tf, origen:n.origen});
@@ -922,13 +950,17 @@ const MOTOR_USA = new Set(["MinFuerza","MinRVOL","PeriodoVolumen","FuerzaSwingPr
 "ObjetivoEnNivel","VelasVidaTrade","PeriodoRegimen","PctTendencia","PctLateral",
 "PisoTendencia","SoloEnTendencia","MinutosNivelMinimo","TamanoPorRiesgo",
 "RiesgoObjetivoUSD","MaxContratos","ContratosATR",
-"ATRMinimo","VelasContinuidad","MinContinuidad","PuntosObjetivo","HorasExcluidas"]);
+"ATRMinimo","VelasContinuidad","MinContinuidad","PuntosObjetivo","HorasExcluidas",
+"RangoMinimoATR","CuerpoMinimoATR","VelasExpansion","ExpansionMinima",
+"PenetracionMinimaATR","CooldownVelas"]);
 const GRUPOS_VIS=new Set(["3 Visual de niveles","6 Parpadeo y velas"]);
 const PREF_VIS=["Color","Mostrar","Dibujar","Alerta","Etiqueta","Parpadear","Ancho",
 "Grosor","Velocidad","Ocultar","Lineas","Separacion","Ensanchar"];
 const BARRIBLES=["MinFuerza","MinRVOL","MultiploSL","MultiploTP","MinRecorridoR",
 "FactorGatilloATR","VelasGatillo","PctTendencia","PisoTendencia","MinutosNivelMinimo",
-"RiesgoObjetivoUSD","VidaNivelVelas","ATRMinimo","MinContinuidad","VelasContinuidad","PuntosObjetivo"];
+"RiesgoObjetivoUSD","VidaNivelVelas","ATRMinimo","MinContinuidad","VelasContinuidad","PuntosObjetivo",
+"RangoMinimoATR","CuerpoMinimoATR","VelasExpansion","ExpansionMinima",
+"PenetracionMinimaATR","CooldownVelas"];
 const MOTOR_MAGMAX=new Set(["MinutosEstructura","FuerzaSwing","ToleranciaTicks",
 "VentanaRetest","VentanaSweep","UmbralReversionATR","PeriodoATR"]);
 
@@ -1266,7 +1298,9 @@ const DEF_MOTOR={
   SoloEnTendencia:true, MinutosNivelMinimo:15,
   ATRMinimo:0, VelasContinuidad:15, MinContinuidad:0,
   PuntosObjetivo:0, TamanoPorRiesgo:false, ContratosATR:3,
-  RiesgoObjetivoUSD:150, MaxContratos:10
+  RiesgoObjetivoUSD:150, MaxContratos:10,
+  RangoMinimoATR:0, CuerpoMinimoATR:0, VelasExpansion:10,
+  ExpansionMinima:0, PenetracionMinimaATR:0, CooldownVelas:0
 };
 function paquete(){
   const P={};
