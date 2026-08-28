@@ -167,8 +167,24 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
   </div>
   <div class="botones">
     <button class="acc" type="button" id="btnCorrer" disabled data-i="correr">Correr backtest</button>
+    <button class="acc" type="button" id="btnAnalisis" disabled data-i="analisis">Análisis completo</button>
     <button class="acc sec" type="button" id="btnJSON" disabled data-i="bajarJSON">Descargar JSON</button>
   </div>
+  <div id="wrapProg" class="oculto" style="margin-top:12px">
+    <div class="barra"><i class="m" id="pgHecho" style="width:0%"></i><i class="v" id="pgFalta" style="width:100%"></i></div>
+    <div style="font-size:11px;color:var(--tenue)" id="pgTexto"></div>
+  </div>
+</div></section>
+
+<section id="secInforme" class="oculto"><div class="cab">
+  <span data-i="cabInforme">Informe completo</span>
+  <span class="ok" id="infMeta"></span></div>
+<div class="cuerpo">
+  <div class="botones" style="margin-bottom:14px">
+    <button class="acc" type="button" id="btnPDF" data-i="bajarPDF">Descargar PDF</button>
+    <button class="acc sec" type="button" id="btnInfJSON" data-i="bajarJSONinf">Descargar JSON del informe</button>
+  </div>
+  <div id="informe"></div>
 </div></section>
 
 <section id="secRes" class="oculto"><div class="cab"><span data-i="cabRes">Resultado</span></div>
@@ -1140,6 +1156,7 @@ $("dropCSV").addEventListener("drop",e=>{ for(const f of e.dataTransfer.files) a
 function revisar(){
   const ok=!!(CS&&VENTANAS.length&&(!esImportadas()||SENALES.length));
   $("btnCorrer").disabled=!ok;
+  $("btnAnalisis").disabled=!ok;
   ["secCob","secParam","secCorrer"].forEach(s=>{if(CS)$(s).classList.remove("oculto")});
 }
 
@@ -1537,6 +1554,278 @@ $("btnJSON").addEventListener("click",()=>{
   a.click();URL.revokeObjectURL(a.href);
 });
 
+
+/* =====================================================================
+   ANALISIS COMPLETO
+   Corre el caso base y despues barre, uno por uno, todos los parametros
+   que el motor activo consume. De cada barrido saca un diagnostico:
+   si el parametro tiene efecto, si el mejor valor esta en una meseta o
+   en un pico aislado, y si la muestra aguanta esa conclusion.
+   ===================================================================== */
+let ANALISIS=null;
+
+/* Valores a probar de un parametro. Si esta en 0 (filtro apagado) explora
+   hacia arriba en fracciones de su maximo, porque multiplicar 0 no sirve. */
+function pasosDe(p){
+  const base=parseFloat(p.valor)||0;
+  const ent=(p.tipo==="int");
+  const tope=(p.max!==null)?p.max:(base>0?base*3:10);
+  const piso=(p.min!==null)?p.min:0;
+  const out=[];
+  const mete=v=>{
+    if(v<piso)v=piso;
+    if(v>tope)v=tope;
+    v=ent?Math.round(v):+v.toFixed(4);
+    if(out.indexOf(v)===-1)out.push(v);
+  };
+  if(base===0){
+    [0,0.05,0.10,0.20,0.35].forEach(f=>mete(tope*f));
+  } else {
+    for(let k=-2;k<=2;k++){
+      mete(ent ? base+k*Math.max(1,Math.round(Math.abs(base)*0.3))
+               : base*(1+k*0.3));
+    }
+  }
+  return out.sort((a,b)=>a-b);
+}
+
+/* Lee una tabla de barrido y dice que significa. */
+function diagnosticar(filas,nBase){
+  const val=filas.filter(f=>f.n>=10);
+  if(val.length<3) return {clave:"pocos",impacto:0,mejor:null};
+
+  const pfs=val.map(f=>f.pf);
+  const impacto=Math.max.apply(null,pfs)-Math.min.apply(null,pfs);
+  let iMejor=0;
+  for(let i=1;i<val.length;i++) if(val[i].pf>val[iMejor].pf) iMejor=i;
+  const mejor=val[iMejor];
+
+  if(impacto<0.15) return {clave:"nulo",impacto:impacto,mejor:mejor};
+  if(mejor.n < Math.max(50,nBase*0.35)) return {clave:"muestra",impacto:impacto,mejor:mejor};
+
+  const izq=iMejor>0?val[iMejor-1].pf:null;
+  const der=iMejor<val.length-1?val[iMejor+1].pf:null;
+  const vec=[izq,der].filter(x=>x!==null);
+  if(!vec.length) return {clave:"pico",impacto:impacto,mejor:mejor};
+
+  const prom=vec.reduce((a,b)=>a+b,0)/vec.length;
+  if(iMejor===0||iMejor===val.length-1)
+    return {clave:"borde",impacto:impacto,mejor:mejor};
+  if(prom >= mejor.pf-0.30)
+    return {clave:"meseta",impacto:impacto,mejor:mejor};
+  return {clave:"pico",impacto:impacto,mejor:mejor};
+}
+
+function analisisCompleto(){
+  const P0=paquete(), modo=$("modo").value;
+  const OPC={comision:parseFloat($("cComision").value)||0,
+             slippage:parseFloat($("cSlip").value)||0, modo:modo};
+  P0.ContratosATR=parseInt($("cContratos").value,10)||3;
+
+  const lista=(MOTOR.barribles||[]).map(nm=>CS.props.find(p=>p.nombre===nm&&p.est==="M"))
+                                   .filter(Boolean);
+  if(!lista.length){ avisar(T().sinBarribles,true); return; }
+
+  const base=correrTodas(P0,OPC);
+  if(base.error){ avisar(base.error,true); return; }
+
+  const tareas=[];
+  lista.forEach(p=>pasosDe(p).forEach(v=>tareas.push({p:p,v:v})));
+
+  const bruto={};
+  let k=0;
+  const t0=Date.now();
+
+  $("wrapProg").classList.remove("oculto");
+  $("btnCorrer").disabled=true; $("btnAnalisis").disabled=true;
+
+  function paso(){
+    const lote=Date.now();
+    // procesa varias corridas por turno, pero cede el hilo cada 400 ms
+    while(k<tareas.length && Date.now()-lote<400){
+      const t=tareas[k++];
+      const Q=Object.assign({},P0); Q[t.p.nombre]=t.v;
+      let R;
+      try{ R=MOTOR.correr(VELAS,Q,OPC); }catch(e){ R=null; }
+      if(!bruto[t.p.nombre]) bruto[t.p.nombre]=[];
+      bruto[t.p.nombre].push({
+        v:t.v,
+        n:(R&&R.total)?R.total.n:0,
+        pf:(R&&R.total)?R.total.pf:0,
+        r:(R&&R.total)?R.total.r:0,
+        pfFuera:(R&&R.fuera)?R.fuera.pf:0,
+        nFuera:(R&&R.fuera)?R.fuera.n:0
+      });
+    }
+    const pct=Math.round(100*k/tareas.length);
+    $("pgHecho").style.width=pct+"%";
+    $("pgFalta").style.width=(100-pct)+"%";
+    const seg=(Date.now()-t0)/1000;
+    const falta=k>0 ? Math.round(seg/k*(tareas.length-k)) : 0;
+    $("pgTexto").textContent=T().progreso
+      .replace("{a}",k).replace("{b}",tareas.length).replace("{p}",pct)
+      .replace("{t}", falta>90 ? Math.ceil(falta/60)+" min" : falta+" s");
+
+    if(k<tareas.length){ setTimeout(paso,0); return; }
+
+    const params=lista.map(p=>{
+      const filas=bruto[p.nombre]||[];
+      return {nombre:p.nombre, etiqueta:p.etiqueta, grupo:p.grupo,
+              actual:p.valor, filas:filas,
+              diag:diagnosticar(filas,base.total.n)};
+    }).sort((a,b)=>b.diag.impacto-a.diag.impacto);
+
+    ANALISIS={indicador:CS.clase, version:CS.version, motor:MOTOR.nombre,
+              modo:modo, fecha:new Date().toISOString().slice(0,16).replace("T"," "),
+              ventanas:VENTANAS.map(v=>({nombre:v.nombre,velas:v.velas.length,
+                                         desde:v.desde,hasta:v.hasta})),
+              costos:{contratos:P0.ContratosATR,comision:OPC.comision,slippage:OPC.slippage},
+              base:base, parametros:params, corridas:tareas.length,
+              segundos:Math.round((Date.now()-t0)/1000)};
+
+    RES=base; pintarRes();
+    $("secRes").classList.remove("oculto");
+    $("btnJSON").disabled=false;
+    pintarInforme();
+    $("wrapProg").classList.add("oculto");
+    $("btnCorrer").disabled=false; $("btnAnalisis").disabled=false;
+    $("secInforme").classList.remove("oculto");
+    $("secInforme").scrollIntoView({behavior:"smooth",block:"start"});
+    avisar(T().analisisListo.replace("{n}",tareas.length)
+                            .replace("{s}",ANALISIS.segundos),false);
+  }
+  avisar(T().analizando,false);
+  setTimeout(paso,40);
+}
+
+/* ---------- cuerpo del informe (se reutiliza en pantalla y en el PDF) ---------- */
+function cuerpoInforme(){
+  const A=ANALISIS, t=A.base.total, f=A.base.fuera, D=T();
+  const num=(x,d)=>(isFinite(x)?x.toFixed(d===undefined?2:d):"-");
+  let h="";
+
+  h+='<h2>'+D.iResumen+'</h2><table class="inf">'
+   + '<tr><th>'+D.iMetrica+'</th><th>'+D.iValor+'</th></tr>'
+   + '<tr><td>'+D.mTrades+'</td><td>'+t.n+'</td></tr>'
+   + '<tr><td>Profit Factor</td><td>'+num(t.pf)+'</td></tr>'
+   + '<tr><td>'+D.mR+'</td><td>'+num(t.r,1)+'</td></tr>'
+   + '<tr><td>'+D.mRT+'</td><td>'+num(t.rTrade,3)+'</td></tr>'
+   + '<tr><td>'+D.mAcierto+'</td><td>'+num(t.acierto,1)+' %</td></tr>'
+   + '<tr><td>'+D.mDD+'</td><td>'+num(t.dd,1)+' R</td></tr>'
+   + '<tr><td>'+D.mNeto+'</td><td>$'+Math.round(t.usd).toLocaleString()+'</td></tr>'
+   + '<tr><td>'+D.mCostos+'</td><td>$'+Math.round(t.costos).toLocaleString()+'</td></tr>'
+   + '<tr><td>'+D.hFuera+'</td><td>PF '+num(f.pf)+' · n '+f.n+'</td></tr>'
+   + '</table>';
+
+  h+='<h2>'+D.robustez+'</h2><table class="inf"><tr><th>'+D.hTramo
+   +'</th><th>n</th><th>PF</th><th>R</th></tr>';
+  A.base.tramos.forEach((x,i)=>{ h+='<tr><td>'+(i+1)+'</td><td>'+x.n+'</td><td>'
+    +num(x.pf)+'</td><td>'+num(x.r,1)+'</td></tr>'; });
+  h+='</table>';
+
+  h+='<h2>'+D.desglose+'</h2><table class="inf"><tr><th>'+D.hFamilia
+   +'</th><th>n</th><th>PF</th><th>R</th><th>%</th></tr>';
+  const fam=(nm,x)=>'<tr><td>'+nm+'</td><td>'+x.n+'</td><td>'+num(x.pf)+'</td><td>'
+    +num(x.r,1)+'</td><td>'+num(x.acierto,0)+'%</td></tr>';
+  h+=fam(D.hDentro,A.base.dentro)+fam(D.hFuera,A.base.fuera);
+  if(A.base.porVentana) A.base.porVentana.forEach(v=>{
+    h+='<tr><td>'+v.nombre+'</td><td>'+v.n+'</td><td>'+num(v.pf)+'</td><td>'
+      +num(v.r,1)+'</td><td>$'+Math.round(v.usd)+'</td></tr>'; });
+  for(const kk in A.base.porTF) h+=fam(kk,A.base.porTF[kk]);
+  h+='</table>';
+
+  h+='<h2>'+D.iRanking+'</h2><p class="nota">'+D.iRankingTxt+'</p>';
+  h+='<table class="inf"><tr><th>'+D.iParam+'</th><th>'+D.iActual
+   +'</th><th>'+D.iImpacto+'</th><th>'+D.iMejorV+'</th><th>PF</th><th>'
+   +D.iVeredicto+'</th></tr>';
+  A.parametros.forEach(p=>{
+    const d=p.diag;
+    h+='<tr><td>'+p.etiqueta+'</td><td>'+p.actual+'</td><td>'+num(d.impacto)+'</td><td>'
+      +(d.mejor?d.mejor.v:"-")+'</td><td>'+(d.mejor?num(d.mejor.pf):"-")+'</td><td>'
+      +D.diag[d.clave]+'</td></tr>';
+  });
+  h+='</table>';
+
+  h+='<h2>'+D.iDetalle+'</h2>';
+  A.parametros.forEach(p=>{
+    h+='<h3>'+p.etiqueta+' <span class="cod">'+p.nombre+'</span></h3>';
+    h+='<p class="nota">'+D.iActual+': '+p.actual+' · '+D.diag[p.diag.clave]
+      +' · '+D.iImpacto+' '+num(p.diag.impacto)+'</p>';
+    h+='<table class="inf"><tr><th>'+D.iValor+'</th><th>n</th><th>PF</th><th>R</th><th>'
+      +D.iPFfuera+'</th><th>n</th></tr>';
+    p.filas.forEach(x=>{
+      const marca=(p.diag.mejor&&x.v===p.diag.mejor.v)?' class="mej"':'';
+      h+='<tr'+marca+'><td>'+x.v+'</td><td>'+x.n+'</td><td>'+num(x.pf)+'</td><td>'
+        +num(x.r,1)+'</td><td>'+num(x.pfFuera)+'</td><td>'+x.nFuera+'</td></tr>';
+    });
+    h+='</table>';
+  });
+
+  h+='<h2>'+D.iComoLeer+'</h2><p class="nota">'+D.iComoLeerTxt+'</p>';
+  return h;
+}
+
+function pintarInforme(){
+  const A=ANALISIS;
+  $("infMeta").textContent=A.indicador+" "+A.version+" · "+A.corridas+" "+T().corridas
+    +" · "+A.segundos+"s";
+  $("informe").innerHTML=cuerpoInforme();
+}
+
+/* ---------- PDF: ventana de impresion con estilo propio ---------- */
+function descargarPDF(){
+  if(!ANALISIS){ return; }
+  const A=ANALISIS, D=T();
+  const vent=A.ventanas.map(v=>v.nombre+" ("+v.desde+" → "+v.hasta+")").join("<br>");
+  const doc='<!DOCTYPE html><html lang="'+idioma+'"><head><meta charset="utf-8">'
+   +'<title>'+A.indicador+" "+A.version+' · '+D.cabInforme+'</title><style>'
+   +'@page{size:A4;margin:16mm 14mm}'
+   +'body{font-family:Georgia,serif;font-size:10.5pt;color:#111;line-height:1.45}'
+   +'h1{font-size:19pt;margin:0 0 2mm}h2{font-size:13pt;margin:7mm 0 2mm;'
+   +'border-bottom:1px solid #999;padding-bottom:1mm;page-break-after:avoid}'
+   +'h3{font-size:11pt;margin:5mm 0 1.5mm;page-break-after:avoid}'
+   +'.cod{font-family:Consolas,monospace;font-size:8.5pt;color:#666}'
+   +'.cab{border-bottom:2px solid #111;padding-bottom:3mm;margin-bottom:5mm}'
+   +'.meta{font-size:9pt;color:#444;margin-top:2mm}'
+   +'table.inf{width:100%;border-collapse:collapse;margin:2mm 0 4mm;'
+   +'font-family:Consolas,monospace;font-size:9pt;page-break-inside:avoid}'
+   +'table.inf th{text-align:right;border-bottom:1px solid #111;padding:1.5mm 2mm;'
+   +'font-family:Georgia,serif;font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em}'
+   +'table.inf td{text-align:right;border-bottom:1px solid #ddd;padding:1.3mm 2mm}'
+   +'table.inf th:first-child,table.inf td:first-child{text-align:left}'
+   +'tr.mej td{background:#f0f0f0;font-weight:bold}'
+   +'p.nota{font-size:9pt;color:#444;margin:1.5mm 0 2mm}'
+   +'.pie{margin-top:8mm;border-top:1px solid #999;padding-top:2mm;font-size:8.5pt;color:#555}'
+   +'</style></head><body>'
+   +'<div class="cab"><h1>'+A.indicador+' '+A.version+'</h1>'
+   +'<div class="meta"><b>'+D.iMotor+':</b> '+A.motor+'<br>'
+   +'<b>'+D.iFecha+':</b> '+A.fecha+' · <b>'+D.queOperar+':</b> '+A.modo+'<br>'
+   +'<b>'+D.costosLbl+':</b> '+A.costos.contratos+' · $'+A.costos.comision+' · '
+   +A.costos.slippage+' ticks<br><b>'+D.iDatos+':</b><br>'+vent+'</div></div>'
+   +cuerpoInforme()
+   +'<div class="pie">'+D.pie+'</div></body></html>';
+
+  const w=window.open("","_blank");
+  if(!w){ avisar(T().popupBloqueado,true); return; }
+  w.document.open(); w.document.write(doc); w.document.close();
+  w.onload=()=>{ w.focus(); w.print(); };
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} },600);
+}
+
+$("btnAnalisis").addEventListener("click",()=>{
+  if(!CS||!VENTANAS.length) return;
+  if(MOTOR.tipo==="eventos"){ avisar(T().sinBarribles,true); return; }
+  analisisCompleto();
+});
+$("btnPDF").addEventListener("click",descargarPDF);
+$("btnInfJSON").addEventListener("click",()=>{
+  if(!ANALISIS) return;
+  const b=new Blob([JSON.stringify(ANALISIS,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(b);
+  a.download=ANALISIS.indicador+"_analisis.json"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
 /* ===== bilingue ===== */
 const I18N={es:{titulo:"Lab MNQ",sub:"Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.",
 cabCarga:"Carga",subeCS:"1 · Indicador .cs",subeCS2:"MomentumVolumen, BOSValidado, MAGMAX…",
@@ -1555,6 +1844,22 @@ motorCambiado:"Motor activo: {m}",
 subeSEN:"3 · CSV de señales",subeSEN2:"fecha ; dirección [ ; precio ; familia ]",
 senales:"señales",senalesOK:"Cargadas {n} señales.",
 sinSenales:"No encontré señales válidas en ese archivo.",
+analisis:"Análisis completo",cabInforme:"Informe completo",
+bajarPDF:"Descargar PDF",bajarJSONinf:"Descargar JSON del informe",
+analizando:"Analizando todos los parámetros. No cierres la pestaña.",
+progreso:"{a} de {b} corridas · {p}% · faltan {t}",corridas:"corridas",
+analisisListo:"Listo: {n} corridas en {s} segundos.",
+sinBarribles:"Este motor no tiene parámetros que se puedan barrer.",
+popupBloqueado:"El navegador bloqueó la ventana. Permite las ventanas emergentes y vuelve a intentarlo.",
+iResumen:"Resumen del caso base",iMetrica:"métrica",iValor:"valor",
+iRanking:"Ranking de impacto",iParam:"parámetro",iActual:"actual",
+iImpacto:"impacto",iMejorV:"mejor valor",iVeredicto:"veredicto",
+iDetalle:"Detalle por parámetro",iPFfuera:"PF fuera",
+iMotor:"Motor",iFecha:"Fecha",iDatos:"Datos",
+iRankingTxt:"El impacto es la diferencia entre el mejor y el peor Profit Factor del barrido. Un impacto alto significa que ese parámetro decide mucho; uno bajo, que da igual dónde lo pongas.",
+iComoLeer:"Cómo leer esto",
+iComoLeerTxt:"Meseta significa que los valores vecinos al mejor también funcionan: el parámetro captura algo real. Pico significa que solo ese valor exacto funciona, lo cual casi siempre es ajuste a la muestra. Borde significa que el mejor valor quedó en un extremo del barrido y conviene probar más allá. Cambia un parámetro a la vez y quédate solo con los que también mejoren la columna PF fuera, que es la que no vio el ajuste. Un PF alto con pocas operaciones no es una ventaja, es ruido.",
+diag:{meseta:"meseta",pico:"pico, probable ajuste",borde:"mejor en el borde",nulo:"sin efecto",muestra:"muestra insuficiente",pocos:"datos insuficientes"},
 grupoEjec:"Ejecución del backtest",est:{M:"motor",V:"visual",F:"—"},params:"parámetros",velas:"velas",
 csOK:"Leídos {n} parámetros del .cs.",csvOK:"Cargadas {n} velas.",
 sinProps:"No encontré propiedades NinjaScript en ese archivo.",
@@ -1588,6 +1893,22 @@ motorCambiado:"Active engine: {m}",
 subeSEN:"3 · Signals CSV",subeSEN2:"date ; direction [ ; price ; family ]",
 senales:"signals",senalesOK:"Loaded {n} signals.",
 sinSenales:"No valid signals found in that file.",
+analisis:"Full analysis",cabInforme:"Full report",
+bajarPDF:"Download PDF",bajarJSONinf:"Download report JSON",
+analizando:"Analysing every parameter. Keep this tab open.",
+progreso:"{a} of {b} runs · {p}% · {t} left",corridas:"runs",
+analisisListo:"Done: {n} runs in {s} seconds.",
+sinBarribles:"This engine has no sweepable parameters.",
+popupBloqueado:"The browser blocked the window. Allow pop-ups and try again.",
+iResumen:"Baseline summary",iMetrica:"metric",iValor:"value",
+iRanking:"Impact ranking",iParam:"parameter",iActual:"current",
+iImpacto:"impact",iMejorV:"best value",iVeredicto:"verdict",
+iDetalle:"Parameter by parameter",iPFfuera:"PF out",
+iMotor:"Engine",iFecha:"Date",iDatos:"Data",
+iRankingTxt:"Impact is the spread between the best and worst Profit Factor in the sweep. High impact means the parameter decides a lot; low impact means it barely matters where you set it.",
+iComoLeer:"How to read this",
+iComoLeerTxt:"A plateau means the values next to the best one also work: the parameter captures something real. A peak means only that exact value works, which is almost always curve fitting. Edge means the best value landed at the end of the sweep and you should test further out. Change one parameter at a time and keep only those that also improve the PF out column, which is the one the fit never saw. A high PF on few trades is not an edge, it is noise.",
+diag:{meseta:"plateau",pico:"peak, likely fitting",borde:"best at the edge",nulo:"no effect",muestra:"sample too small",pocos:"not enough data"},
 grupoEjec:"Backtest execution",est:{M:"engine",V:"display",F:"—"},params:"parameters",velas:"bars",
 csOK:"Read {n} parameters from the .cs.",csvOK:"Loaded {n} bars.",
 sinProps:"No NinjaScript properties found in that file.",
