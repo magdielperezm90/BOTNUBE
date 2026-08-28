@@ -99,7 +99,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
 
 <header>
   <div><h1 data-i="titulo">Lab MNQ</h1>
-  <div class="sub" data-i="sub">Sube el indicador y sus velas. El motor corre lo que dice el .cs.</div></div>
+  <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
 
@@ -107,7 +107,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
   <div class="dos">
     <div class="drop" id="dropCS" tabindex="0" role="button">
       <div class="g" id="gCS" data-i="subeCS">1 · Indicador .cs</div>
-      <div class="c" id="cCS" data-i="subeCS2">MomentumVolumen.cs o el que quieras probar</div>
+      <div class="c" id="cCS" data-i="subeCS2">MomentumVolumen, BOSValidado, MAGMAX…</div>
     </div>
     <div class="drop" id="dropCSV" tabindex="0" role="button">
       <div class="g" id="gCSV" data-i="subeCSV">2 · Velas de 1 minuto</div>
@@ -135,6 +135,18 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
 
 <section id="secCorrer" class="oculto"><div class="cab"><span data-i="cabCorrer">Correr</span></div>
 <div class="cuerpo">
+  <div style="margin-bottom:14px">
+    <label class="gt" for="motor" data-i="motorLbl">Motor</label>
+    <select id="motor"></select>
+    <div style="font-size:10.5px;color:var(--tenue);margin-top:4px" id="motorAyuda" data-i="motorAyuda">Se detecta solo por el .cs. Cámbialo si te equivocaste de motor.</div>
+  </div>
+  <div id="wrapSenales" class="oculto" style="margin-bottom:14px">
+    <div class="drop" id="dropSEN" tabindex="0" role="button">
+      <div class="g" id="gSEN" data-i="subeSEN">3 · CSV de señales</div>
+      <div class="c" id="cSEN" data-i="subeSEN2">fecha ; dirección [ ; precio ; familia ]</div>
+    </div>
+    <input type="file" id="fSEN" accept=".csv,.txt">
+  </div>
   <div class="dos" style="margin-bottom:14px">
     <div><label class="gt" for="modo" data-i="queOperar">Qué operar</label>
       <select id="modo">
@@ -177,7 +189,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
   </div>
 </div></section>
 
-<div class="nota" data-i="pie">El motor implementa el embudo del .cs: niveles multi-temporalidad, niveles de sesión, régimen, gatillo, print-through, filtro de espacio y tamaño por riesgo. Los parámetros marcados "sin usar" son visuales o todavía no están en el motor. Resultados pasados no garantizan resultados futuros.</div>
+<div class="nota" data-i="pie">Cada indicador tiene su propio motor de señales; la ejecución, los costos y todas las métricas son comunes. Los parámetros marcados "sin usar" son visuales o no los consume el motor activo. Resultados pasados no garantizan resultados futuros.</div>
 </div>
 
 <script>
@@ -576,7 +588,7 @@ function reporte(trades, velas, opc){
                   const o={};for(const k in m)o[k]=metricas(m[k]);return o;};
   R.porRegimen = por(t=>t.regimen===1?"tendencia":t.regimen===-1?"lateral":"mixto");
   R.porEspacio = por(t=>t.estrecho?"estrecha":"conEspacio");
-  R.porTF      = por(t=>t.tfNivel>=1440?"sesion":t.tfNivel+"m");
+  R.porTF      = por(t=>t.familia!==undefined?t.familia:(t.tfNivel>=1440?"sesion":t.tfNivel+"m"));
   R.curva=[]; let acc=0;
   for(const t of trades){ acc+=t.r; R.curva.push(acc); }
   const ctr=trades.map(t=>t.ctr);
@@ -672,7 +684,227 @@ function correrEstructura(velas,P){
     retest:{si:retSi,no:retNo,pct:retSi+retNo?100*retSi/(retSi+retNo):0},
     sweep:{n:sweeps,rev:sweepRev,pct:sweeps?100*sweepRev/sweeps:0}};
 }
-const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,correrEstructura:correrEstructura};
+/* =====================================================================
+   CAPA DE EJECUCION COMUN
+   Recibe una lista de senales {i, dir, precio?, familia?} y las convierte
+   en trades con SL/TP por ATR, costos, tamano y caducidad.
+   Cualquier indicador nuevo solo necesita producir sus senales: toda la
+   medicion, el reporte y la robustez se heredan de aqui.
+   ===================================================================== */
+function ejecutar(velas, senales, P, opc){
+  opc = opc || {};
+  const tick     = opc.tick     !== undefined ? opc.tick     : 0.25;
+  const valorPto = opc.valorPto !== undefined ? opc.valorPto : 2;
+  const comision = opc.comision !== undefined ? opc.comision : 1.34;
+  const slipTicks= opc.slippage !== undefined ? opc.slippage : 1;
+  const N = velas.length;
+
+  const perATR = P.PeriodoATR>0 ? P.PeriodoATR : 14;
+  const atr = atrWilder(velas, perATR);
+  const multSL = P.MultiploSL>0 ? P.MultiploSL : 1.5;
+  const multTP = P.MultiploTP>0 ? P.MultiploTP : 2.0;
+  const vida   = P.VelasVidaTrade>0 ? P.VelasVidaTrade : 60;
+
+  function contratos(slPuntos){
+    if(!P.TamanoPorRiesgo) return P.ContratosATR||1;
+    if(slPuntos<=0) return P.ContratosATR||1;
+    let n = Math.floor((P.RiesgoObjetivoUSD||150)/(slPuntos*valorPto));
+    if(n<1) n=1;
+    if(P.MaxContratos>0 && n>P.MaxContratos) n=P.MaxContratos;
+    return n;
+  }
+
+  /* senales indexadas por barra */
+  const porBarra = {};
+  for(const s of senales){
+    if(s.i<0 || s.i>=N) continue;
+    if(!porBarra[s.i]) porBarra[s.i]=[];
+    porBarra[s.i].push(s);
+  }
+
+  const trades=[]; let abierto=null;
+
+  for(let i=1;i<N;i++){
+    const b=velas[i];
+
+    /* --- resolver la posicion abierta --- */
+    if(abierto){
+      const t=abierto;
+      const tocaTP = t.dir===1 ? b.h>=t.tp : b.l<=t.tp;
+      const tocaSL = t.dir===1 ? b.l<=t.sl : b.h>=t.sl;
+      let res=null;
+      if(i>t.barra){
+        if(tocaTP&&tocaSL) res=0;
+        else if(tocaTP) res=1;
+        else if(tocaSL) res=-1;
+        else if(i-t.barra > vida) res=-2;
+      }
+      if(res!==null){
+        t.res=res;
+        const slDist=Math.abs(t.sl-t.entrada);
+        let brutoPts;
+        if(res===1){ t.r=t.rPlan; brutoPts=Math.abs(t.tp-t.entrada); }
+        else if(res===-1||res===0){ t.r=-1; brutoPts=-slDist; }
+        else { brutoPts=t.dir*(b.c-t.entrada);
+               t.r = slDist>0 ? brutoPts/slDist : 0; t.caduco=true; }
+        t.costo = t.ctr*(comision + slipTicks*tick*valorPto*2);
+        t.usd   = brutoPts*valorPto*t.ctr - t.costo;
+        trades.push(t); abierto=null;
+      }
+    }
+
+    /* --- abrir con las senales de esta barra --- */
+    if(!abierto && porBarra[i]){
+      const a = atr[i];
+      if(a>0){
+        const s = porBarra[i][0];
+        const sl = a*multSL;
+        const entrada = (s.precio!==undefined && isFinite(s.precio)) ? s.precio : b.c;
+        const tp = P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
+                                      : entrada + s.dir*sl*multTP;
+        abierto = {dir:s.dir, entrada:entrada, sl:entrada-s.dir*sl, tp:tp, barra:i,
+                   rPlan:Math.abs(tp-entrada)/sl, ctr:contratos(sl),
+                   estrecho:false, regimen:0, tfNivel:0,
+                   familia: s.familia!==undefined ? s.familia : "senal",
+                   origen: s.familia!==undefined ? s.familia : "senal", esp:0};
+      }
+    }
+  }
+  return trades;
+}
+
+/* =====================================================================
+   MOTOR · BOSValidado
+   Quiebre de estructura validado por la vela de referencia.
+   Replica exactamente el embudo del .cs BOSValidado.
+   ===================================================================== */
+function senalesBOS(velas, P){
+  const F    = P.FuerzaSwing>0 ? P.FuerzaSwing : 3;
+  const vida = P.BarrasVida>0 ? P.BarrasVida : 40;
+  const medirLiq = (P.MedirBarridas===undefined) ? true : !!P.MedirBarridas;
+  const N = velas.length;
+  const out = [];
+  let refA=null, refB=null;
+
+  for(let i=F*2+5;i<N;i++){
+    const p = i-F;
+
+    /* --- deteccion de pivotes confirmados (sin lookahead) --- */
+    let esMax=true, esMin=true;
+    for(let k=p-F;k<=p+F;k++){
+      if(k===p||k<0||k>=N) continue;
+      if(velas[k].h>=velas[p].h) esMax=false;
+      if(velas[k].l<=velas[p].l) esMin=false;
+    }
+
+    if(esMax){
+      let r=p;
+      for(let q=p;q>=p-F-3&&q>=0;q--){ if(velas[q].c>velas[q].o){ r=q; break; } }
+      refA={idx:r, ruptura:velas[p].h, valida:velas[r].l, val:false};
+    }
+    if(esMin){
+      let r=p;
+      for(let q=p;q>=p-F-3&&q>=0;q--){ if(velas[q].c<velas[q].o){ r=q; break; } }
+      refB={idx:r, ruptura:velas[p].l, valida:velas[r].h, val:false};
+    }
+
+    const c = velas[i].c;
+
+    /* --- referencia alcista --- */
+    if(refA){
+      if(i-refA.idx>vida) refA=null;
+      else if(!refA.val){
+        if(c<refA.valida) refA.val=true;
+        else if(c>refA.ruptura){
+          if(medirLiq) out.push({i:i, dir:1, familia:"LIQ arriba"});
+          refA=null;
+        }
+      } else if(c>refA.ruptura){
+        out.push({i:i, dir:1, familia:"BOS arriba"});
+        refA=null;
+      }
+    }
+
+    /* --- referencia bajista --- */
+    if(refB){
+      if(i-refB.idx>vida) refB=null;
+      else if(!refB.val){
+        if(c>refB.valida) refB.val=true;
+        else if(c<refB.ruptura){
+          if(medirLiq) out.push({i:i, dir:-1, familia:"LIQ abajo"});
+          refB=null;
+        }
+      } else if(c<refB.ruptura){
+        out.push({i:i, dir:-1, familia:"BOS abajo"});
+        refB=null;
+      }
+    }
+  }
+  return out;
+}
+function correrBOS(velas, P, opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  const s = senalesBOS(velas, P);
+  return reporte(ejecutar(velas, s, P, opc), velas, opc);
+}
+
+/* =====================================================================
+   MOTOR · Senales importadas (universal)
+   Mide cualquier indicador que exporte sus senales a CSV.
+   Formato por linea:  fecha ; direccion [ ; precio ; familia ]
+   direccion: 1 / -1 , o bien compra|venta|buy|sell|long|short.
+   ===================================================================== */
+function leerSenales(texto){
+  const lineas = texto.split(/\r?\n/);
+  const out=[];
+  for(const l of lineas){
+    if(!l.trim()) continue;
+    let p=null;
+    for(const sep of [";","\t",","]){
+      const q=l.split(sep);
+      if(q.length>=2){ p=q; break; }
+    }
+    if(!p) continue;
+    const t = fecha(p[0]);
+    if(t===null) continue;
+    const d = String(p[1]).trim().toLowerCase();
+    let dir=0;
+    if(d==="1"||d==="compra"||d==="buy"||d==="long"||d==="alcista") dir=1;
+    else if(d==="-1"||d==="venta"||d==="sell"||d==="short"||d==="bajista") dir=-1;
+    else { const n=parseFloat(d); if(n>0)dir=1; else if(n<0)dir=-1; }
+    if(dir===0) continue;
+    const pr = p.length>2 ? parseFloat(p[2]) : NaN;
+    const fa = p.length>3 && String(p[3]).trim() ? String(p[3]).trim()
+                                                 : (dir===1?"senal alcista":"senal bajista");
+    out.push({t:t, dir:dir, precio:isFinite(pr)?pr:undefined, familia:fa});
+  }
+  out.sort((a,b)=>a.t-b.t);
+  return out;
+}
+/* alinea cada senal por marca de tiempo con la vela correspondiente */
+function alinear(velas, senales){
+  const out=[]; let j=0;
+  for(const s of senales){
+    while(j<velas.length-1 && velas[j].t < s.t) j++;
+    if(j>=velas.length) break;
+    if(velas[j].t!==s.t){
+      // tolera desfases: usa la primera vela cuyo cierre es >= la marca
+      if(j===0 && velas[0].t>s.t) continue;
+    }
+    out.push({i:j, dir:s.dir, precio:s.precio, familia:s.familia});
+  }
+  return out;
+}
+function correrImportadas(velas, senales, P, opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  const s = alinear(velas, senales);
+  if(!s.length) return {error:"Ninguna senal cae dentro del rango de velas cargado"};
+  return reporte(ejecutar(velas, s, P, opc), velas, opc);
+}
+
+const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,
+           correrEstructura:correrEstructura,ejecutar:ejecutar,senalesBOS:senalesBOS,
+           correrBOS:correrBOS,leerSenales:leerSenales,correrImportadas:correrImportadas};
 if(typeof module!=="undefined"&&module.exports) module.exports=API;
 else raiz.MotorMNQ=API;
 })(typeof globalThis!=="undefined"?globalThis:this);
@@ -680,7 +912,7 @@ else raiz.MotorMNQ=API;
 </script>
 <script>
 "use strict";
-/* ===== parametros que el motor SI usa ===== */
+/* ===== parametros que el motor de MomentumVolumen SI usa ===== */
 const MOTOR_USA = new Set(["MinFuerza","MinRVOL","PeriodoVolumen","FuerzaSwingPrimaria",
 "FuerzaSwingSuperior","UsarTF2","MinutosTF2","UsarTF3","MinutosTF3","UsarTF4","MinutosTF4",
 "ToleranciaTicks","VidaNivelVelas","UsarNivelesSesion","UsarAsia","HorasAsia",
@@ -699,7 +931,73 @@ const BARRIBLES=["MinFuerza","MinRVOL","MultiploSL","MultiploTP","MinRecorridoR"
 "RiesgoObjetivoUSD","VidaNivelVelas","ATRMinimo","MinContinuidad","VelasContinuidad","PuntosObjetivo"];
 const MOTOR_MAGMAX=new Set(["MinutosEstructura","FuerzaSwing","ToleranciaTicks",
 "VentanaRetest","VentanaSweep","UmbralReversionATR","PeriodoATR"]);
-function esMagmax(){return CS&&CS.clase==="MAGMAX";}
+
+/* =====================================================================
+   REGISTRO DE MOTORES
+   Para dar de alta un indicador nuevo basta con anadir una entrada aqui:
+     id        identificador interno
+     nombre    lo que ve el usuario en el selector
+     tipo      "trades"  -> reporte estandar (PF, curva, tramos, barrido)
+               "eventos" -> reporte propio (MAGMAX)
+     detecta   funcion que reconoce el .cs por su nombre de clase o sus
+               propiedades. Devuelve true si este motor le corresponde.
+     usa       Set de parametros que el motor consume de verdad
+     def       valores por defecto de esos parametros
+     barribles parametros que tiene sentido barrer
+     correr    funcion (velas, P, opciones) -> reporte
+   ===================================================================== */
+const EJEC_COMUN={PeriodoATR:14,MultiploSL:1.5,MultiploTP:2.0,PuntosObjetivo:0,
+  VelasVidaTrade:60,TamanoPorRiesgo:false,ContratosATR:3,
+  RiesgoObjetivoUSD:150,MaxContratos:10};
+const USA_EJEC=["PeriodoATR","MultiploSL","MultiploTP","PuntosObjetivo",
+  "VelasVidaTrade","TamanoPorRiesgo","ContratosATR","RiesgoObjetivoUSD","MaxContratos"];
+
+const MOTORES=[
+  {
+    id:"momentum", nombre:"MomentumVolumen · embudo de niveles", tipo:"trades",
+    detecta:cs=>/momentum|volumen|pmm/i.test(cs.clase)
+              || cs.props.some(p=>p.nombre==="FactorGatilloATR")
+              || cs.props.some(p=>p.nombre==="MinRVOL"),
+    usa:MOTOR_USA, def:null, barribles:BARRIBLES,
+    correr:(v,P,o)=>MotorMNQ.correr(v,P,o)
+  },
+  {
+    id:"estructura", nombre:"MAGMAX · frecuencias de estructura", tipo:"eventos",
+    detecta:cs=>/magmax/i.test(cs.clase) || cs.props.some(p=>p.nombre==="MinutosEstructura"),
+    usa:MOTOR_MAGMAX,
+    def:{MinutosEstructura:15,FuerzaSwing:5,ToleranciaTicks:2,
+         VentanaRetest:60,VentanaSweep:30,UmbralReversionATR:1.0,PeriodoATR:14},
+    barribles:[],
+    correr:(v,P,o)=>{const R=MotorMNQ.correrEstructura(v,P);R.magmax=true;return R;}
+  },
+  {
+    id:"bos", nombre:"BOSValidado · quiebre validado por vela de referencia", tipo:"trades",
+    detecta:cs=>/bos|estructuravalid/i.test(cs.clase)
+              || (cs.props.some(p=>p.nombre==="FuerzaSwing")
+                  && cs.props.some(p=>p.nombre==="BarrasVida")),
+    usa:new Set(["FuerzaSwing","BarrasVida","MedirBarridas"].concat(USA_EJEC)),
+    def:Object.assign({FuerzaSwing:3,BarrasVida:40,MedirBarridas:true},EJEC_COMUN),
+    barribles:["FuerzaSwing","BarrasVida","MultiploSL","MultiploTP",
+               "PuntosObjetivo","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrBOS(v,P,o)
+  },
+  {
+    id:"importadas", nombre:"Señales importadas · sirve para cualquier indicador", tipo:"trades",
+    detecta:()=>false,          // solo se elige a mano
+    usa:new Set(USA_EJEC), def:Object.assign({},EJEC_COMUN),
+    barribles:["MultiploSL","MultiploTP","PuntosObjetivo","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrImportadas(v,SENALES,P,o)
+  }
+];
+let MOTOR=MOTORES[0];
+function detectarMotor(cs){
+  for(const m of MOTORES) if(m.detecta(cs)) return m;
+  // Si el lab no conoce ese indicador, la unica forma honesta de medirlo
+  // es con sus senales exportadas. El usuario puede cambiarlo a mano.
+  return MOTORES.find(m=>m.id==="importadas");
+}
+function esMagmax(){return MOTOR && MOTOR.tipo==="eventos";}
+function esImportadas(){return MOTOR && MOTOR.id==="importadas";}
 
 /* ===== lector de C# ===== */
 function limpiar(s){let o="",i=0,st="c";while(i<s.length){const c=s[i],n=s[i+1]||"";
@@ -732,15 +1030,14 @@ function leerCS(src){
   return {clase:mc?mc[1]:"(sin clase)",tipo:mc?mc[2]:"?",version:mv?mv[1]:"sin version",props:props};
 }
 function clasificar(p){
-  if(esMagmax())return MOTOR_MAGMAX.has(p.nombre)?"M":"V";
-  if(MOTOR_USA.has(p.nombre))return "M";
+  if(MOTOR && MOTOR.usa.has(p.nombre))return "M";
   if(p.tipo==="Brush"||GRUPOS_VIS.has(p.grupo))return "V";
   for(const x of PREF_VIS)if(p.nombre.indexOf(x)===0)return "V";
   return "F";
 }
 
 /* ===== estado ===== */
-let CS=null,VELAS=null,RES=null,VENTANAS=[];
+let CS=null,VELAS=null,RES=null,VENTANAS=[],SENALES=[];
 const $=id=>document.getElementById(id);
 function avisar(t,mal){const a=$("aviso");a.textContent=t;a.className="aviso"+(mal?" mal":"");}
 
@@ -764,9 +1061,12 @@ conectar("dropCS","fCS",f=>leerArchivo(f,txt=>{
   const d=leerCS(txt);
   if(!d.props.length){avisar(T().sinProps,true);return}
   CS=d;
+  MOTOR=detectarMotor(d);
   $("dropCS").classList.add("listo");
   $("gCS").textContent=d.clase+" "+d.version;
   $("cCS").textContent=d.props.length+" "+T().params;
+  pintarSelectorMotor();
+  completarProps();
   pintarCobertura();pintarParams();listarBarrido();
   avisar(T().csOK.replace("{n}",d.props.length),false);
   revisar();
@@ -806,10 +1106,43 @@ $("fCSV").addEventListener("change",e=>{ for(const f of e.target.files) agregarV
 ["dragleave","drop"].forEach(ev=>$("dropCSV").addEventListener(ev,e=>{e.preventDefault();$("dropCSV").classList.remove("sobre")}));
 $("dropCSV").addEventListener("drop",e=>{ for(const f of e.dataTransfer.files) agregarVelas(f); });
 function revisar(){
-  const ok=!!(CS&&VENTANAS.length);
+  const ok=!!(CS&&VENTANAS.length&&(!esImportadas()||SENALES.length));
   $("btnCorrer").disabled=!ok;
   ["secCob","secParam","secCorrer"].forEach(s=>{if(CS)$(s).classList.remove("oculto")});
 }
+
+/* ===== selector de motor ===== */
+function pintarSelectorMotor(){
+  const s=$("motor"); s.innerHTML="";
+  MOTORES.forEach(m=>{
+    const o=document.createElement("option");
+    o.value=m.id; o.textContent=m.nombre;
+    if(m.id===MOTOR.id)o.selected=true;
+    s.appendChild(o);
+  });
+  $("wrapSenales").classList.toggle("oculto",!esImportadas());
+}
+$("motor").addEventListener("change",e=>{
+  MOTOR=MOTORES.find(m=>m.id===e.target.value)||MOTORES[0];
+  $("wrapSenales").classList.toggle("oculto",!esImportadas());
+  if(CS){completarProps();pintarCobertura();pintarParams();listarBarrido()}
+  RES=null; $("secRes").classList.add("oculto"); $("btnJSON").disabled=true;
+  revisar();
+  avisar(T().motorCambiado.replace("{m}",MOTOR.nombre),false);
+});
+
+/* ===== carga de senales importadas ===== */
+conectar("dropSEN","fSEN",f=>leerArchivo(f,txt=>{
+  const s=MotorMNQ.leerSenales(txt);
+  if(!s.length){avisar(T().sinSenales,true);return}
+  SENALES=s;
+  $("dropSEN").classList.add("listo");
+  $("gSEN").textContent=s.length+" "+T().senales;
+  $("cSEN").textContent=new Date(s[0].t).toISOString().slice(0,10)+" → "
+    +new Date(s[s.length-1].t).toISOString().slice(0,10);
+  avisar(T().senalesOK.replace("{n}",s.length),false);
+  revisar();
+},T().errLeer));
 
 /* ===== cobertura ===== */
 function pintarCobertura(){
@@ -822,6 +1155,51 @@ function pintarCobertura(){
   $("idCS").textContent=CS.clase+" · "+CS.tipo;
   const f=CS.props.filter(p=>p.est==="F").map(p=>p.nombre);
   $("notaFaltan").textContent=f.length?T().faltanTxt+" "+f.join(", "):T().nadaFalta;
+}
+
+/* ===== parametros de ejecucion que el .cs no trae =====
+   Un indicador puro no define SL, TP ni vida del trade: eso es del
+   backtest, no del dibujo. El lab los inyecta como filas editables
+   para que cualquier indicador nuevo se pueda medir sin tocar su .cs. */
+const ETIQ_EJEC={
+  es:{PeriodoATR:"Periodo del ATR",MultiploSL:"Stop en múltiplos de ATR",
+      MultiploTP:"Objetivo en múltiplos de SL",PuntosObjetivo:"Objetivo fijo en puntos (0 = usar múltiplo)",
+      VelasVidaTrade:"Velas de vida del trade",TamanoPorRiesgo:"Tamaño por riesgo",
+      ContratosATR:"Contratos fijos",RiesgoObjetivoUSD:"Riesgo objetivo USD",
+      MaxContratos:"Máximo de contratos",FuerzaSwing:"Fuerza del swing",
+      BarrasVida:"Barras de vida de la referencia",MedirBarridas:"Medir también las barridas",
+      MinutosEstructura:"Minutos de la estructura",ToleranciaTicks:"Tolerancia en ticks",
+      VentanaRetest:"Ventana de retest",VentanaSweep:"Ventana de sweep",
+      UmbralReversionATR:"Umbral de reversión en ATR"},
+  en:{PeriodoATR:"ATR period",MultiploSL:"Stop in ATR multiples",
+      MultiploTP:"Target in SL multiples",PuntosObjetivo:"Fixed target in points (0 = use multiple)",
+      VelasVidaTrade:"Trade lifetime in bars",TamanoPorRiesgo:"Risk-based sizing",
+      ContratosATR:"Fixed contracts",RiesgoObjetivoUSD:"Target risk USD",
+      MaxContratos:"Max contracts",FuerzaSwing:"Swing strength",
+      BarrasVida:"Reference lifetime in bars",MedirBarridas:"Also measure sweeps",
+      MinutosEstructura:"Structure minutes",ToleranciaTicks:"Tolerance in ticks",
+      VentanaRetest:"Retest window",VentanaSweep:"Sweep window",
+      UmbralReversionATR:"Reversal threshold in ATR"}
+};
+function completarProps(){
+  if(!CS) return;
+  CS.props = CS.props.filter(p=>!p.sintetico);
+  const DEF = MOTOR && MOTOR.def;
+  if(!DEF) return;
+  const hay = new Set(CS.props.map(p=>p.nombre));
+  const dic = ETIQ_EJEC[idioma] || ETIQ_EJEC.es;
+  let n=0;
+  for(const k in DEF){
+    if(hay.has(k)) continue;
+    const v=DEF[k];
+    CS.props.push({
+      nombre:k,
+      tipo: (typeof v==="boolean") ? "bool" : (Number.isInteger(v) ? "int" : "double"),
+      etiqueta: dic[k] || k,
+      orden: ++n, grupo: "Z · "+T().grupoEjec,
+      min:null, max:null, def:String(v), sintetico:true
+    });
+  }
 }
 
 /* ===== panel de parametros ===== */
@@ -861,10 +1239,11 @@ function pintarParams(){
 }
 function listarBarrido(){
   const s=$("barrer");s.innerHTML="";
-  s.disabled=esMagmax();
-  document.getElementById("modo").disabled=esMagmax();
+  const lista=(MOTOR&&MOTOR.barribles)?MOTOR.barribles:[];
+  s.disabled=!lista.length;
+  document.getElementById("modo").disabled=(MOTOR.id!=="momentum");
   const o0=document.createElement("option");o0.value="";o0.textContent=T().ninguno;s.appendChild(o0);
-  CS.props.filter(p=>p.est==="M"&&BARRIBLES.indexOf(p.nombre)!==-1).forEach(p=>{
+  CS.props.filter(p=>p.est==="M"&&lista.indexOf(p.nombre)!==-1).forEach(p=>{
     const o=document.createElement("option");o.value=p.nombre;o.textContent=p.etiqueta;s.appendChild(o)});
 }
 // Todo lo que el motor necesita, con su valor por defecto.
@@ -902,11 +1281,12 @@ function paquete(){
     // 0 = solo tendencia | 1 = solo lateral | 2 = ambos
     P.SoloEnTendencia = (P.Modo===0);
   }
-  // --- rellenar todo lo que el motor necesita y el .cs no trae ---
+  // --- rellenar todo lo que el motor activo necesita y el .cs no trae ---
+  const DEF = (MOTOR && MOTOR.def) ? MOTOR.def : DEF_MOTOR;
   const faltan=[];
-  for(const k in DEF_MOTOR){
+  for(const k in DEF){
     if(P[k]===undefined || P[k]===null || (typeof P[k]==="number" && isNaN(P[k]))){
-      P[k]=DEF_MOTOR[k]; faltan.push(k);
+      P[k]=DEF[k]; faltan.push(k);
     }
   }
   // HorasExcluidas viene como texto del .cs (ej "18,19"): a lista de numeros
@@ -932,9 +1312,9 @@ $("btnCorrer").addEventListener("click",()=>{
       const OPC={comision:parseFloat($("cComision").value)||0,
                  slippage:parseFloat($("cSlip").value)||0, modo:modo};
       P.ContratosATR=parseInt($("cContratos").value,10)||3;
-      if(esMagmax()){
-        RES=MotorMNQ.correrEstructura(VENTANAS[0].velas,P);
-        RES.magmax=true;
+      if(esImportadas()&&!SENALES.length){ avisar(T().sinSenales,true); return; }
+      if(MOTOR.tipo==="eventos"){
+        RES=MOTOR.correr(VENTANAS[0].velas,P,OPC);
         pintarResMagmax();
       } else {
         RES=correrTodas(P,OPC);
@@ -956,7 +1336,7 @@ $("btnCorrer").addEventListener("click",()=>{
 function correrTodas(P,OPC){
   const partes=[];
   for(const v of VENTANAS){
-    const R=MotorMNQ.correr(v.velas,P,OPC);
+    const R=MOTOR.correr(v.velas,P,OPC);
     if(R.error) return R;
     R._nombre=v.nombre; partes.push(R);
   }
@@ -1016,8 +1396,8 @@ function barrer(P,modo,nombre){
   }
   return pasos.sort((a,b)=>a-b).map(v=>{
     const Q=Object.assign({},P);Q[nombre]=v;
-    const R=MotorMNQ.correr(VELAS,Q,{modo:modo});
-    return {v:v,pf:R.total.pf,n:R.total.n,r:R.total.r};
+    const R=MOTOR.correr(VELAS,Q,{modo:modo});
+    return {v:v,pf:(R.total?R.total.pf:0),n:(R.total?R.total.n:0),r:(R.total?R.total.r:0)};
   });
 }
 
@@ -1048,9 +1428,12 @@ function pintarRes(){
   if(RES.porVentana&&RES.porVentana.length>1)
     for(const v of RES.porVentana)
       h+=`<tr><td>${v.nombre}</td><td>${v.n}</td><td class="${v.pf>=1?'b':'m'}">${v.pf.toFixed(2)}</td><td>${v.r.toFixed(1)}</td><td>$${Math.round(v.usd)}</td></tr>`;
-  for(const k in RES.porRegimen)h+=fila(k,RES.porRegimen[k]);
-  for(const k in RES.porEspacio)h+=fila(k==="estrecha"?T().hEstrecha:T().hEspacio,RES.porEspacio[k]);
-  for(const k in RES.porTF)h+=fila(T().hNivel+" "+k,RES.porTF[k]);
+  const conEmbudo = (MOTOR.id==="momentum");
+  if(conEmbudo){
+    for(const k in RES.porRegimen)h+=fila(k,RES.porRegimen[k]);
+    for(const k in RES.porEspacio)h+=fila(k==="estrecha"?T().hEstrecha:T().hEspacio,RES.porEspacio[k]);
+  }
+  for(const k in RES.porTF)h+=fila((conEmbudo?T().hNivel+" ":"")+k,RES.porTF[k]);
   $("tDesg").innerHTML=h;
 
   $("tRob").innerHTML=`<tr><th>${T().hTramo}</th><th>n</th><th>PF</th><th>R</th></tr>`+
@@ -1110,7 +1493,9 @@ function curva(){
    `<path d="${d}" fill="none" stroke="${c[c.length-1]>=0?'#4FB286':'#D8544F'}" stroke-width="1.6"/>`;
 }
 $("btnJSON").addEventListener("click",()=>{
-  const o={indicador:CS.clase,version:CS.version,modo:$("modo").value,
+  const o={indicador:CS.clase,version:CS.version,motor:MOTOR.id,
+    motorNombre:MOTOR.nombre,modo:$("modo").value,
+    ventanas:VENTANAS.map(v=>({nombre:v.nombre,velas:v.velas.length,desde:v.desde,hasta:v.hasta})),
     parametros:paquete(),resultado:RES};
   const b=new Blob([JSON.stringify(o,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(b);
@@ -1119,8 +1504,8 @@ $("btnJSON").addEventListener("click",()=>{
 });
 
 /* ===== bilingue ===== */
-const I18N={es:{titulo:"Lab MNQ",sub:"Sube el indicador y sus velas. El motor corre lo que dice el .cs.",
-cabCarga:"Carga",subeCS:"1 · Indicador .cs",subeCS2:"MomentumVolumen.cs o el que quieras probar",
+const I18N={es:{titulo:"Lab MNQ",sub:"Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.",
+cabCarga:"Carga",subeCS:"1 · Indicador .cs",subeCS2:"MomentumVolumen, BOSValidado, MAGMAX…",
 subeCSV:"2 · Velas de 1 minuto",subeCSV2:"CSV o TXT exportado de NinjaTrader",
 cabCob:"Cobertura del motor",enMotor:"en el motor",soloVis:"solo visual",faltan:"sin usar",
 cabParam:"Parámetros del .cs",cabCorrer:"Correr",queOperar:"Qué operar",
@@ -1130,8 +1515,13 @@ corriendo:"Corriendo…",bajarJSON:"Descargar JSON",cabRes:"Resultado",curva:"Cu
 curvaNota:"La línea vertical marca el corte 70/30. Lo de la derecha es la prueba honesta.",
 desglose:"Desglose",robustez:"Robustez en el tiempo",sens:"Sensibilidad",
 sensNota:"Busca una meseta, no un pico. Si el PF sube mientras los trades se desploman, estás midiendo una muestra chica, no una ventaja.",
-pie:"El motor implementa el embudo del .cs: niveles multi-temporalidad, niveles de sesión, régimen, gatillo, print-through, filtro de espacio y tamaño por riesgo. Los parámetros marcados \"sin usar\" son visuales o todavía no están en el motor. Resultados pasados no garantizan resultados futuros.",
-est:{M:"motor",V:"visual",F:"—"},params:"parámetros",velas:"velas",
+pie:"Cada indicador tiene su propio motor de señales; la ejecución, los costos y todas las métricas son comunes. Los parámetros marcados \"sin usar\" son visuales o no los consume el motor activo. Resultados pasados no garantizan resultados futuros.",
+motorLbl:"Motor",motorAyuda:"Se detecta solo por el .cs. Cámbialo si te equivocaste de motor.",
+motorCambiado:"Motor activo: {m}",
+subeSEN:"3 · CSV de señales",subeSEN2:"fecha ; dirección [ ; precio ; familia ]",
+senales:"señales",senalesOK:"Cargadas {n} señales.",
+sinSenales:"No encontré señales válidas en ese archivo.",
+grupoEjec:"Ejecución del backtest",est:{M:"motor",V:"visual",F:"—"},params:"parámetros",velas:"velas",
 csOK:"Leídos {n} parámetros del .cs.",csvOK:"Cargadas {n} velas.",
 sinProps:"No encontré propiedades NinjaScript en ese archivo.",
 pocasVelas:"Muy pocas velas para un backtest.",errLeer:"No pude leer el archivo:",
@@ -1147,8 +1537,8 @@ vDuda:"No concluyente",vDudaSub:"Hay ventaja dentro de muestra pero se debilita 
 vMuestra:"Muestra insuficiente",vMuestraSub:"Solo {n} operaciones. Por debajo de 100 el Profit Factor es ruido, sea alto o bajo. Afloja los filtros o consigue más datos.",
 sMeseta:"Meseta: la diferencia entre extremos es chica, no parece ruido",
 sPico:"Pico: la diferencia entre extremos es grande, probablemente estás ajustando a la muestra"},
-en:{titulo:"MNQ Lab",sub:"Upload the indicator and its bars. The engine runs what the .cs says.",
-cabCarga:"Load",subeCS:"1 · Indicator .cs",subeCS2:"MomentumVolumen.cs or any you want to test",
+en:{titulo:"MNQ Lab",sub:"Upload any indicator and its bars. The lab picks the matching engine.",
+cabCarga:"Load",subeCS:"1 · Indicator .cs",subeCS2:"MomentumVolumen, BOSValidado, MAGMAX…",
 subeCSV:"2 · One-minute bars",subeCSV2:"CSV or TXT exported from NinjaTrader",
 cabCob:"Engine coverage",enMotor:"in the engine",soloVis:"display only",faltan:"unused",
 cabParam:"Parameters from the .cs",cabCorrer:"Run",queOperar:"What to trade",
@@ -1158,8 +1548,13 @@ corriendo:"Running…",bajarJSON:"Download JSON",cabRes:"Result",curva:"Equity i
 curvaNota:"The vertical line marks the 70/30 split. What's to the right is the honest test.",
 desglose:"Breakdown",robustez:"Robustness over time",sens:"Sensitivity",
 sensNota:"Look for a plateau, not a peak. If PF climbs while the trade count collapses, you're measuring a small sample, not an edge.",
-pie:"The engine implements the funnel from the .cs: multi-timeframe levels, session levels, regime, trigger, print-through, space filter and risk-based sizing. Parameters marked \"unused\" are display-only or not in the engine yet. Past results do not guarantee future results.",
-est:{M:"engine",V:"display",F:"—"},params:"parameters",velas:"bars",
+pie:"Each indicator has its own signal engine; execution, costs and every metric are shared. Parameters marked \"unused\" are display-only or not consumed by the active engine. Past results do not guarantee future results.",
+motorLbl:"Engine",motorAyuda:"Auto-detected from the .cs. Change it if the guess was wrong.",
+motorCambiado:"Active engine: {m}",
+subeSEN:"3 · Signals CSV",subeSEN2:"date ; direction [ ; price ; family ]",
+senales:"signals",senalesOK:"Loaded {n} signals.",
+sinSenales:"No valid signals found in that file.",
+grupoEjec:"Backtest execution",est:{M:"engine",V:"display",F:"—"},params:"parameters",velas:"bars",
 csOK:"Read {n} parameters from the .cs.",csvOK:"Loaded {n} bars.",
 sinProps:"No NinjaScript properties found in that file.",
 pocasVelas:"Too few bars for a backtest.",errLeer:"Couldn't read the file:",
@@ -1182,8 +1577,8 @@ $("lang").addEventListener("click",()=>{
   document.documentElement.lang=idioma;
   document.querySelectorAll("[data-i]").forEach(el=>{
     const k=el.getAttribute("data-i");if(T()[k])el.textContent=T()[k]});
-  if(CS){pintarCobertura();pintarParams();listarBarrido()}
-  if(RES)pintarRes();
+  if(CS){pintarSelectorMotor();completarProps();pintarCobertura();pintarParams();listarBarrido()}
+  if(RES&&!RES.magmax)pintarRes();
 });
 
 </script>
