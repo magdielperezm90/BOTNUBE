@@ -1069,10 +1069,113 @@ function correrORB(velas,P,opc){
   return reporte(ejecutar(velas,senalesORB(velas,P),P,opc), velas, opc);
 }
 
+
+/* =====================================================================
+   MOTOR · VelaSinMecha
+   Vela sin mecha a favor de la tendencia -> zona -> retroceso -> entrada.
+   Genera ademas un GRUPO DE CONTROL con velas que si tienen mecha pequena,
+   en el mismo contexto y con las mismas reglas. Si las dos familias rinden
+   igual, lo que funciona es la tendencia y no el patron.
+   ===================================================================== */
+function senalesSinMecha(velas,P){
+  const N=velas.length, out=[], tick=0.25;
+  const limMecha =(P.MechaMaxTicks||0)*tick;
+  const banda    =((P.MechaMaxTicks||0)+1+(P.ControlBanda||3))*tick;
+  const cuerpoMin=(P.CuerpoMinimoPct!==undefined)?P.CuerpoMinimoPct:0.5;
+  const modo     =(P.ModoTendencia!==undefined)?P.ModoTendencia:0;
+  const perT     =Math.max(5,P.PeriodoTendencia||50);
+  const zonaCuerpo=(P.ZonaCuerpoCompleto!==false);
+  const colZona  =(P.ColchonZonaTicks||0)*tick;
+  const espera   =Math.max(1,P.VelasEspera||60);
+  const vStop    =Math.max(1,P.VelasStop||5);
+  const colStop  =(P.ColchonStopTicks||0)*tick;
+  const ratio    =(P.RatioTP>0)?P.RatioTP:1;
+  const control  =(P.MedirControl!==false);
+
+  /* EMA para la tendencia */
+  const ema=new Array(N).fill(0);
+  const k=2/(perT+1);
+  for(let i=0;i<N;i++) ema[i]= i===0 ? velas[0].c : velas[i].c*k + ema[i-1]*(1-k);
+
+  const zonas=[];
+  const inicio=Math.max(perT+5,vStop+5);
+
+  for(let i=inicio;i<N;i++){
+    const b=velas[i];
+
+    /* ---- entrada: el precio vuelve a una zona viva ---- */
+    for(let q=0;q<zonas.length;q++){
+      const z=zonas[q];
+      if(i-z.barra<1) continue;
+      if(i-z.barra>espera) continue;
+      const toca = z.dir===1 ? b.l<=z.alto : b.h>=z.bajo;
+      if(!toca) continue;
+
+      const entrada = z.dir===1 ? Math.min(z.alto,b.o) : Math.max(z.bajo,b.o);
+      let ext = z.dir===1 ? Infinity : -Infinity;
+      for(let w=0;w<vStop;w++){
+        if(i-w<0) break;
+        if(z.dir===1) ext=Math.min(ext,velas[i-w].l);
+        else          ext=Math.max(ext,velas[i-w].h);
+      }
+      const sl = z.dir===1 ? ext-colStop : ext+colStop;
+      const riesgo=Math.abs(entrada-sl);
+      zonas.splice(q,1);
+      if(!(riesgo>0)) break;
+
+      out.push({i:i, dir:z.dir, precio:entrada, sl:sl,
+                tp:entrada + z.dir*riesgo*ratio,
+                familia:(z.control?"control ":"sin mecha ")+(z.dir===1?"largo":"corto")});
+      break;
+    }
+
+    /* ---- deteccion de la vela ---- */
+    const rango=b.h-b.l;
+    if(!(rango>0)) continue;
+    if(Math.abs(b.c-b.o)/rango < cuerpoMin) continue;
+
+    let tend=0;
+    if(modo===2) tend=0;
+    else if(modo===1) tend = b.c>velas[Math.max(0,i-perT)].c ? 1
+                           : b.c<velas[Math.max(0,i-perT)].c ? -1 : 0;
+    else tend = b.c>ema[i] ? 1 : b.c<ema[i] ? -1 : 0;
+
+    const alcista=b.c>b.o;
+    if(modo!==2){
+      if(tend===0) continue;
+      if(tend===1 && !alcista) continue;
+      if(tend===-1 && alcista) continue;
+    }
+    const dir = modo===2 ? (alcista?1:-1) : tend;
+
+    const mecha = dir===1 ? Math.min(b.o,b.c)-b.l : b.h-Math.max(b.o,b.c);
+    const esPatron  = mecha <= limMecha+1e-9;
+    const esControl = control && mecha>limMecha+1e-9 && mecha<=banda;
+    if(!esPatron && !esControl) continue;
+
+    let alto,bajo;
+    if(zonaCuerpo){ alto=Math.max(b.o,b.c); bajo=Math.min(b.o,b.c); }
+    else if(dir===1){ bajo=b.l; alto=b.l+colZona; }
+    else { alto=b.h; bajo=b.h-colZona; }
+
+    zonas.push({barra:i,alto:alto,bajo:bajo,dir:dir,control:esControl});
+
+    /* poda */
+    while(zonas.length && i-zonas[0].barra>espera) zonas.shift();
+    if(zonas.length>400) zonas.shift();
+  }
+  return out;
+}
+function correrSinMecha(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  return reporte(ejecutar(velas,senalesSinMecha(velas,P),P,opc), velas, opc);
+}
+
 const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,
            correrEstructura:correrEstructura,ejecutar:ejecutar,senalesBOS:senalesBOS,
            correrBOS:correrBOS,leerSenales:leerSenales,correrImportadas:correrImportadas,
-           senalesORB:senalesORB,correrORB:correrORB};
+           senalesORB:senalesORB,correrORB:correrORB,
+           senalesSinMecha:senalesSinMecha,correrSinMecha:correrSinMecha};
 if(typeof module!=="undefined"&&module.exports) module.exports=API;
 else raiz.MotorMNQ=API;
 })(typeof globalThis!=="undefined"?globalThis:this);
@@ -1168,6 +1271,21 @@ const MOTORES=[
                "VelasMaxEspera","ColchonTicks","RatioMinimo","MaxOpsDia",
                "VelasVidaTrade","HoraCierre"],
     correr:(v,P,o)=>MotorMNQ.correrORB(v,P,o)
+  },
+  {
+    id:"sinmecha", nombre:"VelaSinMecha · patrón contra grupo de control", tipo:"trades",
+    detecta:cs=>/sinmecha|nowick|wickless/i.test(cs.clase)
+              || cs.props.some(p=>p.nombre==="MechaMaxTicks"),
+    usa:new Set(["MechaMaxTicks","CuerpoMinimoPct","ModoTendencia","PeriodoTendencia",
+                 "ZonaCuerpoCompleto","ColchonZonaTicks","VelasEspera","VelasStop",
+                 "ColchonStopTicks","RatioTP","MedirControl","ControlBanda"].concat(USA_EJEC)),
+    def:Object.assign({MechaMaxTicks:0,CuerpoMinimoPct:0.5,ModoTendencia:0,
+         PeriodoTendencia:50,ZonaCuerpoCompleto:true,ColchonZonaTicks:2,
+         VelasEspera:60,VelasStop:5,ColchonStopTicks:4,RatioTP:1.0,
+         MedirControl:true,ControlBanda:3},EJEC_COMUN),
+    barribles:["MechaMaxTicks","CuerpoMinimoPct","PeriodoTendencia","ColchonZonaTicks",
+               "VelasEspera","VelasStop","ColchonStopTicks","RatioTP","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrSinMecha(v,P,o)
   },
   {
     id:"importadas", nombre:"Señales importadas · sirve para cualquier indicador", tipo:"trades",
