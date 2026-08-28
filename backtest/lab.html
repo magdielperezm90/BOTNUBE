@@ -804,17 +804,24 @@ function ejecutar(velas, senales, P, opc){
     /* --- abrir con las senales de esta barra --- */
     if(!abierto && porBarra[i]){
       const a = atr[i];
-      if(a>0){
+      while(a>0){
         const s = porBarra[i][0];
-        const sl = a*multSL;
         const entrada = (s.precio!==undefined && isFinite(s.precio)) ? s.precio : b.c;
-        const tp = P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
-                                      : entrada + s.dir*sl*multTP;
-        abierto = {dir:s.dir, entrada:entrada, sl:entrada-s.dir*sl, tp:tp, barra:i,
+        // si la senal trae su propio stop y objetivo, mandan esos; si no, se
+        // calculan por ATR como en el resto de motores
+        const slPrecio = (s.sl!==undefined && isFinite(s.sl))
+                         ? s.sl : entrada - s.dir*a*multSL;
+        const sl = Math.abs(entrada-slPrecio);
+        if(!(sl>0)) break;   // sin distancia de stop no hay trade posible
+        const tp = (s.tp!==undefined && isFinite(s.tp)) ? s.tp
+                 : (P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
+                                       : entrada + s.dir*sl*multTP);
+        abierto = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i,
                    rPlan:Math.abs(tp-entrada)/sl, ctr:contratos(sl),
                    estrecho:false, regimen:0, tfNivel:0,
                    familia: s.familia!==undefined ? s.familia : "senal",
                    origen: s.familia!==undefined ? s.familia : "senal", esp:0};
+        break;
       }
     }
   }
@@ -950,9 +957,115 @@ function correrImportadas(velas, senales, P, opc){
   return reporte(ejecutar(velas, s, P, opc), velas, opc);
 }
 
+
+/* =====================================================================
+   MOTOR · ORBEma20
+   Rango de apertura -> vela de confirmacion que cierra fuera ->
+   interaccion con la EMA en la temporalidad de entrada.
+   Stop en el extremo de la vela de entrada, objetivo en el extremo del dia.
+   ===================================================================== */
+function emaSerie(barras,n){
+  const a=new Array(barras.length).fill(0);
+  const k=2/(n+1);
+  let e=barras.length?barras[0].c:0;
+  for(let i=0;i<barras.length;i++){
+    e = i===0 ? barras[0].c : barras[i].c*k + e*(1-k);
+    a[i]=e;
+  }
+  return a;
+}
+function senalesORB(velas,P){
+  const N=velas.length, out=[];
+  const mEnt =Math.max(1,P.MinutosEntrada||2);
+  const mConf=Math.max(1,P.MinutosConfirma||10);
+  const per  =Math.max(2,P.PeriodoEMA||20);
+  const abre =(P.HoraApertura||0)*60+(P.MinutoApertura||0);
+  const cierra=abre+(P.MinutosRango||30);
+  const ratio=(P.RatioMinimo!==undefined)?P.RatioMinimo:1;
+  const tope =(P.MaxOpsDia!==undefined)?P.MaxOpsDia:1;
+  const espera=(P.VelasMaxEspera||60)*mEnt;
+  const colchon=(P.ColchonTicks||0)*0.25;
+  const toque=!!P.ModoToqueRespeto;
+
+  const bConf=agregar(velas,mConf);
+  const bEnt =agregar(velas,mEnt);
+  const ema  =emaSerie(bEnt,per);
+  let pC=0,pE=0;
+
+  let dia=-1,orH=-Infinity,orL=Infinity,abierto=false,cerrado=false;
+  let sesgo=0,barraSesgo=-1,inter=false,diaH=-Infinity,diaL=Infinity,ops=0;
+
+  for(let i=0;i<N;i++){
+    const d=new Date(velas[i].t);
+    const dNum=Math.floor(velas[i].t/86400000);
+    const min=d.getUTCHours()*60+d.getUTCMinutes();
+
+    if(dNum!==dia){
+      dia=dNum; orH=-Infinity; orL=Infinity; abierto=false; cerrado=false;
+      sesgo=0; barraSesgo=-1; inter=false;
+      diaH=velas[i].h; diaL=velas[i].l; ops=0;
+    }
+    diaH=Math.max(diaH,velas[i].h); diaL=Math.min(diaL,velas[i].l);
+
+    if(min>abre && min<=cierra){ abierto=true;
+      orH=Math.max(orH,velas[i].h); orL=Math.min(orL,velas[i].l); }
+    else if(abierto && !cerrado && min>cierra){ cerrado=true; }
+
+    /* ---- confirmacion: vela de 10m que cierra fuera del rango ---- */
+    while(pC<bConf.length && bConf[pC].cierraEn<=i){
+      const bb=bConf[pC++];
+      if(!cerrado || sesgo!==0 || orH===-Infinity) continue;
+      if(bb.c>orH){ sesgo=1;  barraSesgo=i; inter=false; }
+      else if(bb.c<orL){ sesgo=-1; barraSesgo=i; inter=false; }
+    }
+
+    /* ---- entrada: interaccion con la EMA ---- */
+    while(pE<bEnt.length && bEnt[pE].cierraEn<=i){
+      const j=pE++;
+      if(j<per+1) continue;
+      if(sesgo===0) continue;
+      if(tope>0 && ops>=tope) continue;
+      if(barraSesgo>=0 && (i-barraSesgo)>espera) continue;
+
+      const e=ema[j], bb=bEnt[j];
+      let gat=false;
+      if(toque){
+        gat = sesgo===-1 ? (bb.h>=e && bb.c<e) : (bb.l<=e && bb.c>e);
+      } else {
+        if(!inter){
+          if(sesgo===-1 && bb.c>e) inter=true;
+          if(sesgo=== 1 && bb.c<e) inter=true;
+          continue;
+        }
+        gat = sesgo===-1 ? bb.c<e : bb.c>e;
+      }
+      if(!gat) continue;
+
+      const entrada=bb.c;
+      const sl = sesgo===1 ? bb.l-colchon : bb.h+colchon;
+      const tp = sesgo===1 ? diaH : diaL;
+      const riesgo=Math.abs(entrada-sl), premio=Math.abs(tp-entrada);
+      const valido = sesgo===1 ? tp>entrada : tp<entrada;
+
+      inter=false;
+      if(riesgo<=0 || !valido || premio < ratio*riesgo) continue;
+
+      out.push({i:i, dir:sesgo, precio:entrada, sl:sl, tp:tp,
+                familia: sesgo===1?"ORB largo":"ORB corto"});
+      ops++;
+    }
+  }
+  return out;
+}
+function correrORB(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  return reporte(ejecutar(velas,senalesORB(velas,P),P,opc), velas, opc);
+}
+
 const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,
            correrEstructura:correrEstructura,ejecutar:ejecutar,senalesBOS:senalesBOS,
-           correrBOS:correrBOS,leerSenales:leerSenales,correrImportadas:correrImportadas};
+           correrBOS:correrBOS,leerSenales:leerSenales,correrImportadas:correrImportadas,
+           senalesORB:senalesORB,correrORB:correrORB};
 if(typeof module!=="undefined"&&module.exports) module.exports=API;
 else raiz.MotorMNQ=API;
 })(typeof globalThis!=="undefined"?globalThis:this);
@@ -1032,6 +1145,20 @@ const MOTORES=[
     barribles:["FuerzaSwing","BarrasVida","MultiploSL","MultiploTP",
                "PuntosObjetivo","VelasVidaTrade"],
     correr:(v,P,o)=>MotorMNQ.correrBOS(v,P,o)
+  },
+  {
+    id:"orb", nombre:"ORBEma20 · rango de apertura y EMA de 20", tipo:"trades",
+    detecta:cs=>/orb/i.test(cs.clase)
+              || cs.props.some(p=>p.nombre==="ModoToqueRespeto"),
+    usa:new Set(["HoraApertura","MinutoApertura","MinutosRango","MinutosConfirma",
+                 "MinutosEntrada","PeriodoEMA","ModoToqueRespeto","VelasMaxEspera",
+                 "ColchonTicks","RatioMinimo","MaxOpsDia"].concat(USA_EJEC)),
+    def:Object.assign({HoraApertura:9,MinutoApertura:30,MinutosRango:30,
+         MinutosConfirma:10,MinutosEntrada:2,PeriodoEMA:20,ModoToqueRespeto:false,
+         VelasMaxEspera:60,ColchonTicks:2,RatioMinimo:1.0,MaxOpsDia:1},EJEC_COMUN),
+    barribles:["MinutosRango","MinutosConfirma","MinutosEntrada","PeriodoEMA",
+               "VelasMaxEspera","ColchonTicks","RatioMinimo","MaxOpsDia","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrORB(v,P,o)
   },
   {
     id:"importadas", nombre:"Señales importadas · sirve para cualquier indicador", tipo:"trades",
