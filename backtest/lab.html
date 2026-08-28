@@ -163,7 +163,11 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
       <div style="font-size:10.5px;color:var(--tenue);margin-top:4px" data-i="costosAyuda">contratos · comisión · slippage (ticks)</div>
     </div>
     <div><label class="gt" for="barrer" data-i="barrerLbl">Barrer un parámetro</label>
-      <select id="barrer"><option value="" data-i="ninguno">Ninguno</option></select></div>
+      <select id="barrer"><option value="" data-i="ninguno">Ninguno</option></select>
+      <label style="display:flex;gap:7px;align-items:center;margin-top:7px;font-size:11px;color:var(--tenue);cursor:pointer">
+        <input type="checkbox" id="rapido" style="width:auto;accent-color:var(--ambar)">
+        <span data-i="rapidoLbl">Barrido rápido: solo la primera ventana</span>
+      </label></div>
   </div>
   <div class="botones">
     <button class="acc" type="button" id="btnCorrer" disabled data-i="correr">Correr backtest</button>
@@ -1433,6 +1437,13 @@ function correrTodas(P,OPC){
                    r:x.r, acierto:100*x.gan/x.n, usd:0, costos:0, rTrade:x.r/x.n, dd:0}; }
   return out;
 }
+/* Una corrida de barrido. Por defecto usa TODAS las ventanas cargadas,
+   igual que el caso base, para que las dos cifras sean comparables.
+   El modo rapido usa solo la primera y es unas 4 veces mas veloz. */
+function corridaBarrido(P,OPC){
+  if($("rapido").checked) return MOTOR.correr(VELAS,P,OPC);
+  return correrTodas(P,OPC);
+}
 function barrer(P,modo,nombre){
   const p=CS.props.find(x=>x.nombre===nombre);
   const base=parseFloat(p.valor)||0;
@@ -1447,7 +1458,9 @@ function barrer(P,modo,nombre){
   }
   return pasos.sort((a,b)=>a-b).map(v=>{
     const Q=Object.assign({},P);Q[nombre]=v;
-    const R=MOTOR.correr(VELAS,Q,{modo:modo});
+    const R=corridaBarrido(Q,{modo:modo,
+      comision:parseFloat($("cComision").value)||0,
+      slippage:parseFloat($("cSlip").value)||0});
     return {v:v,pf:(R.total?R.total.pf:0),n:(R.total?R.total.n:0),r:(R.total?R.total.r:0)};
   });
 }
@@ -1601,7 +1614,7 @@ function diagnosticar(filas,nBase){
   const mejor=val[iMejor];
 
   if(impacto<0.15) return {clave:"nulo",impacto:impacto,mejor:mejor};
-  if(mejor.n < Math.max(50,nBase*0.35)) return {clave:"muestra",impacto:impacto,mejor:mejor};
+  if(mejor.n < Math.max(40,nBase*0.30)) return {clave:"muestra",impacto:impacto,mejor:mejor};
 
   const izq=iMejor>0?val[iMejor-1].pf:null;
   const der=iMejor<val.length-1?val[iMejor+1].pf:null;
@@ -1646,7 +1659,7 @@ function analisisCompleto(){
       const t=tareas[k++];
       const Q=Object.assign({},P0); Q[t.p.nombre]=t.v;
       let R;
-      try{ R=MOTOR.correr(VELAS,Q,OPC); }catch(e){ R=null; }
+      try{ R=corridaBarrido(Q,OPC); }catch(e){ R=null; }
       if(!bruto[t.p.nombre]) bruto[t.p.nombre]=[];
       bruto[t.p.nombre].push({
         v:t.v,
@@ -1675,7 +1688,8 @@ function analisisCompleto(){
               diag:diagnosticar(filas,base.total.n)};
     }).sort((a,b)=>b.diag.impacto-a.diag.impacto);
 
-    ANALISIS={indicador:CS.clase, version:CS.version, motor:MOTOR.nombre,
+    ANALISIS={alcance:$("rapido").checked?T().alcanceRapido:T().alcanceTotal,
+              indicador:CS.clase, version:CS.version, motor:MOTOR.nombre,
               modo:modo, fecha:new Date().toISOString().slice(0,16).replace("T"," "),
               ventanas:VENTANAS.map(v=>({nombre:v.nombre,velas:v.velas.length,
                                          desde:v.desde,hasta:v.hasta})),
@@ -1694,7 +1708,8 @@ function analisisCompleto(){
     avisar(T().analisisListo.replace("{n}",tareas.length)
                             .replace("{s}",ANALISIS.segundos),false);
   }
-  avisar(T().analizando,false);
+  const nVent=$("rapido").checked?1:VENTANAS.length;
+  avisar(T().analizando.replace("{n}",tareas.length).replace("{v}",nVent),false);
   setTimeout(paso,40);
 }
 
@@ -1734,7 +1749,8 @@ function cuerpoInforme(){
   for(const kk in A.base.porTF) h+=fam(kk,A.base.porTF[kk]);
   h+='</table>';
 
-  h+='<h2>'+D.iRanking+'</h2><p class="nota">'+D.iRankingTxt+'</p>';
+  h+='<h2>'+D.iRanking+'</h2><p class="nota">'+D.iRankingTxt+'<br><b>'
+   +D.iAlcance+':</b> '+A.alcance+'</p>';
   h+='<table class="inf"><tr><th>'+D.iParam+'</th><th>'+D.iActual
    +'</th><th>'+D.iImpacto+'</th><th>'+D.iMejorV+'</th><th>PF</th><th>'
    +D.iVeredicto+'</th></tr>';
@@ -1846,7 +1862,11 @@ senales:"señales",senalesOK:"Cargadas {n} señales.",
 sinSenales:"No encontré señales válidas en ese archivo.",
 analisis:"Análisis completo",cabInforme:"Informe completo",
 bajarPDF:"Descargar PDF",bajarJSONinf:"Descargar JSON del informe",
-analizando:"Analizando todos los parámetros. No cierres la pestaña.",
+analizando:"Analizando: {n} corridas sobre {v} ventana(s). No cierres la pestaña.",
+rapidoLbl:"Barrido rápido: solo la primera ventana",
+iAlcance:"Alcance del barrido",
+alcanceTotal:"todas las ventanas cargadas, comparable con el caso base",
+alcanceRapido:"solo la primera ventana; las cifras NO son comparables con el caso base",
 progreso:"{a} de {b} corridas · {p}% · faltan {t}",corridas:"corridas",
 analisisListo:"Listo: {n} corridas en {s} segundos.",
 sinBarribles:"Este motor no tiene parámetros que se puedan barrer.",
@@ -1895,7 +1915,11 @@ senales:"signals",senalesOK:"Loaded {n} signals.",
 sinSenales:"No valid signals found in that file.",
 analisis:"Full analysis",cabInforme:"Full report",
 bajarPDF:"Download PDF",bajarJSONinf:"Download report JSON",
-analizando:"Analysing every parameter. Keep this tab open.",
+analizando:"Analysing: {n} runs over {v} window(s). Keep this tab open.",
+rapidoLbl:"Fast sweep: first window only",
+iAlcance:"Sweep scope",
+alcanceTotal:"all loaded windows, comparable with the baseline",
+alcanceRapido:"first window only; figures are NOT comparable with the baseline",
 progreso:"{a} of {b} runs · {p}% · {t} left",corridas:"runs",
 analisisListo:"Done: {n} runs in {s} seconds.",
 sinBarribles:"This engine has no sweepable parameters.",
