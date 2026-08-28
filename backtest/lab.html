@@ -611,7 +611,7 @@ function correr(velas, P, opc){
    REPORTE
    ===================================================================== */
 function metricas(ts){
-  if(!ts.length) return {n:0,pf:0,r:0,acierto:0,usd:0,costos:0,rTrade:0,dd:0};
+  if(!ts.length) return {n:0,pf:0,r:0,acierto:0,usd:0,costos:0,rTrade:0,dd:0,pos:0,neg:0};
   let g=0,p=0,r=0,gan=0,usd=0,costos=0;
   let pico=0,acum=0,dd=0;
   for(const t of ts){
@@ -620,7 +620,7 @@ function metricas(ts){
     acum+=t.r; pico=Math.max(pico,acum); dd=Math.max(dd,pico-acum);
   }
   return {n:ts.length, pf: p>0? g/p : (g>0?99:0), r:r, acierto:100*gan/ts.length,
-          usd:usd, costos:costos, rTrade:r/ts.length, dd:dd};
+          usd:usd, costos:costos, rTrade:r/ts.length, dd:dd, pos:g, neg:p};
 }
 function reporte(trades, velas, opc){
   const R = {total:metricas(trades), trades:trades.length};
@@ -785,6 +785,7 @@ function ejecutar(velas, senales, P, opc){
         if(tocaTP&&tocaSL) res=0;
         else if(tocaTP) res=1;
         else if(tocaSL) res=-1;
+        else if(t.limite!==undefined && i>=t.limite) res=-2;
         else if(i-t.barra > vida) res=-2;
       }
       if(res!==null){
@@ -816,7 +817,7 @@ function ejecutar(velas, senales, P, opc){
         const tp = (s.tp!==undefined && isFinite(s.tp)) ? s.tp
                  : (P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
                                        : entrada + s.dir*sl*multTP);
-        abierto = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i,
+        abierto = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i, limite:s.limite,
                    rPlan:Math.abs(tp-entrada)/sl, ctr:contratos(sl),
                    estrecho:false, regimen:0, tfNivel:0,
                    familia: s.familia!==undefined ? s.familia : "senal",
@@ -1050,7 +1051,13 @@ function senalesORB(velas,P){
       inter=false;
       if(riesgo<=0 || !valido || premio < ratio*riesgo) continue;
 
-      out.push({i:i, dir:sesgo, precio:entrada, sl:sl, tp:tp,
+      // cierre forzoso al final de la sesion, igual que el .cs
+      let limite;
+      if(P.CerrarAlFinDia!==false){
+        const minCierre=(P.HoraCierre!==undefined?P.HoraCierre:15)*60;
+        if(minCierre>min) limite=i+(minCierre-min);
+      }
+      out.push({i:i, dir:sesgo, precio:entrada, sl:sl, tp:tp, limite:limite,
                 familia: sesgo===1?"ORB largo":"ORB corto"});
       ops++;
     }
@@ -1152,12 +1159,14 @@ const MOTORES=[
               || cs.props.some(p=>p.nombre==="ModoToqueRespeto"),
     usa:new Set(["HoraApertura","MinutoApertura","MinutosRango","MinutosConfirma",
                  "MinutosEntrada","PeriodoEMA","ModoToqueRespeto","VelasMaxEspera",
-                 "ColchonTicks","RatioMinimo","MaxOpsDia"].concat(USA_EJEC)),
+                 "ColchonTicks","RatioMinimo","MaxOpsDia","CerrarAlFinDia","HoraCierre"].concat(USA_EJEC)),
     def:Object.assign({HoraApertura:9,MinutoApertura:30,MinutosRango:30,
          MinutosConfirma:10,MinutosEntrada:2,PeriodoEMA:20,ModoToqueRespeto:false,
-         VelasMaxEspera:60,ColchonTicks:2,RatioMinimo:1.0,MaxOpsDia:1},EJEC_COMUN),
+         VelasMaxEspera:60,ColchonTicks:4,RatioMinimo:1.0,MaxOpsDia:1,
+         CerrarAlFinDia:true,HoraCierre:15},EJEC_COMUN),
     barribles:["MinutosRango","MinutosConfirma","MinutosEntrada","PeriodoEMA",
-               "VelasMaxEspera","ColchonTicks","RatioMinimo","MaxOpsDia","VelasVidaTrade"],
+               "VelasMaxEspera","ColchonTicks","RatioMinimo","MaxOpsDia",
+               "VelasVidaTrade","HoraCierre"],
     correr:(v,P,o)=>MotorMNQ.correrORB(v,P,o)
   },
   {
@@ -1535,13 +1544,11 @@ function correrTodas(P,OPC){
         if(!acum[fam][k]) acum[fam][k]={n:0,r:0,gan:0,pos:0,neg:0};
         acum[fam][k].n+=src[k].n; acum[fam][k].r+=src[k].r;
         acum[fam][k].gan+=src[k].acierto*src[k].n/100;
-        // reconstruir ganancias y perdidas de la familia a partir de su PF y su R:
-        //   R = pos - neg   y   pf = pos/neg   =>   neg = R/(pf-1),  pos = R + neg
-        const pf0=src[k].pf, r0=src[k].r;
-        if(pf0>0 && pf0<99 && Math.abs(pf0-1)>1e-9){
-          const neg=r0/(pf0-1), pos=r0+neg;
-          if(isFinite(neg)&&isFinite(pos)&&neg>=0&&pos>=0){ acum[fam][k].pos+=pos; acum[fam][k].neg+=neg; }
-        } else if(pf0>=99){ acum[fam][k].pos+=Math.max(0,r0); }
+        // ganancias y perdidas reales de la familia, sumadas directamente.
+        // Antes se reconstruian desde el PF y el R, formula que se rompia
+        // cuando el PF quedaba cerca de 1 y daba PF de familia imposibles.
+        acum[fam][k].pos += (src[k].pos||0);
+        acum[fam][k].neg += (src[k].neg||0);
       }
     }
   }
@@ -1588,7 +1595,8 @@ function barrer(P,modo,nombre){
     const R=corridaBarrido(Q,{modo:modo,
       comision:parseFloat($("cComision").value)||0,
       slippage:parseFloat($("cSlip").value)||0});
-    return {v:v,pf:(R.total?R.total.pf:0),n:(R.total?R.total.n:0),r:(R.total?R.total.r:0)};
+    return {v:v,pf:(R.total?R.total.pf:0),n:(R.total?R.total.n:0),
+            r:(R.total?R.total.r:0),dd:(R.total?R.total.dd:0)};
   });
 }
 
@@ -1633,8 +1641,8 @@ function pintarRes(){
   if(RES.barrido){
     $("wrapBarrido").classList.remove("oculto");
     const pf=RES.barrido.map(x=>x.pf),dif=Math.max(...pf)-Math.min(...pf);
-    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th></tr>`+
-      RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td></tr>`).join("")+
+    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th><th>DD</th></tr>`+
+      RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>${(x.dd||0).toFixed(1)}R</td></tr>`).join("")+
       `<tr><td colspan="4" style="color:${dif>0.6?'var(--rojo)':'var(--jade)'}">${dif>0.6?T().sPico:T().sMeseta} (${dif.toFixed(2)})</td></tr>`;
   } else $("wrapBarrido").classList.add("oculto");
 }
@@ -1794,7 +1802,8 @@ function analisisCompleto(){
         pf:(R&&R.total)?R.total.pf:0,
         r:(R&&R.total)?R.total.r:0,
         pfFuera:(R&&R.fuera)?R.fuera.pf:0,
-        nFuera:(R&&R.fuera)?R.fuera.n:0
+        nFuera:(R&&R.fuera)?R.fuera.n:0,
+        dd:(R&&R.total)?R.total.dd:0
       });
     }
     const pct=Math.round(100*k/tareas.length);
@@ -1879,12 +1888,13 @@ function cuerpoInforme(){
   h+='<h2>'+D.iRanking+'</h2><p class="nota">'+D.iRankingTxt+'<br><b>'
    +D.iAlcance+':</b> '+A.alcance+'</p>';
   h+='<table class="inf"><tr><th>'+D.iParam+'</th><th>'+D.iActual
-   +'</th><th>'+D.iImpacto+'</th><th>'+D.iMejorV+'</th><th>PF</th><th>'
+   +'</th><th>'+D.iImpacto+'</th><th>'+D.iMejorV+'</th><th>PF</th><th>DD</th><th>'
    +D.iVeredicto+'</th></tr>';
   A.parametros.forEach(p=>{
     const d=p.diag;
     h+='<tr><td>'+p.etiqueta+'</td><td>'+p.actual+'</td><td>'+num(d.impacto)+'</td><td>'
       +(d.mejor?d.mejor.v:"-")+'</td><td>'+(d.mejor?num(d.mejor.pf):"-")+'</td><td>'
+      +(d.mejor?num(d.mejor.dd,1)+" R":"-")+'</td><td>'
       +D.diag[d.clave]+'</td></tr>';
   });
   h+='</table>';
@@ -1895,11 +1905,12 @@ function cuerpoInforme(){
     h+='<p class="nota">'+D.iActual+': '+p.actual+' · '+D.diag[p.diag.clave]
       +' · '+D.iImpacto+' '+num(p.diag.impacto)+'</p>';
     h+='<table class="inf"><tr><th>'+D.iValor+'</th><th>n</th><th>PF</th><th>R</th><th>'
-      +D.iPFfuera+'</th><th>n</th></tr>';
+      +D.iDD+'</th><th>'+D.iPFfuera+'</th><th>n</th></tr>';
     p.filas.forEach(x=>{
       const marca=(p.diag.mejor&&x.v===p.diag.mejor.v)?' class="mej"':'';
       h+='<tr'+marca+'><td>'+x.v+'</td><td>'+x.n+'</td><td>'+num(x.pf)+'</td><td>'
-        +num(x.r,1)+'</td><td>'+num(x.pfFuera)+'</td><td>'+x.nFuera+'</td></tr>';
+        +num(x.r,1)+'</td><td>'+num(x.dd,1)+'</td><td>'+num(x.pfFuera)+'</td><td>'
+        +x.nFuera+'</td></tr>';
     });
     h+='</table>';
   });
@@ -2001,7 +2012,7 @@ popupBloqueado:"El navegador bloqueó la ventana. Permite las ventanas emergente
 iResumen:"Resumen del caso base",iMetrica:"métrica",iValor:"valor",
 iRanking:"Ranking de impacto",iParam:"parámetro",iActual:"actual",
 iImpacto:"impacto",iMejorV:"mejor valor",iVeredicto:"veredicto",
-iDetalle:"Detalle por parámetro",iPFfuera:"PF fuera",
+iDetalle:"Detalle por parámetro",iPFfuera:"PF fuera",iDD:"DD (R)",
 iMotor:"Motor",iFecha:"Fecha",iDatos:"Datos",
 iRankingTxt:"El impacto es la diferencia entre el mejor y el peor Profit Factor del barrido. Un impacto alto significa que ese parámetro decide mucho; uno bajo, que da igual dónde lo pongas.",
 iComoLeer:"Cómo leer esto",
@@ -2054,7 +2065,7 @@ popupBloqueado:"The browser blocked the window. Allow pop-ups and try again.",
 iResumen:"Baseline summary",iMetrica:"metric",iValor:"value",
 iRanking:"Impact ranking",iParam:"parameter",iActual:"current",
 iImpacto:"impact",iMejorV:"best value",iVeredicto:"verdict",
-iDetalle:"Parameter by parameter",iPFfuera:"PF out",
+iDetalle:"Parameter by parameter",iPFfuera:"PF out",iDD:"DD (R)",
 iMotor:"Engine",iFecha:"Date",iDatos:"Data",
 iRankingTxt:"Impact is the spread between the best and worst Profit Factor in the sweep. High impact means the parameter decides a lot; low impact means it barely matters where you set it.",
 iComoLeer:"How to read this",
