@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diario · BOTNUBE</title>
+<style>
+  :root{
+    --bg:#0b0f14;--panel:#121a24;--panel2:#0f161e;--line:#1f2b38;
+    --txt:#e6edf3;--tenue:#8ba0b4;--jade:#22c55e;--rojo:#ef4444;
+    --ambar:#f59e0b;--cyan:#38bdf8;--violeta:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    min-height:100vh;padding:20px 14px 60px;font-size:14px}
+  .wrap{max-width:1180px;margin:0 auto}
+
+  header{border-bottom:2px solid var(--ambar);padding-bottom:14px;margin-bottom:22px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+  h1{font-size:26px;letter-spacing:.06em;color:var(--ambar);font-weight:700}
+  .sub{color:var(--tenue);font-size:12.5px;margin-top:4px}
+
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    margin-bottom:18px;overflow:hidden}
+  .cab{padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel2);
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ambar);
+    display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .cab .ok{color:var(--jade);text-transform:none;letter-spacing:0;font-size:11.5px}
+  .cuerpo{padding:16px}
+
+  .drop{border:1.5px dashed var(--line);border-radius:11px;padding:26px 16px;text-align:center;
+    cursor:pointer;transition:.15s;background:var(--panel2)}
+  .drop:hover{border-color:var(--ambar);background:#161f2a}
+  .drop.listo{border-color:var(--jade);border-style:solid}
+  .drop .g{font-size:14px;font-weight:600}
+  .drop .c{font-size:11.5px;color:var(--tenue);margin-top:5px}
+  input[type=file]{display:none}
+
+  .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+  .tab{background:var(--panel2);border:1px solid var(--line);color:var(--tenue);
+    padding:8px 15px;border-radius:9px;font-size:12.5px;cursor:pointer;font-family:inherit;
+    transition:.15s}
+  .tab:hover{color:var(--txt);border-color:#31465c}
+  .tab.on{background:#182636;color:var(--txt);border-color:var(--ambar)}
+
+  .met{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px}
+  .met>div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:13px}
+  .met b{display:block;font-size:21px;font-family:ui-monospace,Consolas,monospace;
+    letter-spacing:-.02em}
+  .met span{display:block;font-size:9.5px;color:var(--tenue);text-transform:uppercase;
+    letter-spacing:.1em;margin-top:5px}
+  .v{color:var(--jade)}.r{color:var(--rojo)}
+
+  table{width:100%;border-collapse:collapse;font-family:ui-monospace,Consolas,monospace;
+    font-size:12px}
+  th{text-align:right;padding:8px;border-bottom:1px solid var(--line);font-family:inherit;
+    font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--tenue);font-weight:400}
+  td{text-align:right;padding:6px 8px;border-bottom:1px solid #16212c}
+  th:first-child,td:first-child{text-align:left}
+  tr:hover td{background:#141d27}
+
+  .barra{height:9px;background:#16212c;border-radius:3px;overflow:hidden;min-width:70px;
+    display:inline-block;width:100%;position:relative}
+  .barra i{position:absolute;top:0;bottom:0;border-radius:3px}
+  .barra i.p{background:var(--jade);left:50%}
+  .barra i.n{background:var(--rojo);right:50%}
+  .barra u{position:absolute;left:50%;top:0;bottom:0;width:1px;background:#3a4a5c}
+
+  svg{display:block;width:100%;height:auto}
+
+  /* calendario */
+  .calnav{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal .dh{font-size:9.5px;color:var(--tenue);text-align:center;text-transform:uppercase;
+    letter-spacing:.08em;padding-bottom:3px}
+  .cal .d{background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+    padding:7px 5px;min-height:60px;position:relative}
+  .cal .d.vacio{background:transparent;border-color:transparent}
+  .cal .d .n{font-size:10px;color:var(--tenue)}
+  .cal .d .p{font-family:ui-monospace,Consolas,monospace;font-size:12px;font-weight:700;
+    margin-top:5px}
+  .cal .d .t{font-size:9px;color:var(--tenue);margin-top:2px}
+  .cal .d.gana{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.09)}
+  .cal .d.pierde{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.09)}
+
+  button.acc{background:var(--ambar);color:#1a1206;border:0;padding:9px 17px;border-radius:9px;
+    font-weight:600;cursor:pointer;font-size:13px;font-family:inherit}
+  button.acc:hover{background:#fbbf24}
+  button.acc.sec{background:transparent;color:var(--txt);border:1px solid var(--line)}
+  button.acc.sec:hover{border-color:var(--ambar)}
+  button.acc:disabled{opacity:.35;cursor:not-allowed}
+  .botones{display:flex;gap:9px;flex-wrap:wrap}
+
+  input[type=text],select,textarea{background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);padding:7px 9px;border-radius:7px;font-family:inherit;font-size:12.5px;
+    width:100%}
+  textarea{resize:vertical;min-height:60px}
+  .etq{display:inline-block;background:#1c2a38;border:1px solid var(--line);color:var(--cyan);
+    padding:2px 8px;border-radius:99px;font-size:10.5px;margin:2px 3px 2px 0;cursor:pointer}
+  .etq:hover{border-color:var(--rojo);color:var(--rojo)}
+  .etq.sel{background:#243447;color:var(--ambar);border-color:var(--ambar)}
+
+  .oculto{display:none}
+  .aviso{padding:10px 14px;border-radius:9px;font-size:12.5px;margin-bottom:14px}
+  .aviso.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
+  .aviso.inf{background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.3);color:#86efac}
+  .nota{font-size:11.5px;color:var(--tenue);line-height:1.6}
+  .pie{margin-top:26px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;
+    background:var(--panel2);font-size:11.5px;color:var(--tenue);line-height:1.65}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>DIARIO</h1>
+      <div class="sub">Importa tus operaciones reales y mide lo que hiciste, no lo que simulaste.</div>
+    </div>
+    <div class="botones">
+      <button class="acc sec" id="btnExp">Guardar copia</button>
+      <button class="acc sec" id="btnImpJson">Restaurar copia</button>
+      <input type="file" id="fJson" accept=".json">
+      <button class="acc sec" id="btnBorrar">Borrar todo</button>
+    </div>
+  </header>
+
+  <div id="avisos"></div>
+
+  <!-- CARGA -->
+  <section>
+    <div class="cab"><span>Carga</span><span class="ok" id="estado"></span></div>
+    <div class="cuerpo">
+      <div class="drop" id="drop" tabindex="0" role="button">
+        <div class="g" id="dropG">Suelta aquí el CSV de operaciones</div>
+        <div class="c" id="dropC">NinjaTrader: Control Center → Trade Performance → pestaña Trades → clic derecho → Export</div>
+      </div>
+      <input type="file" id="fCsv" accept=".csv,.txt">
+      <div class="nota" style="margin-top:11px">
+        Las columnas se detectan solas por el nombre del encabezado. Si tu CSV usa otros nombres,
+        el diario te dirá qué no encontró. Las operaciones nuevas se suman a las que ya tengas;
+        las repetidas se descartan.
+      </div>
+    </div>
+  </section>
+
+  <div id="app" class="oculto">
+
+    <div class="tabs" id="tabs"></div>
+
+    <!-- RESUMEN -->
+    <div id="vResumen">
+      <section>
+        <div class="cab"><span>Resumen</span><span class="ok" id="rangoFechas"></span></div>
+        <div class="cuerpo"><div class="met" id="metricas"></div></div>
+      </section>
+      <section>
+        <div class="cab"><span>Curva de resultado</span></div>
+        <div class="cuerpo"><svg id="curva" viewBox="0 0 940 260" preserveAspectRatio="none"></svg>
+          <div class="nota" style="margin-top:9px">Cada punto es una operación cerrada, acumulando el resultado neto.</div>
+        </div>
+      </section>
+      <section>
+        <div class="cab"><span>Distribución de resultados</span></div>
+        <div class="cuerpo"><svg id="hist" viewBox="0 0 940 200" preserveAspectRatio="none"></svg></div>
+      </section>
+    </div>
+
+    <!-- CALENDARIO -->
+    <div id="vCalendario" class="oculto">
+      <section>
+        <div class="cab"><span>Calendario</span><span class="ok" id="calRes"></span></div>
+        <div class="cuerpo">
+          <div class="calnav">
+            <button class="acc sec" id="calPrev">‹</button>
+            <select id="calMes" style="width:auto"></select>
+            <button class="acc sec" id="calNext">›</button>
+          </div>
+          <div class="cal" id="cal"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- DESGLOSE -->
+    <div id="vDesglose" class="oculto">
+      <section>
+        <div class="cab"><span>Por instrumento</span></div>
+        <div class="cuerpo"><table id="tInstr"></table></div>
+      </section>
+      <section>
+        <div class="cab"><span>Por hora de entrada</span></div>
+        <div class="cuerpo"><table id="tHora"></table></div>
+      </section>
+      <section>
+        <div class="cab"><span>Por día de la semana</span></div>
+        <div class="cuerpo"><table id="tDia"></table></div>
+      </section>
+      <section>
+        <div class="cab"><span>Por etiqueta</span></div>
+        <div class="cuerpo">
+          <table id="tEtq"></table>
+          <div class="nota" style="margin-top:10px">Las etiquetas se ponen en la pestaña de operaciones. Sirven para separar setups y ver cuál funciona.</div>
+        </div>
+      </section>
+      <section>
+        <div class="cab"><span>Por dirección</span></div>
+        <div class="cuerpo"><table id="tDir"></table></div>
+      </section>
+    </div>
+
+    <!-- OPERACIONES -->
+    <div id="vOps" class="oculto">
+      <section>
+        <div class="cab">
+          <span>Operaciones</span>
+          <span class="ok"><input type="text" id="filtro" placeholder="filtrar por instrumento, etiqueta o nota" style="width:280px"></span>
+        </div>
+        <div class="cuerpo">
+          <table id="tOps"></table>
+        </div>
+      </section>
+      <section id="secDetalle" class="oculto">
+        <div class="cab"><span>Detalle</span><span class="ok" id="detTitulo"></span></div>
+        <div class="cuerpo">
+          <div style="margin-bottom:12px">
+            <div class="nota" style="margin-bottom:6px">Etiquetas (separa con comas y pulsa Enter)</div>
+            <input type="text" id="detEtq" placeholder="ruptura, contra tendencia, salí antes...">
+            <div id="detEtqLista" style="margin-top:8px"></div>
+          </div>
+          <div>
+            <div class="nota" style="margin-bottom:6px">Nota</div>
+            <textarea id="detNota" placeholder="Qué viste, qué hiciste bien, qué harías distinto."></textarea>
+          </div>
+          <div class="botones" style="margin-top:12px">
+            <button class="acc" id="detGuardar">Guardar</button>
+            <button class="acc sec" id="detCerrar">Cerrar</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="pie">
+    Los datos se guardan solo en este navegador. Si cambias de equipo o borras los datos del sitio,
+    se pierden: usa <b>Guardar copia</b> de vez en cuando. El diario mide lo que ya ocurrió;
+    no predice nada ni es asesoría financiera.
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const CLAVE="botnube_diario_v1";
+let TRADES=[], VISTA="resumen", calFecha=new Date(), detId=null;
+
+/* ==================== UTILIDADES ==================== */
+const usd=v=>(v<0?"-$":"$")+Math.abs(v).toLocaleString("es",{maximumFractionDigits:0});
+const num=(v,d)=>isFinite(v)?v.toFixed(d===undefined?2:d):"-";
+
+function avisar(txt,err){
+  $("avisos").innerHTML='<div class="aviso '+(err?"err":"inf")+'">'+txt+'</div>';
+  if(!err) setTimeout(()=>{$("avisos").innerHTML="";},5000);
+}
+
+function limpiaNum(s){
+  if(s===undefined||s===null) return NaN;
+  let t=String(s).trim();
+  if(!t) return NaN;
+  let neg=/^\(.*\)$/.test(t);
+  t=t.replace(/[()$\s]/g,"").replace(/[^0-9.,\-]/g,"");
+  // si hay coma y punto, la coma es separador de miles
+  if(t.indexOf(",")>=0 && t.indexOf(".")>=0) t=t.replace(/,/g,"");
+  else if(t.indexOf(",")>=0 && t.indexOf(".")<0){
+    // coma decimal si va seguida de 1-2 cifras al final
+    t = /,\d{1,2}$/.test(t) ? t.replace(",",".") : t.replace(/,/g,"");
+  }
+  const v=parseFloat(t);
+  return neg ? -Math.abs(v) : v;
+}
+
+function limpiaFecha(s){
+  if(!s) return null;
+  let t=String(s).trim().replace(/\u00a0/g," ");
+  // 27/08/2026 15:04:22  o  8/27/2026 3:04:22 PM  o  2026-08-27 15:04
+  let m=t.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(m) return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0));
+
+  m=t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM|a\.m\.|p\.m\.)?/i);
+  if(m){
+    let a=+m[1], b=+m[2], anio=+m[3], h=+m[4], mi=+m[5], se=+(m[6]||0);
+    const suf=(m[7]||"").toLowerCase();
+    if(suf.indexOf("p")===0 && h<12) h+=12;
+    if(suf.indexOf("a")===0 && h===12) h=0;
+    // si el primero pasa de 12 es dia; si no, se asume mes/dia (formato de NinjaTrader)
+    let dia,mes;
+    if(a>12){ dia=a; mes=b; } else if(b>12){ mes=a; dia=b; } else { mes=a; dia=b; }
+    return new Date(anio,mes-1,dia,h,mi,se);
+  }
+  const d=new Date(t);
+  return isNaN(d.getTime())?null:d;
+}
+
+/* ==================== IMPORTACIÓN ==================== */
+const SINONIMOS={
+  instrumento:["instrument","symbol","instrumento","simbolo","contract"],
+  dir:["market pos.","market position","direction","side","posicion","position","tipo"],
+  qty:["quantity","qty","size","cantidad","contratos"],
+  entrada:["entry price","entryprice","precio entrada","open price","avg entry"],
+  salida:["exit price","exitprice","precio salida","close price","avg exit"],
+  tEntrada:["entry time","entrytime","fecha entrada","open time","time of entry"],
+  tSalida:["exit time","exittime","fecha salida","close time","time of exit"],
+  pnl:["profit","net profit","pnl","p/l","p&l","realized p&l","beneficio","resultado","gain"],
+  comision:["commission","comision","comisión","fees","commissions"],
+  mae:["mae","max adverse"],
+  mfe:["mfe","max favorable"],
+  cuenta:["account","cuenta"],
+  estrategia:["strategy","estrategia","setup"]
+};
+
+function separador(linea){
+  const cand=[";","\t",","];
+  let mejor=",", max=0;
+  for(const s of cand){
+    const n=linea.split(s).length;
+    if(n>max){max=n;mejor=s;}
+  }
+  return mejor;
+}
+
+function partir(linea,sep){
+  const out=[]; let act="", dentro=false;
+  for(let i=0;i<linea.length;i++){
+    const c=linea[i];
+    if(c==='"'){ dentro=!dentro; continue; }
+    if(c===sep && !dentro){ out.push(act); act=""; continue; }
+    act+=c;
+  }
+  out.push(act);
+  return out.map(x=>x.trim());
+}
+
+function importarCSV(texto){
+  const lineas=texto.split(/\r?\n/).filter(l=>l.trim());
+  if(lineas.length<2) return {error:"El archivo no tiene datos."};
+
+  const sep=separador(lineas[0]);
+  const cab=partir(lineas[0],sep).map(x=>x.toLowerCase().replace(/\.$/,"").trim());
+
+  const col={};
+  for(const campo in SINONIMOS){
+    for(let i=0;i<cab.length;i++){
+      const h=cab[i];
+      if(SINONIMOS[campo].some(s=>h===s || h.indexOf(s)>=0)){ col[campo]=i; break; }
+    }
+  }
+
+  const faltan=[];
+  if(col.pnl===undefined) faltan.push("resultado (Profit)");
+  if(col.tEntrada===undefined && col.tSalida===undefined) faltan.push("fecha (Entry time)");
+  if(faltan.length)
+    return {error:"No encontré estas columnas: "+faltan.join(", ")+
+      ". Encabezados leídos: "+cab.slice(0,14).join(" · ")};
+
+  const nuevos=[];
+  for(let i=1;i<lineas.length;i++){
+    const c=partir(lineas[i],sep);
+    if(c.length<2) continue;
+
+    const pnl=limpiaNum(c[col.pnl]);
+    if(!isFinite(pnl)) continue;
+
+    const tE=col.tEntrada!==undefined?limpiaFecha(c[col.tEntrada]):null;
+    const tS=col.tSalida!==undefined?limpiaFecha(c[col.tSalida]):null;
+    const fecha=tE||tS;
+    if(!fecha) continue;
+
+    const dirRaw=(col.dir!==undefined?String(c[col.dir]):"").toLowerCase();
+    const dir = /short|sell|venta|corto/.test(dirRaw) ? -1 : 1;
+
+    nuevos.push({
+      id:0,
+      instrumento: col.instrumento!==undefined ? c[col.instrumento] : "-",
+      cuenta: col.cuenta!==undefined ? c[col.cuenta] : "",
+      estrategia: col.estrategia!==undefined ? c[col.estrategia] : "",
+      dir:dir,
+      qty: col.qty!==undefined ? (limpiaNum(c[col.qty])||1) : 1,
+      entrada: col.entrada!==undefined ? limpiaNum(c[col.entrada]) : NaN,
+      salida: col.salida!==undefined ? limpiaNum(c[col.salida]) : NaN,
+      tE: tE?tE.getTime():null,
+      tS: tS?tS.getTime():null,
+      pnl: pnl,
+      comision: col.comision!==undefined ? (limpiaNum(c[col.comision])||0) : 0,
+      mae: col.mae!==undefined ? limpiaNum(c[col.mae]) : NaN,
+      mfe: col.mfe!==undefined ? limpiaNum(c[col.mfe]) : NaN,
+      etiquetas:[], nota:""
+    });
+  }
+
+  if(!nuevos.length) return {error:"No pude leer ninguna operación de ese archivo."};
+  return {trades:nuevos};
+}
+
+function huella(t){
+  return [t.instrumento,t.tE,t.tS,t.pnl,t.qty,t.entrada].join("|");
+}
+
+function fusionar(nuevos){
+  const vistos={};
+  TRADES.forEach(t=>vistos[huella(t)]=t);
+  let add=0;
+  nuevos.forEach(t=>{
+    const h=huella(t);
+    if(vistos[h]) return;
+    t.id=Date.now()+Math.floor(Math.random()*1e6);
+    vistos[h]=t; TRADES.push(t); add++;
+  });
+  TRADES.sort((a,b)=>(a.tE||a.tS)-(b.tE||b.tS));
+  return add;
+}
+
+/* ==================== MÉTRICAS ==================== */
+function metricas(lista){
+  if(!lista.length) return {n:0,pf:0,neto:0,acierto:0,gMedia:0,pMedia:0,dd:0,
+    expectativa:0,mejor:0,peor:0,rachaG:0,rachaP:0,comision:0};
+
+  let g=0,p=0,ng=0,np=0,neto=0,com=0;
+  let pico=0,acum=0,dd=0,mejor=-Infinity,peor=Infinity;
+  let rg=0,rp=0,maxRg=0,maxRp=0;
+
+  for(const t of lista){
+    neto+=t.pnl; com+=Math.abs(t.comision||0);
+    if(t.pnl>0){ g+=t.pnl; ng++; rg++; rp=0; maxRg=Math.max(maxRg,rg); }
+    else if(t.pnl<0){ p+=Math.abs(t.pnl); np++; rp++; rg=0; maxRp=Math.max(maxRp,rp); }
+    acum+=t.pnl; pico=Math.max(pico,acum); dd=Math.max(dd,pico-acum);
+    mejor=Math.max(mejor,t.pnl); peor=Math.min(peor,t.pnl);
+  }
+
+  return {
+    n:lista.length, pf: p>0? g/p : (g>0?99:0), neto:neto,
+    acierto: 100*ng/lista.length, gMedia: ng?g/ng:0, pMedia: np?p/np:0,
+    dd:dd, expectativa: neto/lista.length, mejor:mejor, peor:peor,
+    rachaG:maxRg, rachaP:maxRp, comision:com
+  };
+}
+
+function pintarMetricas(){
+  const m=metricas(TRADES);
+  const M=[
+    [String(m.n),"operaciones",""],
+    [num(m.pf),"profit factor", m.pf>=1?"v":"r"],
+    [usd(m.neto),"neto", m.neto>=0?"v":"r"],
+    [num(m.acierto,1)+"%","acierto",""],
+    [usd(m.expectativa),"por operación", m.expectativa>=0?"v":"r"],
+    [usd(m.dd),"drawdown","r"],
+    [usd(m.gMedia),"ganancia media","v"],
+    [usd(m.pMedia),"pérdida media","r"],
+    [String(m.rachaG),"racha ganadora","v"],
+    [String(m.rachaP),"racha perdedora","r"],
+    [usd(m.comision),"comisiones",""],
+    [num(m.pMedia>0?m.gMedia/m.pMedia:0),"ratio g/p",""]
+  ];
+  $("metricas").innerHTML=M.map(x=>
+    '<div><b class="'+x[2]+'">'+x[0]+'</b><span>'+x[1]+'</span></div>').join("");
+
+  if(TRADES.length){
+    const a=new Date(TRADES[0].tE||TRADES[0].tS);
+    const b=new Date(TRADES[TRADES.length-1].tE||TRADES[TRADES.length-1].tS);
+    $("rangoFechas").textContent=a.toLocaleDateString("es")+" → "+b.toLocaleDateString("es");
+  }
+}
+
+/* ==================== GRÁFICOS ==================== */
+function pintarCurva(){
+  const svg=$("curva"); svg.innerHTML="";
+  if(TRADES.length<2) return;
+  const W=940,H=260,PL=64,PR=16,PT=14,PB=22;
+
+  let acum=0; const pts=[0];
+  TRADES.forEach(t=>{acum+=t.pnl; pts.push(acum);});
+  const hi=Math.max.apply(null,pts), lo=Math.min.apply(null,pts);
+  const pad=(hi-lo)*0.1||1;
+  const Y=v=>PT+(hi+pad-v)/((hi+pad)-(lo-pad))*(H-PT-PB);
+  const X=i=>PL+i/(pts.length-1)*(W-PL-PR);
+
+  const ns="http://www.w3.org/2000/svg";
+  const el=(t,a)=>{const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+  for(let k=0;k<=4;k++){
+    const v=lo-pad+((hi+pad)-(lo-pad))*k/4, y=Y(v);
+    svg.appendChild(el("line",{x1:PL,y1:y,x2:W-PR,y2:y,stroke:"#18242f","stroke-width":1}));
+    const tx=el("text",{x:PL-8,y:y+4,fill:"#5c7288","font-size":10,"text-anchor":"end"});
+    tx.textContent=usd(v); svg.appendChild(tx);
+  }
+  const y0=Y(0);
+  svg.appendChild(el("line",{x1:PL,y1:y0,x2:W-PR,y2:y0,stroke:"#3a4a5c","stroke-width":1,"stroke-dasharray":"4 4"}));
+
+  let d="";
+  pts.forEach((v,i)=>{d+=(i?" L ":"M ")+X(i).toFixed(1)+" "+Y(v).toFixed(1);});
+  const fin=pts[pts.length-1];
+  svg.appendChild(el("path",{d:d,fill:"none",
+    stroke: fin>=0?"var(--jade)":"var(--rojo)","stroke-width":2}));
+}
+
+function pintarHistograma(){
+  const svg=$("hist"); svg.innerHTML="";
+  if(!TRADES.length) return;
+  const W=940,H=200,PL=64,PR=16,PT=14,PB=26;
+  const ns="http://www.w3.org/2000/svg";
+  const el=(t,a)=>{const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+  const vals=TRADES.map(t=>t.pnl);
+  const mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+  if(mn===mx) return;
+  const nb=16, ancho=(mx-mn)/nb;
+  const cubos=new Array(nb).fill(0);
+  vals.forEach(v=>{
+    let k=Math.floor((v-mn)/ancho); if(k>=nb)k=nb-1; if(k<0)k=0;
+    cubos[k]++;
+  });
+  const top=Math.max.apply(null,cubos);
+  const bw=(W-PL-PR)/nb;
+
+  cubos.forEach((c,i)=>{
+    const x=PL+i*bw;
+    const h=(c/top)*(H-PT-PB);
+    const centro=mn+ancho*(i+0.5);
+    svg.appendChild(el("rect",{x:x+2,y:H-PB-h,width:bw-4,height:h,rx:2,
+      fill: centro>=0 ? "rgba(34,197,94,.55)" : "rgba(239,68,68,.55)"}));
+    if(c>0){
+      const t=el("text",{x:x+bw/2,y:H-PB-h-4,fill:"#8ba0b4","font-size":9,"text-anchor":"middle"});
+      t.textContent=c; svg.appendChild(t);
+    }
+  });
+  const t1=el("text",{x:PL,y:H-8,fill:"#5c7288","font-size":10}); t1.textContent=usd(mn);
+  const t2=el("text",{x:W-PR,y:H-8,fill:"#5c7288","font-size":10,"text-anchor":"end"}); t2.textContent=usd(mx);
+  svg.appendChild(t1); svg.appendChild(t2);
+}
+
+/* ==================== CALENDARIO ==================== */
+function pintarCalendario(){
+  const sel=$("calMes");
+  const meses={};
+  TRADES.forEach(t=>{
+    const d=new Date(t.tE||t.tS);
+    meses[d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")]=1;
+  });
+  const claves=Object.keys(meses).sort();
+  if(sel.options.length!==claves.length){
+    sel.innerHTML=claves.map(k=>'<option value="'+k+'">'+k+'</option>').join("");
+    if(claves.length) sel.value=claves[claves.length-1];
+  }
+  const [anio,mes]=(sel.value||claves[claves.length-1]||"").split("-").map(Number);
+  if(!anio) return;
+
+  const porDia={};
+  let netoMes=0, nMes=0;
+  TRADES.forEach(t=>{
+    const d=new Date(t.tE||t.tS);
+    if(d.getFullYear()!==anio||d.getMonth()+1!==mes) return;
+    const k=d.getDate();
+    if(!porDia[k]) porDia[k]={pnl:0,n:0};
+    porDia[k].pnl+=t.pnl; porDia[k].n++;
+    netoMes+=t.pnl; nMes++;
+  });
+
+  $("calRes").textContent=nMes+" operaciones · "+usd(netoMes);
+
+  const primero=new Date(anio,mes-1,1);
+  let inicio=primero.getDay()-1; if(inicio<0) inicio=6;   // lunes primero
+  const dias=new Date(anio,mes,0).getDate();
+
+  let h=["L","M","X","J","V","S","D"].map(d=>'<div class="dh">'+d+'</div>').join("");
+  for(let i=0;i<inicio;i++) h+='<div class="d vacio"></div>';
+  for(let d=1;d<=dias;d++){
+    const x=porDia[d];
+    const cls=x ? (x.pnl>=0?"gana":"pierde") : "";
+    h+='<div class="d '+cls+'"><div class="n">'+d+'</div>'+
+       (x ? '<div class="p '+(x.pnl>=0?"v":"r")+'">'+usd(x.pnl)+'</div>'+
+            '<div class="t">'+x.n+' op.</div>' : '')+'</div>';
+  }
+  $("cal").innerHTML=h;
+}
+
+/* ==================== DESGLOSES ==================== */
+function tablaGrupo(id,titulo,fn,orden){
+  const g={};
+  TRADES.forEach(t=>{
+    const ks=fn(t);
+    (Array.isArray(ks)?ks:[ks]).forEach(k=>{
+      if(k===null||k===undefined||k==="") return;
+      if(!g[k]) g[k]=[];
+      g[k].push(t);
+    });
+  });
+  let claves=Object.keys(g);
+  if(orden==="num") claves.sort((a,b)=>parseFloat(a)-parseFloat(b));
+  else claves.sort((a,b)=>metricas(g[b]).neto-metricas(g[a]).neto);
+
+  if(!claves.length){ $(id).innerHTML='<tr><td class="nota">Sin datos</td></tr>'; return; }
+
+  const maxAbs=Math.max.apply(null,claves.map(k=>Math.abs(metricas(g[k]).neto)))||1;
+  let h='<tr><th>'+titulo+'</th><th>n</th><th>neto</th><th>PF</th><th>acierto</th><th style="width:26%">peso</th></tr>';
+  claves.forEach(k=>{
+    const m=metricas(g[k]);
+    const pct=Math.min(50,Math.abs(m.neto)/maxAbs*50);
+    h+='<tr><td>'+k+'</td><td>'+m.n+'</td>'+
+       '<td class="'+(m.neto>=0?"v":"r")+'">'+usd(m.neto)+'</td>'+
+       '<td class="'+(m.pf>=1?"v":"r")+'">'+num(m.pf)+'</td>'+
+       '<td>'+num(m.acierto,0)+'%</td>'+
+       '<td><div class="barra"><u></u>'+
+       (m.neto>=0?'<i class="p" style="width:'+pct+'%"></i>':'<i class="n" style="width:'+pct+'%"></i>')+
+       '</div></td></tr>';
+  });
+  $(id).innerHTML=h;
+}
+
+const DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+
+function pintarDesgloses(){
+  tablaGrupo("tInstr","instrumento",t=>t.instrumento);
+  tablaGrupo("tHora","hora",t=>{
+    const d=new Date(t.tE||t.tS);
+    return String(d.getHours()).padStart(2,"0")+":00";
+  },"num");
+  tablaGrupo("tDia","día",t=>DIAS[new Date(t.tE||t.tS).getDay()]);
+  tablaGrupo("tEtq","etiqueta",t=>t.etiquetas&&t.etiquetas.length?t.etiquetas:null);
+  tablaGrupo("tDir","dirección",t=>t.dir===1?"largo":"corto");
+}
+
+/* ==================== OPERACIONES ==================== */
+function pintarOps(){
+  const f=($("filtro").value||"").toLowerCase();
+  const lista=TRADES.filter(t=>{
+    if(!f) return true;
+    return (t.instrumento+" "+(t.etiquetas||[]).join(" ")+" "+(t.nota||"")).toLowerCase().indexOf(f)>=0;
+  }).slice().reverse();
+
+  let h='<tr><th>fecha</th><th>instrumento</th><th>dir</th><th>qty</th>'+
+        '<th>entrada</th><th>salida</th><th>neto</th><th>etiquetas</th></tr>';
+  lista.slice(0,400).forEach(t=>{
+    const d=new Date(t.tE||t.tS);
+    h+='<tr style="cursor:pointer" onclick="abrirDetalle('+t.id+')">'+
+       '<td>'+d.toLocaleDateString("es")+" "+d.toLocaleTimeString("es",{hour:"2-digit",minute:"2-digit"})+'</td>'+
+       '<td>'+t.instrumento+'</td>'+
+       '<td>'+(t.dir===1?"largo":"corto")+'</td>'+
+       '<td>'+t.qty+'</td>'+
+       '<td>'+(isFinite(t.entrada)?t.entrada:"-")+'</td>'+
+       '<td>'+(isFinite(t.salida)?t.salida:"-")+'</td>'+
+       '<td class="'+(t.pnl>=0?"v":"r")+'">'+usd(t.pnl)+'</td>'+
+       '<td style="text-align:left">'+(t.etiquetas||[]).map(e=>'<span class="etq">'+e+'</span>').join("")+'</td>'+
+       '</tr>';
+  });
+  if(lista.length>400) h+='<tr><td colspan="8" class="nota">Mostrando 400 de '+lista.length+'. Usa el filtro.</td></tr>';
+  $("tOps").innerHTML=h;
+}
+
+window.abrirDetalle=function(id){
+  const t=TRADES.find(x=>x.id===id);
+  if(!t) return;
+  detId=id;
+  const d=new Date(t.tE||t.tS);
+  $("detTitulo").textContent=t.instrumento+" · "+d.toLocaleString("es")+" · "+usd(t.pnl);
+  $("detEtq").value="";
+  $("detNota").value=t.nota||"";
+  pintarEtqDetalle();
+  $("secDetalle").classList.remove("oculto");
+  $("secDetalle").scrollIntoView({behavior:"smooth",block:"center"});
+};
+
+function pintarEtqDetalle(){
+  const t=TRADES.find(x=>x.id===detId);
+  if(!t) return;
+  $("detEtqLista").innerHTML=(t.etiquetas||[]).map((e,i)=>
+    '<span class="etq sel" onclick="quitarEtq('+i+')">'+e+' ×</span>').join("")
+    || '<span class="nota">Sin etiquetas</span>';
+}
+window.quitarEtq=function(i){
+  const t=TRADES.find(x=>x.id===detId);
+  if(!t) return;
+  t.etiquetas.splice(i,1);
+  guardar(); pintarEtqDetalle(); pintarOps(); pintarDesgloses();
+};
+
+$("detEtq").addEventListener("keydown",e=>{
+  if(e.key!=="Enter") return;
+  const t=TRADES.find(x=>x.id===detId);
+  if(!t) return;
+  if(!t.etiquetas) t.etiquetas=[];
+  String($("detEtq").value).split(",").map(s=>s.trim()).filter(Boolean)
+    .forEach(s=>{ if(t.etiquetas.indexOf(s)<0) t.etiquetas.push(s); });
+  $("detEtq").value="";
+  guardar(); pintarEtqDetalle(); pintarOps(); pintarDesgloses();
+});
+
+$("detGuardar").onclick=()=>{
+  const t=TRADES.find(x=>x.id===detId);
+  if(!t) return;
+  t.nota=$("detNota").value;
+  guardar(); pintarOps(); avisar("Guardado.",false);
+};
+$("detCerrar").onclick=()=>{ $("secDetalle").classList.add("oculto"); detId=null; };
+$("filtro").addEventListener("input",pintarOps);
+
+/* ==================== PESTAÑAS ==================== */
+const VISTAS=[["resumen","Resumen"],["calendario","Calendario"],
+              ["desglose","Desglose"],["ops","Operaciones"]];
+$("tabs").innerHTML=VISTAS.map(v=>'<button class="tab" data-v="'+v[0]+'">'+v[1]+'</button>').join("");
+document.querySelectorAll(".tab").forEach(b=>{
+  b.onclick=()=>{ VISTA=b.dataset.v; render(); };
+});
+
+function render(){
+  if(!TRADES.length){ $("app").classList.add("oculto"); return; }
+  $("app").classList.remove("oculto");
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.v===VISTA));
+  $("vResumen").classList.toggle("oculto",VISTA!=="resumen");
+  $("vCalendario").classList.toggle("oculto",VISTA!=="calendario");
+  $("vDesglose").classList.toggle("oculto",VISTA!=="desglose");
+  $("vOps").classList.toggle("oculto",VISTA!=="ops");
+
+  if(VISTA==="resumen"){ pintarMetricas(); pintarCurva(); pintarHistograma(); }
+  if(VISTA==="calendario") pintarCalendario();
+  if(VISTA==="desglose") pintarDesgloses();
+  if(VISTA==="ops") pintarOps();
+
+  $("estado").textContent=TRADES.length+" operaciones guardadas";
+}
+
+/* ==================== PERSISTENCIA ==================== */
+function guardar(){
+  try{ localStorage.setItem(CLAVE,JSON.stringify(TRADES)); }
+  catch(e){ avisar("No pude guardar en este navegador: "+e.message,true); }
+}
+function cargar(){
+  try{
+    const s=localStorage.getItem(CLAVE);
+    if(s) TRADES=JSON.parse(s)||[];
+  }catch(e){ TRADES=[]; }
+}
+
+/* ==================== CARGA DE ARCHIVOS ==================== */
+function conectar(dropId,inputId,fn){
+  const d=$(dropId), i=$(inputId);
+  d.onclick=()=>i.click();
+  d.onkeydown=e=>{ if(e.key==="Enter"||e.key===" ") i.click(); };
+  d.ondragover=e=>{ e.preventDefault(); d.style.borderColor="var(--ambar)"; };
+  d.ondragleave=()=>{ d.style.borderColor=""; };
+  d.ondrop=e=>{ e.preventDefault(); d.style.borderColor="";
+    if(e.dataTransfer.files.length) fn(e.dataTransfer.files[0]); };
+  i.onchange=e=>{ if(e.target.files.length) fn(e.target.files[0]); i.value=""; };
+}
+
+conectar("drop","fCsv",f=>{
+  const r=new FileReader();
+  r.onload=()=>{
+    const res=importarCSV(String(r.result));
+    if(res.error){ avisar(res.error,true); return; }
+    const add=fusionar(res.trades);
+    guardar();
+    $("drop").classList.add("listo");
+    $("dropG").textContent=TRADES.length+" operaciones en el diario";
+    $("dropC").textContent=add+" nuevas · "+(res.trades.length-add)+" repetidas descartadas";
+    avisar("Importadas "+add+" operaciones nuevas.",false);
+    calFecha=new Date();
+    render();
+  };
+  r.onerror=()=>avisar("No pude leer el archivo.",true);
+  r.readAsText(f);
+});
+
+$("calPrev").onclick=()=>{
+  const s=$("calMes"); if(s.selectedIndex>0){ s.selectedIndex--; pintarCalendario(); }
+};
+$("calNext").onclick=()=>{
+  const s=$("calMes"); if(s.selectedIndex<s.options.length-1){ s.selectedIndex++; pintarCalendario(); }
+};
+$("calMes").onchange=pintarCalendario;
+
+$("btnExp").onclick=()=>{
+  if(!TRADES.length){ avisar("No hay nada que guardar.",true); return; }
+  const b=new Blob([JSON.stringify(TRADES,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);
+  a.download="diario_"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$("btnImpJson").onclick=()=>$("fJson").click();
+$("fJson").onchange=e=>{
+  if(!e.target.files.length) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(String(r.result));
+      if(!Array.isArray(d)) throw new Error("formato inesperado");
+      const add=fusionar(d);
+      guardar(); render();
+      avisar("Restauradas "+add+" operaciones.",false);
+    }catch(err){ avisar("No pude leer la copia: "+err.message,true); }
+  };
+  r.readAsText(e.target.files[0]);
+  e.target.value="";
+};
+$("btnBorrar").onclick=()=>{
+  if(!TRADES.length) return;
+  if(!confirm("Esto borra las "+TRADES.length+" operaciones del diario, incluidas notas y etiquetas. ¿Seguro?")) return;
+  TRADES=[]; guardar();
+  $("drop").classList.remove("listo");
+  $("dropG").textContent="Suelta aquí el CSV de operaciones";
+  $("dropC").textContent="NinjaTrader: Control Center → Trade Performance → pestaña Trades → clic derecho → Export";
+  $("app").classList.add("oculto");
+  $("estado").textContent="";
+  avisar("Diario vacío.",false);
+};
+
+cargar();
+if(TRADES.length){
+  $("drop").classList.add("listo");
+  $("dropG").textContent=TRADES.length+" operaciones en el diario";
+  $("dropC").textContent="Suelta otro CSV para añadir más";
+}
+render();
+</script>
+</body>
+</html>
