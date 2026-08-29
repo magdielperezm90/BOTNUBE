@@ -1,49 +1,83 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-08-28 06:21 UTC",
- "ultima_vela": "2026-08-27",
- "precio_qqq": 721.11,
+ "actualizado": "2026-08-29 03:53 UTC",
+ "ultima_vela": "2026-08-28",
+ "precio_qqq": 716.43,
  "indicadores": {
-  "roc10": -1.5,
-  "valor_smc": 9877.13,
-  "valor_bh": 9960.03,
-  "tickers_alcistas": 5,
+  "roc10": -2.0,
+  "valor_smc": 9799.78,
+  "valor_bh": 9895.39,
+  "tickers_alcistas": 6,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 1847.7789754927578,
+  "efectivo": 0.0,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 89.06
-   },
-   "IWM": {
-    "unidades": 6.716801,
-    "costo": 1991.64,
-    "entrada": 296.22,
-    "fecha": "2026-08-03",
-    "precio_actual": 299.81
+    "precio_actual": 89.66
    },
    "AAPL": {
     "unidades": 6.26713,
     "costo": 1987.6,
     "entrada": 316.83,
     "fecha": "2026-08-19",
-    "precio_actual": 314.58
+    "precio_actual": 319.7
    },
    "NVDA": {
     "unidades": 8.657977,
     "costo": 1975.82,
     "entrada": 227.98,
     "fecha": "2026-08-27",
-    "precio_actual": 227.98
+    "precio_actual": 217.55
+   },
+   "AMZN": {
+    "unidades": 7.351878,
+    "costo": 1960.72,
+    "entrada": 266.43,
+    "fecha": "2026-08-28",
+    "precio_actual": 266.43
+   },
+   "MSFT": {
+    "unidades": 3.640865,
+    "costo": 1871.56,
+    "entrada": 513.53,
+    "fecha": "2026-08-28",
+    "precio_actual": 513.53
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-08-28",
+    "tipo": "COMPRA (CHoCH +0.1%)",
+    "ticker": "MSFT",
+    "precio": 513.53,
+    "unidades": 3.6409,
+    "valor": 1871.56,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-08-28",
+    "tipo": "COMPRA (CHoCH +1.0%)",
+    "ticker": "AMZN",
+    "precio": 266.43,
+    "unidades": 7.3519,
+    "valor": 1960.72,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-08-28",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "IWM",
+    "precio": 295.75,
+    "unidades": 6.7168,
+    "valor": 1984.51,
+    "pnl": -7.13
+   },
    {
     "fecha": "2026-08-27",
     "tipo": "COMPRA (CHoCH +0.0%)",
@@ -392,6 +426,12 @@
    "smc": 9877.13,
    "bh": 9960.03,
    "roc10": -1.5
+  },
+  {
+   "fecha": "2026-08-28",
+   "smc": 9799.78,
+   "bh": 9895.39,
+   "roc10": -2.0
   }
  ]
 }
