@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0f14">
+<title>BOTNUBE · Centro</title>
+<style>
+  :root{
+    --bg:#0b0f14;--panel:#121a24;--panel2:#0f161e;--line:#1f2b38;
+    --txt:#e6edf3;--tenue:#8ba0b4;--jade:#22c55e;--rojo:#ef4444;
+    --ambar:#f59e0b;--cyan:#38bdf8;--violeta:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(900px 500px at 15% -5%, rgba(245,158,11,.10) 0%, transparent 60%),
+      radial-gradient(800px 500px at 90% 0%, rgba(56,189,248,.08) 0%, transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    min-height:100vh;padding:28px 16px 70px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{margin-bottom:30px}
+  .marca{display:flex;align-items:center;gap:13px;margin-bottom:12px}
+  .logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(140deg,var(--ambar),#d97706);
+    display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 auto}
+  h1{font-size:clamp(26px,5vw,38px);letter-spacing:.04em;font-weight:800;line-height:1}
+  h1 span{color:var(--ambar)}
+  .sub{color:var(--tenue);font-size:14.5px;line-height:1.6;max-width:620px;margin-top:6px}
+
+  .estado{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--tenue)}
+  .estado span{display:flex;align-items:center;gap:6px}
+  .pt{width:7px;height:7px;border-radius:99px;display:inline-block}
+  .pt.v{background:var(--jade)}.pt.g{background:#3a4a5c}
+
+  h2.sec{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ambar);
+    margin:30px 0 13px;display:flex;align-items:center;gap:11px}
+  h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:14px}
+
+  a.card{
+    display:block;background:var(--panel);border:1px solid var(--line);border-radius:15px;
+    padding:19px;text-decoration:none;color:inherit;position:relative;overflow:hidden;
+    transition:transform .16s ease, border-color .16s ease, background .16s ease;
+  }
+  a.card:hover{transform:translateY(-3px);border-color:var(--ambar);background:#161f2a}
+  a.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc,var(--ambar));opacity:.85}
+  a.card.off{opacity:.45;pointer-events:none}
+
+  .fila{display:flex;align-items:flex-start;gap:12px}
+  .ico{width:38px;height:38px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:19px;flex:0 0 auto}
+  .tit{font-size:16px;font-weight:700;letter-spacing:.01em}
+  .des{font-size:12.5px;color:var(--tenue);line-height:1.55;margin-top:7px}
+  .ruta{font-family:ui-monospace,Consolas,monospace;font-size:10.5px;color:#54697e;margin-top:10px;
+    display:flex;align-items:center;gap:7px}
+  .chip{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;padding:2px 7px;border-radius:5px;
+    background:rgba(34,197,94,.14);color:var(--jade);border:1px solid rgba(34,197,94,.3)}
+  .chip.no{background:rgba(120,140,160,.12);color:#7d93a8;border-color:#2a3a4a}
+
+  .aviso{margin-top:34px;background:var(--panel);border:1px solid var(--line);
+    border-left:3px solid var(--cyan);border-radius:0 13px 13px 0;padding:17px 19px}
+  .aviso h3{font-size:14px;margin-bottom:9px}
+  .aviso p{font-size:12.5px;color:var(--tenue);line-height:1.65;margin-bottom:8px}
+  .aviso p:last-child{margin-bottom:0}
+  .aviso code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--ambar);
+    background:var(--panel2);padding:1px 6px;border-radius:4px}
+
+  footer{margin-top:34px;text-align:center;color:#4d6376;font-size:11.5px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="marca">
+      <div class="logo">📊</div>
+      <div>
+        <h1>BOT<span>NUBE</span></h1>
+      </div>
+    </div>
+    <p class="sub">Todo en un sitio: el laboratorio donde se miden las estrategias, el diario donde se mide cómo las ejecutas, y el material de estudio.</p>
+    <div class="estado">
+      <span><i class="pt v"></i> disponible</span>
+      <span><i class="pt g"></i> no encontrado en el servidor</span>
+      <span id="resumen"></span>
+    </div>
+  </header>
+
+  <h2 class="sec">Herramientas</h2>
+  <div class="grid" id="gHerramientas"></div>
+
+  <h2 class="sec">Aprendizaje</h2>
+  <div class="grid" id="gAprendizaje"></div>
+
+  <div class="aviso">
+    <h3>Cómo funciona el ciclo</h3>
+    <p><b>1 · Laboratorio.</b> Subes el indicador y las velas, y el lab mide dentro y fuera de muestra, por tramos, con drawdown en dólares. Ahí decides si una estrategia vale algo antes de arriesgar.</p>
+    <p><b>2 · Diario.</b> Importas tus operaciones reales de NinjaTrader y las etiquetas. El lab mide la estrategia; el diario mide cómo la ejecutas tú. La diferencia entre los dos suele ser donde está el dinero perdido.</p>
+    <p><b>3 · Academia.</b> El material de estudio y el bot en vivo.</p>
+  </div>
+
+  <footer>
+    Uso personal · Los resultados pasados no garantizan resultados futuros · Nada de esto es asesoría financiera
+  </footer>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   Para añadir o cambiar una tarjeta, edita solo esta lista.
+   Si una ruta no existe en el servidor, la tarjeta se marca en gris
+   automaticamente al cargar la pagina.
+   --------------------------------------------------------------- */
+const TARJETAS={
+  herramientas:[
+    { ico:"🔬", tit:"Laboratorio", color:"var(--ambar)",
+      ruta:"/backtest/lab.html",
+      des:"Mide cualquier indicador: dentro y fuera de muestra, cuatro tramos, barrido de parámetros e informe completo en PDF." },
+    { ico:"📓", tit:"Diario", color:"var(--jade)",
+      ruta:"/backtest/diario.html",
+      des:"Importa tus operaciones reales, con calendario, curva de resultado y desglose por instrumento, hora y etiqueta." },
+    { ico:"🤖", tit:"Bot Cazador", color:"var(--cyan)",
+      ruta:"/bot.html",
+      des:"Cartera simulada en vivo: CHoCH alcista con sesgo de media larga, comparada contra comprar y mantener." }
+  ],
+  aprendizaje:[
+    { ico:"🎓", tit:"Trading Academy", color:"var(--violeta)",
+      ruta:"/index.html",
+      des:"Los módulos de estrategias, psicología y gestión de riesgo, con gráficos, ejemplos y cuestionarios." },
+    { ico:"📚", tit:"Recursos", color:"var(--cyan)",
+      ruta:"/recursos.html",
+      des:"Fuentes externas verificables para seguir aprendiendo: instituciones y plataformas reales." }
+  ]
+};
+
+function tarjeta(t){
+  return '<a class="card" href="'+t.ruta+'" data-ruta="'+t.ruta+'" style="--acc:'+t.color+'">'+
+    '<div class="fila"><div class="ico">'+t.ico+'</div>'+
+    '<div style="min-width:0"><div class="tit">'+t.tit+'</div>'+
+    '<div class="des">'+t.des+'</div></div></div>'+
+    '<div class="ruta"><span class="chip no">comprobando</span>'+t.ruta+'</div></a>';
+}
+
+document.getElementById("gHerramientas").innerHTML=TARJETAS.herramientas.map(tarjeta).join("");
+document.getElementById("gAprendizaje").innerHTML=TARJETAS.aprendizaje.map(tarjeta).join("");
+
+/* comprueba que cada ruta responde y marca la tarjeta */
+(async function(){
+  const cards=document.querySelectorAll("a.card");
+  let vivas=0;
+  await Promise.all([...cards].map(async c=>{
+    const chip=c.querySelector(".chip");
+    try{
+      const r=await fetch(c.dataset.ruta,{method:"HEAD"});
+      if(r.ok){ chip.className="chip"; chip.textContent="lista"; vivas++; }
+      else throw new Error("404");
+    }catch(e){
+      chip.className="chip no"; chip.textContent="no está";
+      c.classList.add("off");
+    }
+  }));
+  document.getElementById("resumen").textContent=vivas+" de "+cards.length+" disponibles";
+})();
+</script>
+</body>
+</html>
