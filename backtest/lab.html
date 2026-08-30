@@ -1783,6 +1783,7 @@ function senalesSwRel(velas,P){
   const look =Math.max(5,P.VelasLookback||30);
   const F    =Math.max(1,P.FuerzaSwing||2);
   const prof =(P.ProfundidadFailure>0)?P.ProfundidadFailure:0.50;
+  const maxRet=(P.MaxRetornos!==undefined)?P.MaxRetornos:2;
   const sep  =(P.SeparacionMinPct>0)?P.SeparacionMinPct:0.25;
   const maxN =Math.max(1,P.MaxNivelesPorLado||2);
   const margen=(P.MargenManipulacion||0)*tick;
@@ -1794,16 +1795,22 @@ function senalesSwRel(velas,P){
 
   const bD=agregar(velas,1440);
   let pD=0;
-  const dias=[];          // velas diarias ya cerradas
-  let niveles=[];         // {precio, alto, relevante}
+  const dias=[];
+  let niveles=[];
   let ultima=-99999;
 
   function recalcular(){
     const n=dias.length;
+    niveles=[];
     if(n<F*2+3) return;
     const desde=Math.max(0,n-look);
 
-    /* pivotes dentro de la ventana */
+    let hi=-Infinity, lo=Infinity;
+    for(let i=desde;i<n;i++){ hi=Math.max(hi,dias[i].h); lo=Math.min(lo,dias[i].l); }
+    const ancho=hi-lo;
+    if(!(ancho>0)) return;
+
+    /* pivotes confirmados dentro de la ventana */
     const piv=[];
     for(let i=desde+F;i<n-F;i++){
       let esMax=true, esMin=true;
@@ -1816,33 +1823,46 @@ function senalesSwRel(velas,P){
       if(esMin) piv.push({precio:dias[i].l, alto:false, barra:i});
     }
 
-    /* rango de la ventana, para medir profundidad y separacion */
-    let hi=-Infinity, lo=Infinity;
-    for(let i=desde;i<n;i++){ hi=Math.max(hi,dias[i].h); lo=Math.min(lo,dias[i].l); }
-    const ancho=hi-lo;
-    if(!(ancho>0)){ niveles=[]; return; }
+    /* REGLA 1 · failure swing.
+       Un extremo pierde peso si el precio volvio a el repetidamente sin
+       superarlo. Se cuentan los retornos posteriores que entran en la zona
+       de tolerancia; si son demasiados, el extremo de verdad esta detras. */
+    for(const s of piv){
+      let retornos=0, superado=false;
+      const tol=prof*ancho;
+      for(let k=s.barra+1;k<n;k++){
+        // un nivel solo se invalida con un CIERRE a traves. Que la mecha lo
+        // perfore es justamente una manipulacion, no una invalidacion: usar
+        // el maximo aqui borraba casi todos los niveles y dejaba uno solo.
+        if(s.alto){
+          if(dias[k].c>s.precio){ superado=true; break; }
+          if(dias[k].h>=s.precio-tol) retornos++;
+        } else {
+          if(dias[k].c<s.precio){ superado=true; break; }
+          if(dias[k].l<=s.precio+tol) retornos++;
+        }
+      }
+      s.superado=superado;
+      s.retornos=retornos;
+      s.esFailure=(!superado && retornos>maxRet);
+    }
 
+    /* REGLA 2 · separacion valida, y tope por lado */
     const res=[];
     [true,false].forEach(alto=>{
-      const cand=piv.filter(p=>p.alto===alto);
+      const cand=piv.filter(p=>p.alto===alto && !p.superado);
       cand.sort((a,b)=> alto ? b.precio-a.precio : a.precio-b.precio);
       const acept=[];
-      cand.forEach(s=>{
-        if(acept.length>=maxN){ res.push({precio:s.precio,alto:alto,relevante:false}); return; }
-        // regla 1 · failure swing respecto a un extremo anterior mas fuerte
-        let fail=false;
-        for(const a of acept){
-          if(a.barra>=s.barra) continue;
-          if(Math.abs(a.precio-s.precio)<=prof*ancho){ fail=true; break; }
+      for(const s of cand){
+        let ok = !s.esFailure && acept.length<maxN;
+        if(ok){
+          for(const a of acept){
+            if(Math.abs(a.precio-s.precio) < sep*ancho){ ok=false; break; }
+          }
         }
-        // regla 2 · separacion valida
-        let separado=true;
-        for(const a of acept){
-          if(Math.abs(a.precio-s.precio)<sep*ancho){ separado=false; break; }
-        }
-        if(!fail && separado){ acept.push(s); res.push({precio:s.precio,alto:alto,relevante:true}); }
-        else res.push({precio:s.precio,alto:alto,relevante:false});
-      });
+        if(ok) acept.push(s);
+        res.push({precio:s.precio, alto:alto, relevante:ok});
+      }
     });
     niveles=res;
   }
@@ -1854,21 +1874,23 @@ function senalesSwRel(velas,P){
 
     const b=velas[i];
 
-    for(const nv of niveles){
+    /* se evalua el nivel MAS CERCANO al precio, no el primero de la lista:
+       es lo que haria un operador y hace que los filtros importen de verdad */
+    const orden=niveles.slice().sort((x,y)=>
+      Math.abs(b.c-x.precio)-Math.abs(b.c-y.precio));
+
+    for(const nv of orden){
       if(!nv.relevante && !control) continue;
 
       let dir=0, mecha=0, tipo="";
-
       if(nv.alto){
-        const toco = b.h > nv.precio+margen;
-        if(toco && b.c < nv.precio && (modo===1||modo===3)){
-          dir=-1; mecha=b.h; tipo="manip";           // rechazo en el alto
+        if(b.h > nv.precio+margen && b.c < nv.precio && (modo===1||modo===3)){
+          dir=-1; mecha=b.h; tipo="manip";
         } else if(b.c > nv.precio+margen && (modo===2||modo===3)){
           dir=1; mecha=Math.min(b.l,nv.precio); tipo="ruptura";
         }
       } else {
-        const toco = b.l < nv.precio-margen;
-        if(toco && b.c > nv.precio && (modo===1||modo===3)){
+        if(b.l < nv.precio-margen && b.c > nv.precio && (modo===1||modo===3)){
           dir=1; mecha=b.l; tipo="manip";
         } else if(b.c < nv.precio-margen && (modo===2||modo===3)){
           dir=-1; mecha=Math.max(b.h,nv.precio); tipo="ruptura";
@@ -1880,9 +1902,9 @@ function senalesSwRel(velas,P){
       const sl = dir===1 ? mecha-colch : mecha+colch;
       const riesgo=Math.abs(entrada-sl);
       if(riesgo<tick*2) continue;
-      const tp = entrada + dir*riesgo*ratio;
 
-      out.push({i:i, dir:dir, precio:entrada, sl:sl, tp:tp,
+      out.push({i:i, dir:dir, precio:entrada, sl:sl,
+                tp:entrada + dir*riesgo*ratio,
                 familia:(nv.relevante?"relevante ":"control ")+tipo});
       ultima=i;
       break;
@@ -2100,14 +2122,14 @@ const MOTORES=[
     detecta:cs=>/swingsrelevantes/i.test(cs.clase)
               || cs.props.some(p=>p.nombre==="ProfundidadFailure"),
     usa:new Set(["VelasLookback","FuerzaSwing","ProfundidadFailure","SeparacionMinPct",
-                 "MaxNivelesPorLado","MargenManipulacion","ModoReaccion","ColchonStopTicks",
+                 "MaxNivelesPorLado","MaxRetornos","MargenManipulacion","ModoReaccion","ColchonStopTicks",
                  "RatioTP","CooldownVelas","MedirControl"].concat(USA_EJEC)),
     def:Object.assign({VelasLookback:30,FuerzaSwing:2,ProfundidadFailure:0.50,
-         SeparacionMinPct:0.25,MaxNivelesPorLado:2,MargenManipulacion:0,
+         SeparacionMinPct:0.25,MaxNivelesPorLado:2,MaxRetornos:2,MargenManipulacion:0,
          ModoReaccion:1,ColchonStopTicks:8,RatioTP:2.0,CooldownVelas:60,
          MedirControl:true},EJEC_COMUN),
     barribles:["ModoReaccion","VelasLookback","FuerzaSwing","ProfundidadFailure",
-               "SeparacionMinPct","MaxNivelesPorLado","MargenManipulacion",
+               "SeparacionMinPct","MaxNivelesPorLado","MaxRetornos","MargenManipulacion",
                "ColchonStopTicks","RatioTP","CooldownVelas","VelasVidaTrade"],
     correr:(v,P,o)=>MotorMNQ.correrSwRel(v,P,o)
   },
