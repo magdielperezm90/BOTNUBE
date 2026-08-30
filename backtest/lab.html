@@ -1798,6 +1798,8 @@ function senalesSwRel(velas,P){
   const dias=[];
   let niveles=[];
   let ultima=-99999;
+  const diag={pivotes:0, superados:0, failures:0, juntos:0, tope:0, relevantes:0,
+              maxNiveles:0, anchoMedio:0, nAncho:0};
 
   function recalcular(){
     const n=dias.length;
@@ -1822,6 +1824,8 @@ function senalesSwRel(velas,P){
       if(esMax) piv.push({precio:dias[i].h, alto:true, barra:i});
       if(esMin) piv.push({precio:dias[i].l, alto:false, barra:i});
     }
+    diag.pivotes=Math.max(diag.pivotes,piv.length);
+    diag.anchoMedio+=ancho; diag.nAncho++;
 
     /* REGLA 1 · failure swing.
        Un extremo pierde peso si el precio volvio a el repetidamente sin
@@ -1845,6 +1849,8 @@ function senalesSwRel(velas,P){
       s.superado=superado;
       s.retornos=retornos;
       s.esFailure=(!superado && retornos>maxRet);
+      if(superado) diag.superados++;
+      else if(s.esFailure) diag.failures++;
     }
 
     /* REGLA 2 · separacion valida, y tope por lado */
@@ -1861,10 +1867,15 @@ function senalesSwRel(velas,P){
           }
         }
         if(ok) acept.push(s);
+        else if(!s.esFailure && acept.length>=maxN) diag.tope++;
+        else if(!s.esFailure) diag.juntos++;
         res.push({precio:s.precio, alto:alto, relevante:ok});
       }
     });
     niveles=res;
+    diag.maxNiveles=Math.max(diag.maxNiveles,res.length);
+    let r=0; for(const x of res) if(x.relevante) r++;
+    diag.relevantes=Math.max(diag.relevantes,r);
   }
 
   for(let i=1;i<N;i++){
@@ -1910,12 +1921,23 @@ function senalesSwRel(velas,P){
       break;
     }
   }
+  out.diag=diag;
+  out.diag.dias=dias.length;
   return out;
 }
 function correrSwRel(velas,P,opc){
   if(velas.length<500) return {error:"Pocas velas"};
   const s=senalesSwRel(velas,P);
-  if(!s.length) return {error:"Ninguna senal con estos parametros"};
+  if(!s.length){
+    const d=s.diag||{};
+    const ancho=(d.nAncho? d.anchoMedio/d.nAncho : 0).toFixed(0);
+    return {error:"Ninguna senal. Diagnostico: "+(d.dias||0)+" dias agregados · "
+      +(d.pivotes||0)+" pivotes en la ventana · "+(d.superados||0)+" descartados por cierre a traves · "
+      +(d.failures||0)+" descartados como failure swing · "+(d.juntos||0)+" por separacion · "
+      +(d.tope||0)+" por el tope de niveles · quedaron "+(d.relevantes||0)
+      +" relevantes de "+(d.maxNiveles||0)+" niveles. Ancho medio de la ventana: "+ancho+" puntos. "
+      +"Si casi todo cae en failure swing, baja la profundidad o sube el maximo de retornos."};
+  }
   return reporte(ejecutar(velas,s,P,opc), velas, opc);
 }
 
