@@ -1625,65 +1625,139 @@ function senalesCRT(velas,P){
   const minR =(P.MinRangoPuntos||0);
   const maxR =(P.MaxRangoPuntos||0);
   const objEQ=((P.ObjetivoPrincipal||1)===1);
+  const modelo=Math.max(1,Math.min(3,P.ModeloEntrada||1));
+  const penATR=(P.PenetracionMinATR>0)?P.PenetracionMinATR:0;
   const vHTF =Math.max(3,P.VelasRangoHTF||20);
   const cerca=(P.CercaniaHTF>0)?P.CercaniaHTF:0.35;
   const exigir=(P.UsarConfluenciaHTF===true);
+  const usarH=(P.UsarFiltroHorario===true);
+  const slMecha=(P.SLBajoMecha!==false);
+  const hIni =(P.HoraInicio!==undefined)?P.HoraInicio:0;
+  const hFin =(P.HoraFin!==undefined)?P.HoraFin:2359;
 
+  const atr=atrWilder(velas,P.PeriodoATR>0?P.PeriodoATR:14);
   const bC=agregar(velas,mCRT);
   const bH=agregar(velas,mHTF);
   let pC=0,pH=0;
-  const histH=[];          // velas mayores ya cerradas
+  const histH=[];
+
+  function enHorario(i){
+    if(!usarH) return true;
+    const d=new Date(velas[i].t);
+    const hm=d.getUTCHours()*100+d.getUTCMinutes();
+    return hIni<=hFin ? (hm>=hIni&&hm<=hFin) : (hm>=hIni||hm<=hFin);
+  }
+  function confluencia(dir,mecha){
+    if(histH.length<vHTF) return false;
+    let hi=-Infinity, lo=Infinity;
+    for(let k=histH.length-vHTF;k<histH.length;k++){
+      hi=Math.max(hi,histH[k].h); lo=Math.min(lo,histH[k].l);
+    }
+    const ancho=hi-lo;
+    if(!(ancho>0)) return false;
+    const dist = dir>0 ? Math.abs(mecha-lo) : Math.abs(mecha-hi);
+    return dist <= cerca*ancho;
+  }
+  function emitir(i,dir,entrada,mecha,crh,crl,confl,etiqueta){
+    if(!enHorario(i)) return;
+    // el stop va bajo la mecha del barrido, o bajo el rango entero. En el
+    // modelo 3 la mecha es de un solo minuto y queda a pocos ticks: sin esta
+    // opcion el stop se barre casi siempre.
+    const base = slMecha ? mecha : (dir>0 ? crl : crh);
+    const sl = dir>0 ? base-colch : base+colch;
+    const eq = (crh+crl)/2;
+    const tp = objEQ ? eq : (dir>0?crh:crl);
+    const riesgo=Math.abs(entrada-sl);
+    if(riesgo<tick*2) return;
+    if((dir>0 && tp<=entrada)||(dir<0 && tp>=entrada)) return;
+    out.push({i:i, dir:dir, precio:entrada, sl:sl, tp:tp,
+              familia:(confl?"cerca ":"lejos ")+etiqueta+(dir>0?" largo":" corto")});
+  }
+
+  let pendiente=null;   // modelo 2: espera la apertura de C3
+  let ventana=null;     // modelo 3: vigila el minuto a minuto durante C2
 
   for(let i=0;i<N;i++){
     while(pH<bH.length && bH[pH].cierraEn<=i) histH.push(bH[pH++]);
 
-    while(pC<bC.length && bC[pC].cierraEn<=i){
-      const j=pC++;
-      if(j<1) continue;
+    /* ---- modelo 2: la entrada es la apertura de la vela siguiente ---- */
+    if(modelo===2 && pendiente && i===pendiente.desdeBarra){
+      emitir(i, pendiente.dir, velas[i].o, pendiente.mecha,
+             pendiente.crh, pendiente.crl, pendiente.confl, "M2");
+      pendiente=null;
+    }
 
-      const c1=bC[j-1], c2=bC[j];
-      const crh=c1.h, crl=c1.l, rango=crh-crl;
-      if(rango<tick) continue;
-      if(minR>0 && rango<minR) continue;
-      if(maxR>0 && rango>maxR) continue;
+    /* ---- modelo 3: vigilancia en 1 minuto durante la vela C2 ---- */
+    if(modelo===3 && ventana && !ventana.yaEntro && i<=ventana.finEn){
+      const b=velas[i];
+      if(b.l < ventana.crl-margen){
+        ventana.barrioAbajo=true;
+        ventana.mechaAbajo = ventana.mechaAbajo===null ? b.l : Math.min(ventana.mechaAbajo,b.l);
+      }
+      if(b.h > ventana.crh+margen){
+        ventana.barrioArriba=true;
+        ventana.mechaArriba = ventana.mechaArriba===null ? b.h : Math.max(ventana.mechaArriba,b.h);
+      }
+      // el cierre vuelve DENTRO del rango: esa es la entrada
+      let dir=0, mecha=0;
+      if(ventana.barrioAbajo && b.c>ventana.crl && !ventana.barrioArriba){ dir=1;  mecha=ventana.mechaAbajo; }
+      else if(ventana.barrioArriba && b.c<ventana.crh && !ventana.barrioAbajo){ dir=-1; mecha=ventana.mechaArriba; }
 
-      const abajo = c2.l < crl-margen;
-      const arriba= c2.h > crh+margen;
-      if(abajo===arriba) continue;          // ninguno, o la vela se comio el rango
-
-      const dir = abajo?1:-1;
-      // la regla que lo define: el cierre vuelve DENTRO del rango
-      const volvio = dir>0 ? c2.c>crl : c2.c<crh;
-      if(!volvio) continue;
-      if(estric && (c2.c>crh || c2.c<crl)) continue;
-
-      const mecha = dir>0 ? c2.l : c2.h;
-
-      /* confluencia con el rango de la temporalidad mayor */
-      let confl=false;
-      if(histH.length>=vHTF){
-        let hi=-Infinity, lo=Infinity;
-        for(let k=histH.length-vHTF;k<histH.length;k++){
-          hi=Math.max(hi,histH[k].h); lo=Math.min(lo,histH[k].l);
-        }
-        const ancho=hi-lo;
-        if(ancho>0){
-          const dist = dir>0 ? Math.abs(mecha-lo) : Math.abs(mecha-hi);
-          confl = dist <= cerca*ancho;
+      if(dir!==0){
+        const prof = dir>0 ? (ventana.crl-mecha) : (mecha-ventana.crh);
+        const a=atr[i];
+        if(!(penATR>0) || (a>0 && prof>=penATR*a)){
+          if(!estric || (b.c<=ventana.crh && b.c>=ventana.crl)){
+            emitir(i, dir, b.c, mecha, ventana.crh, ventana.crl,
+                   confluencia(dir,mecha), "M3");
+            ventana.yaEntro=true;
+          }
         }
       }
-      if(exigir && !confl) continue;
+    }
 
-      const entrada=c2.c;
-      const sl = dir>0 ? mecha-colch : mecha+colch;
-      const eq = (crh+crl)/2;
-      const tp = objEQ ? eq : (dir>0?crh:crl);
-      const riesgo=Math.abs(entrada-sl);
-      if(riesgo<tick*2) continue;
-      if((dir>0 && tp<=entrada)||(dir<0 && tp>=entrada)) continue;
+    /* ---- al cerrar una vela de la temporalidad del CRT ---- */
+    while(pC<bC.length && bC[pC].cierraEn<=i){
+      const j=pC++;
 
-      out.push({i:i, dir:dir, precio:entrada, sl:sl, tp:tp,
-                familia:(confl?"cerca del extremo ":"lejos del extremo ")+(dir>0?"largo":"corto")});
+      if(j>=1 && modelo!==3){
+        const c1=bC[j-1], c2=bC[j];
+        const crh=c1.h, crl=c1.l, rango=crh-crl;
+        let ok = rango>=tick && !(minR>0 && rango<minR) && !(maxR>0 && rango>maxR);
+        if(ok){
+          const abajo = c2.l < crl-margen;
+          const arriba= c2.h > crh+margen;
+          if(abajo!==arriba){
+            const dir = abajo?1:-1;
+            const volvio = dir>0 ? c2.c>crl : c2.c<crh;
+            const dentro = !estric || (c2.c<=crh && c2.c>=crl);
+            const mecha = dir>0 ? c2.l : c2.h;
+            const prof  = dir>0 ? (crl-mecha) : (mecha-crh);
+            const a=atr[i];
+            const penOK = !(penATR>0) || (a>0 && prof>=penATR*a);
+
+            if(volvio && dentro && penOK){
+              const confl=confluencia(dir,mecha);
+              if(!exigir || confl){
+                if(modelo===1) emitir(i, dir, c2.c, mecha, crh, crl, confl, "M1");
+                else pendiente={dir:dir, crh:crh, crl:crl, mecha:mecha,
+                                confl:confl, desdeBarra:i+1};
+              }
+            }
+          }
+        }
+      }
+
+      /* modelo 3: la vela que acaba de cerrar pasa a ser C1 y se abre la ventana */
+      if(modelo===3){
+        const c1=bC[j], rango=c1.h-c1.l;
+        const ok = rango>=tick && !(minR>0 && rango<minR) && !(maxR>0 && rango>maxR);
+        ventana = ok ? {crh:c1.h, crl:c1.l,
+                        finEn: (j+1<bC.length ? bC[j+1].cierraEn : i+mCRT),
+                        barrioAbajo:false, barrioArriba:false,
+                        mechaAbajo:null, mechaArriba:null, yaEntro:false}
+                     : null;
+      }
     }
   }
   return out;
@@ -1880,12 +1954,16 @@ const MOTORES=[
     detecta:cs=>/^crt/i.test(cs.clase) || cs.props.some(p=>p.nombre==="MinBarridoTicks"),
     usa:new Set(["MinutosCRT","MinBarridoTicks","CierreDentroDelRango","MinRangoPuntos",
                  "MaxRangoPuntos","ObjetivoPrincipal","ColchonSLTicks","UsarConfluenciaHTF",
-                 "MinutosHTF","VelasRangoHTF","CercaniaHTF"].concat(USA_EJEC)),
+                 "MinutosHTF","VelasRangoHTF","CercaniaHTF","ModeloEntrada","SLBajoMecha",
+                 "PenetracionMinATR","UsarFiltroHorario","HoraInicio","HoraFin"].concat(USA_EJEC)),
     def:Object.assign({MinutosCRT:60,MinBarridoTicks:1,CierreDentroDelRango:false,
          MinRangoPuntos:0,MaxRangoPuntos:0,ObjetivoPrincipal:1,ColchonSLTicks:4,
-         UsarConfluenciaHTF:false,MinutosHTF:240,VelasRangoHTF:20,CercaniaHTF:0.35},EJEC_COMUN),
-    barribles:["MinutosCRT","MinBarridoTicks","MinRangoPuntos","MaxRangoPuntos",
-               "ColchonSLTicks","MinutosHTF","VelasRangoHTF","CercaniaHTF","VelasVidaTrade"],
+         UsarConfluenciaHTF:false,MinutosHTF:240,VelasRangoHTF:20,CercaniaHTF:0.35,
+         ModeloEntrada:1,SLBajoMecha:true,PenetracionMinATR:0,UsarFiltroHorario:false,
+         HoraInicio:0,HoraFin:2359},EJEC_COMUN),
+    barribles:["ModeloEntrada","ObjetivoPrincipal","PenetracionMinATR","MinutosCRT",
+               "MinBarridoTicks","MinRangoPuntos","MaxRangoPuntos","ColchonSLTicks",
+               "MinutosHTF","VelasRangoHTF","CercaniaHTF","VelasVidaTrade"],
     correr:(v,P,o)=>MotorMNQ.correrCRT(v,P,o)
   },
   {
