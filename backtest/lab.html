@@ -221,6 +221,8 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
    Todos los parametros salen del .cs: nada esta escrito a mano.
    ===================================================================== */
 (function(raiz){
+let DELTA=[];
+
 "use strict";
 
 /* ---------- lectura del CSV ---------- */
@@ -1178,11 +1180,443 @@ function correrSinMecha(velas,P,opc){
   return reporte(ejecutar(velas,senalesSinMecha(velas,P),P,opc), velas, opc);
 }
 
+
+/* =====================================================================
+   MOTOR · DeltaAcumulado
+   Necesita DOS archivos: las velas de siempre y el CSV de delta que
+   exporta el indicador (fecha ; delta ; volumen).
+   Mide dos lecturas del order flow y, junto a cada una, un GRUPO DE
+   CONTROL con la misma condicion de precio pero SIN exigir nada al
+   delta. Si control y senal rinden igual, el delta no aporta nada.
+   ===================================================================== */
+function leerDelta(texto){
+  const out=[];
+  for(const l of texto.split(/\r?\n/)){
+    if(!l.trim()) continue;
+    let p=null;
+    for(const sep of [";","\t",","]){ const q=l.split(sep); if(q.length>=2){p=q;break;} }
+    if(!p) continue;
+    const t=fecha(p[0]); if(t===null) continue;
+    const d=parseFloat(String(p[1]).replace(",","."));
+    if(!isFinite(d)) continue;
+    out.push({t:t,d:d});
+  }
+  out.sort((a,b)=>a.t-b.t);
+  return out;
+}
+/* alinea el delta con las velas por marca de tiempo */
+function alinearDelta(velas,serie){
+  const mapa={}; for(const x of serie) mapa[x.t]=x.d;
+  const d=new Array(velas.length).fill(0);
+  let hit=0;
+  for(let i=0;i<velas.length;i++){
+    const v=mapa[velas[i].t];
+    if(v!==undefined){ d[i]=v; hit++; }
+  }
+  return {delta:d, cobertura: velas.length? hit/velas.length : 0};
+}
+
+function senalesCVD(velas,serie,P){
+  const N=velas.length;
+  const al=alinearDelta(velas,serie);
+  if(al.cobertura<0.20) return {error:"El CSV de delta no cuadra con estas velas (solo "
+    +Math.round(al.cobertura*100)+" % de coincidencia). Revisa que sean el mismo instrumento y las mismas fechas."};
+
+  const dl=al.delta;
+  const vent =Math.max(2,P.VelasVentana||10);
+  const dMin =(P.AbsorcionDeltaMin!==undefined)?P.AbsorcionDeltaMin:2000;
+  const rMax =(P.AbsorcionRangoATR>0)?P.AbsorcionRangoATR:0.6;
+  const kDiv =Math.max(3,P.DivergenciaVelas||20);
+  const usarAbs=(P.UsarAbsorcion!==false);
+  const usarDiv=(P.UsarDivergencia===true);
+  const control=(P.MedirControl!==false);
+  const espera=Math.max(1,P.CooldownSenales||15);
+
+  const atr=atrWilder(velas,P.PeriodoATR>0?P.PeriodoATR:14);
+  const cvd=new Array(N).fill(0);
+  for(let i=0;i<N;i++) cvd[i]=(i?cvd[i-1]:0)+dl[i];
+
+  const out=[]; let ultima=-999;
+
+  for(let i=Math.max(vent,kDiv)+2;i<N;i++){
+    if(i-ultima<espera) continue;
+    const a=atr[i]; if(!(a>0)) continue;
+
+    /* ---------- absorcion ---------- */
+    if(usarAbs){
+      let suma=0, hh=-Infinity, ll=Infinity;
+      for(let k=0;k<vent;k++){
+        suma+=dl[i-k];
+        hh=Math.max(hh,velas[i-k].h); ll=Math.min(ll,velas[i-k].l);
+      }
+      const recorrido=hh-ll;
+      const estrecho = recorrido <= rMax*a*vent/2;
+      if(estrecho){
+        const fuerte = Math.abs(suma)>=dMin;
+        // absorcion: mucho delta sin recorrido -> se opera CONTRA el agresor
+        if(fuerte){
+          out.push({i:i, dir: suma>0?-1:1,
+                    familia: suma>0?"absorcion venta":"absorcion compra"});
+          ultima=i;
+        } else if(control){
+          // mismo rango estrecho, pero sin exigir delta: el grupo de control
+          out.push({i:i, dir: velas[i].c>=velas[i].o?-1:1, familia:"control rango"});
+          ultima=i;
+        }
+        continue;
+      }
+    }
+
+    /* ---------- divergencia ---------- */
+    if(usarDiv){
+      let hhP=-Infinity, llP=Infinity, hhC=-Infinity, llC=Infinity;
+      for(let k=1;k<=kDiv;k++){
+        hhP=Math.max(hhP,velas[i-k].h); llP=Math.min(llP,velas[i-k].l);
+        hhC=Math.max(hhC,cvd[i-k]);     llC=Math.min(llC,cvd[i-k]);
+      }
+      const maxPrecio=velas[i].h>hhP, maxCVD=cvd[i]>hhC;
+      const minPrecio=velas[i].l<llP, minCVD=cvd[i]<llC;
+
+      if(maxPrecio && !maxCVD){ out.push({i:i,dir:-1,familia:"divergencia bajista"}); ultima=i; }
+      else if(minPrecio && !minCVD){ out.push({i:i,dir:1,familia:"divergencia alcista"}); ultima=i; }
+      else if(control && (maxPrecio||minPrecio)){
+        // extremo de precio SIN discrepancia del delta: control
+        out.push({i:i, dir: maxPrecio?-1:1, familia:"control extremo"});
+        ultima=i;
+      }
+    }
+  }
+  out.cobertura=al.cobertura;
+  return out;
+}
+function correrCVD(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  if(!DELTA || !DELTA.length) return {error:"Falta el CSV de delta del indicador DeltaAcumulado"};
+  const s=senalesCVD(velas,DELTA,P);
+  if(s.error) return s;
+  if(!s.length) return {error:"Ninguna senal con estos parametros"};
+  const R=reporte(ejecutar(velas,s,P,opc), velas, opc);
+  R.coberturaDelta=s.cobertura;
+  return R;
+}
+
+
+/* =====================================================================
+   MOTOR · RangoReversion
+   Las cuatro preguntas del modelo: QUE (hay rango), DONDE (extremo),
+   COMO (extension de volumen alto sin corregir) y CUANDO (horario).
+   Objetivo: una fraccion de la extension de vuelta hacia la media.
+   Incluye GRUPO DE CONTROL: mismas entradas en el extremo del rango sin
+   exigir extension ni barrido.
+   ===================================================================== */
+function senalesRangoRev(velas,P){
+  const N=velas.length, out=[], tick=0.25;
+  const vR   =Math.max(10,P.VelasRango||60);
+  const maxEf=(P.MaxEficiencia>0)?P.MaxEficiencia:0.35;
+  const filtro=(P.UsarFiltroRango!==false);
+  const perA =Math.max(2,P.PeriodoATR||14);
+  const umbral=(P.UmbralExtremo>0)?P.UmbralExtremo:0.80;
+  const vE   =Math.max(2,P.VelasExtension||8);
+  const facE =(P.FactorExtensionATR>0)?P.FactorExtensionATR:1.5;
+  const maxRet=(P.MaxRetrocesoPct>0)?P.MaxRetrocesoPct:0.5;
+  const minRV=(P.MinRVOL>0)?P.MinRVOL:1.3;
+  const perV =Math.max(2,P.PeriodoVolumen||20);
+  const exigirB=(P.ExigirBarrido!==false);
+  const vB   =Math.max(1,P.VelasBarrido||3);
+  const colch=(P.ColchonStopTicks||0)*tick;
+  const objC =(P.ObjetivoContra>0)?P.ObjetivoContra:0.5;
+  const objF =(P.ObjetivoAFavor>0)?P.ObjetivoAFavor:0.75;
+  const proD =(P.UsarProDireccion!==false);
+  const ratio=(P.RatioMinimo!==undefined)?P.RatioMinimo:0.5;
+  const control=(P.MedirControl!==false);
+  const espera=Math.max(0,P.CooldownVelas||20);
+  const usarH=(P.UsarHorario===true);
+  const hIni =(P.HoraIni!==undefined)?P.HoraIni:1;
+  const hFin =(P.HoraFin!==undefined)?P.HoraFin:11;
+
+  const atr=atrWilder(velas,perA);
+  const inicio=Math.max(vR,perV,perA)+5;
+  let ultima=-9999;
+
+  for(let i=inicio;i<N;i++){
+    if(i-ultima<espera) continue;
+    const a=atr[i]; if(!(a>0)) continue;
+
+    if(usarH){
+      const h=new Date(velas[i].t).getUTCHours();
+      const ok = hIni<=hFin ? (h>=hIni&&h<hFin) : (h>=hIni||h<hFin);
+      if(!ok) continue;
+    }
+
+    /* ---- QUE: rango y eficiencia ---- */
+    let hi=-Infinity, lo=Infinity, total=0;
+    for(let k=0;k<vR;k++){
+      hi=Math.max(hi,velas[i-k].h); lo=Math.min(lo,velas[i-k].l);
+      total+=Math.abs(velas[i-k].c-velas[i-k-1].c);
+    }
+    const ancho=hi-lo; if(!(ancho>0)) continue;
+    if(filtro){
+      const neto=Math.abs(velas[i].c-velas[i-vR].c);
+      const ef= total>0 ? neto/total : 1;
+      if(ef>maxEf) continue;
+    }
+
+    /* ---- DONDE: extremo ---- */
+    const pos=(velas[i].c-lo)/ancho;
+    let dir=0;
+    if(pos>=umbral) dir=-1;
+    else if(pos<=1-umbral) dir=1;
+    else continue;
+
+    /* ---- COMO: extension de volumen alto ---- */
+    let hhE=-Infinity, llE=Infinity, bAlto=0, bBajo=0;
+    for(let k=0;k<=vE;k++){
+      if(velas[i-k].h>hhE){hhE=velas[i-k].h;bAlto=k;}
+      if(velas[i-k].l<llE){llE=velas[i-k].l;bBajo=k;}
+    }
+    const tramoE=hhE-llE;
+    let dirExt=0, origen=0;
+    if(tramoE>=facE*a){
+      let vol=0,med=0;
+      for(let k=0;k<vE;k++) vol+=velas[i-k].v;
+      for(let k=0;k<perV;k++) med+=velas[i-k].v;
+      vol/=vE; med/=perV;
+      if(med>0 && vol/med>=minRV){
+        const d = bAlto<bBajo ? 1 : -1;
+        // el retroceso se mide DENTRO del tramo, entre el origen y el
+        // extremo, no despues: lo de despues es la reversion que buscamos
+        let ret=0;
+        if(d===1){
+          let peor=0;
+          for(let k=bBajo;k>=bAlto;k--){
+            let mx=-Infinity;
+            for(let q=bBajo;q>=k;q--) mx=Math.max(mx,velas[i-q].h);
+            peor=Math.max(peor,(mx-velas[i-k].l)/tramoE);
+          }
+          ret=peor; origen=llE;
+        } else {
+          let peor=0;
+          for(let k=bAlto;k>=bBajo;k--){
+            let mn=Infinity;
+            for(let q=bAlto;q>=k;q--) mn=Math.min(mn,velas[i-q].l);
+            peor=Math.max(peor,(velas[i-k].h-mn)/tramoE);
+          }
+          ret=peor; origen=hhE;
+        }
+        if(ret<=maxRet) dirExt=d;
+      }
+    }
+    const hayExt = (dirExt===-dir);
+
+    /* barrido del extremo del rango */
+    let hayBar=!exigirB;
+    if(!hayBar){
+      for(let k=0;k<vB;k++){
+        const b=velas[i-k];
+        if(dir===-1 && b.h>=hi && b.c<hi){hayBar=true;break;}
+        if(dir=== 1 && b.l<=lo && b.c>lo){hayBar=true;break;}
+      }
+    }
+
+    const esPatron = hayExt && hayBar;
+    if(!esPatron && !control) continue;
+
+    /* ---- objetivo: fraccion de la extension hacia la media ---- */
+    // el objetivo es una fraccion de la EXTENSION reciente, no del rango
+    // entero: medirlo sobre el rango ponia el objetivo inalcanzable
+    const tramo = tramoE>0 ? tramoE : Math.abs(hi-lo);
+    if(!(tramo>0)) continue;
+
+    /* inclinacion del rango */
+    let rec=0,vie=0; const m=Math.floor(vR/2);
+    for(let k=0;k<m;k++) rec+=velas[i-k].c;
+    for(let k=m;k<vR;k++) vie+=velas[i-k].c;
+    rec/=m; vie/=(vR-m);
+    const inclin = rec>vie?1:(rec<vie?-1:0);
+    const aFavor = proD && inclin===dir;
+    const frac = aFavor?objF:objC;
+
+    const entrada=velas[i].c;
+    // stop justo mas alla del extremo RECIENTE (el del barrido), no del
+    // rango entero: eso es lo que hace el modelo y mantiene el riesgo sano
+    let extR = dir===1 ? Infinity : -Infinity;
+    for(let k=0;k<vB;k++){
+      if(dir===1) extR=Math.min(extR,velas[i-k].l);
+      else        extR=Math.max(extR,velas[i-k].h);
+    }
+    const sl = dir===1 ? extR-colch : extR+colch;
+    const tp = entrada + dir*tramo*frac;
+    const riesgo=Math.abs(entrada-sl), premio=Math.abs(tp-entrada);
+    if(!(riesgo>0) || premio<ratio*riesgo) continue;
+
+    out.push({i:i, dir:dir, precio:entrada, sl:sl, tp:tp,
+              familia:(esPatron?"extension ":"control ")+(aFavor?"a favor":"en contra")});
+    ultima=i;
+  }
+  return out;
+}
+function correrRangoRev(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  const s=senalesRangoRev(velas,P);
+  if(!s.length) return {error:"Ninguna senal con estos parametros"};
+  return reporte(ejecutar(velas,s,P,opc), velas, opc);
+}
+
+
+/* =====================================================================
+   MOTOR · BarridoRango   ·   VERSION MINIMA
+   Rango de N velas -> la mecha sale y el cierre vuelve dentro ->
+   entrada al cierre, stop mas alla de la mecha, objetivo en la mitad.
+   Tres parametros. Nada mas.
+   ===================================================================== */
+function senalesBarrido(velas,P){
+  const N=velas.length, out=[], tick=0.25;
+  const vR=Math.max(5,P.VelasRango||60);
+  const colch=(P.ColchonStopTicks||0)*tick;
+
+  for(let i=vR+2;i<N;i++){
+    let hi=-Infinity, lo=Infinity;
+    for(let k=1;k<=vR;k++){
+      hi=Math.max(hi,velas[i-k].h);
+      lo=Math.min(lo,velas[i-k].l);
+    }
+    if(!(hi>lo)) continue;
+    const medio=(hi+lo)/2, b=velas[i];
+
+    let dir=0;
+    if(b.h>hi && b.c<hi) dir=-1;
+    else if(b.l<lo && b.c>lo) dir=1;
+    else continue;
+
+    const entrada=b.c;
+    const sl = dir===1 ? b.l-colch : b.h+colch;
+    const tp = medio;
+    const riesgo=Math.abs(entrada-sl), premio=Math.abs(tp-entrada);
+    const valido = dir===1 ? tp>entrada : tp<entrada;
+    if(!valido || !(riesgo>0) || !(premio>0)) continue;
+
+    out.push({i:i, dir:dir, precio:entrada, sl:sl, tp:tp,
+              familia: dir===1?"barrido bajo":"barrido alto"});
+  }
+  return out;
+}
+function correrBarrido(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  const s=senalesBarrido(velas,P);
+  if(!s.length) return {error:"Ninguna senal con estos parametros"};
+  return reporte(ejecutar(velas,s,P,opc), velas, opc);
+}
+
+
+/* =====================================================================
+   MOTOR · ScalpTresTF   ·   VERSION MINIMA
+   Sesgo con la EMA de la temporalidad alta, retroceso de Fibonacci en la
+   temporalidad de setup, y cruce de la EMA en 1 minuto como gatillo.
+   Stop en el nivel de Fibonacci indicado, objetivo en el extremo del impulso.
+   ===================================================================== */
+function senalesScalp3(velas,P){
+  const N=velas.length, out=[], tick=0.25;
+  const mSet =Math.max(2,P.MinutosSetup||5);
+  const mSes =Math.max(5,P.MinutosSesgo||240);
+  const per  =Math.max(5,P.PeriodoEMA||50);
+  const usarS=(P.UsarSesgo!==false);
+  const F    =Math.max(1,P.FuerzaSwing||3);
+  const fMin =(P.FibMin!==undefined)?P.FibMin:0.382;
+  const fMax =(P.FibMax!==undefined)?P.FibMax:0.75;
+  const fStop=(P.FibStop>0)?P.FibStop:0.75;
+  const vidaP=Math.max(5,P.VelasEspera||120);
+  const colch=(P.ColchonStopTicks||0)*tick;
+  const ratio=(P.RatioMinimo!==undefined)?P.RatioMinimo:1.0;
+  const espera=Math.max(0,P.CooldownVelas||15);
+
+  const bSet=agregar(velas,mSet);
+  const bSes=agregar(velas,mSes);
+  const emaSet=(function(){const a=[];const k=2/(per+1);
+    for(let i=0;i<bSes.length;i++) a[i]= i===0?bSes[0].c:bSes[i].c*k+a[i-1]*(1-k);
+    return a;})();
+  const ema1=(function(){const a=new Array(N);const k=2/(per+1);
+    for(let i=0;i<N;i++) a[i]= i===0?velas[0].c:velas[i].c*k+a[i-1]*(1-k);
+    return a;})();
+
+  let pSet=0,pSes=0, sesgo=0;
+  let pdir=0,porigen=0,pextremo=0,pbarra=-1;
+  let ultima=-9999;
+
+  for(let i=per+2;i<N;i++){
+    /* sesgo de la temporalidad alta */
+    while(pSes<bSes.length && bSes[pSes].cierraEn<=i){
+      const j=pSes++;
+      if(j<per) continue;
+      sesgo = bSes[j].c>emaSet[j] ? 1 : (bSes[j].c<emaSet[j] ? -1 : 0);
+    }
+
+    /* pierna de impulso en la temporalidad de setup */
+    while(pSet<bSet.length && bSet[pSet].cierraEn<=i){
+      const j=pSet++;
+      const p=j-F;
+      if(p-F<0 || j>=bSet.length) continue;
+      let esMax=true,esMin=true;
+      for(let k=p-F;k<=p+F;k++){
+        if(k===p||k<0||k>=bSet.length) continue;
+        if(bSet[k].h>=bSet[p].h) esMax=false;
+        if(bSet[k].l<=bSet[p].l) esMin=false;
+      }
+      if(esMin){
+        let org=-Infinity;
+        for(let k=p;k>=p-40&&k>=0;k--) org=Math.max(org,bSet[k].h);
+        if(org>bSet[p].l){ pdir=-1; porigen=org; pextremo=bSet[p].l; pbarra=i; }
+      } else if(esMax){
+        let org=Infinity;
+        for(let k=p;k>=p-40&&k>=0;k--) org=Math.min(org,bSet[k].l);
+        if(org<bSet[p].h){ pdir=1; porigen=org; pextremo=bSet[p].h; pbarra=i; }
+      }
+    }
+
+    if(pdir===0||pbarra<0) continue;
+    if(i-pbarra>vidaP) continue;
+    if(i-ultima<espera) continue;
+    if(usarS && sesgo!==pdir) continue;
+
+    const tramo=Math.abs(porigen-pextremo);
+    if(!(tramo>0)) continue;
+
+    const retro=Math.abs(velas[i].c-pextremo)/tramo;
+    if(retro<fMin || retro>fMax) continue;
+
+    const cruce = pdir===1
+      ? (velas[i].c>ema1[i] && velas[i-1].c<=ema1[i-1])
+      : (velas[i].c<ema1[i] && velas[i-1].c>=ema1[i-1]);
+    if(!cruce) continue;
+
+    const sl = pdir===1 ? pextremo-tramo*fStop-colch : pextremo+tramo*fStop+colch;
+    const entrada=velas[i].c, tp=pextremo;
+    const riesgo=Math.abs(entrada-sl), premio=Math.abs(tp-entrada);
+    const valido = pdir===1 ? tp>entrada : tp<entrada;
+    if(!valido || !(riesgo>0) || premio<ratio*riesgo) continue;
+
+    out.push({i:i, dir:pdir, precio:entrada, sl:sl, tp:tp,
+              familia: pdir===1?"scalp compra":"scalp venta"});
+    ultima=i;
+  }
+  return out;
+}
+function correrScalp3(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  const s=senalesScalp3(velas,P);
+  if(!s.length) return {error:"Ninguna senal con estos parametros"};
+  return reporte(ejecutar(velas,s,P,opc), velas, opc);
+}
+
 const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,
            correrEstructura:correrEstructura,ejecutar:ejecutar,senalesBOS:senalesBOS,
            correrBOS:correrBOS,leerSenales:leerSenales,correrImportadas:correrImportadas,
            senalesORB:senalesORB,correrORB:correrORB,
-           senalesSinMecha:senalesSinMecha,correrSinMecha:correrSinMecha};
+           senalesSinMecha:senalesSinMecha,correrSinMecha:correrSinMecha,
+           leerDelta:leerDelta,senalesCVD:senalesCVD,correrCVD:correrCVD,
+           senalesRangoRev:senalesRangoRev,correrRangoRev:correrRangoRev,
+           senalesBarrido:senalesBarrido,correrBarrido:correrBarrido,
+           senalesScalp3:senalesScalp3,correrScalp3:correrScalp3,
+           ponerDelta:function(d){DELTA=d;},contarDelta:function(){return DELTA.length;}};
 if(typeof module!=="undefined"&&module.exports) module.exports=API;
 else raiz.MotorMNQ=API;
 })(typeof globalThis!=="undefined"?globalThis:this);
@@ -1295,6 +1729,64 @@ const MOTORES=[
     correr:(v,P,o)=>MotorMNQ.correrSinMecha(v,P,o)
   },
   {
+    id:"cvd", nombre:"DeltaAcumulado · order flow contra grupo de control", tipo:"trades",
+    detecta:cs=>/delta/i.test(cs.clase) || cs.props.some(p=>p.nombre==="AbsorcionDeltaMin"),
+    usa:new Set(["VelasVentana","AbsorcionDeltaMin","AbsorcionRangoATR","PeriodoATR",
+                 "DivergenciaVelas","UsarAbsorcion","UsarDivergencia","MedirControl",
+                 "CooldownSenales"].concat(USA_EJEC)),
+    def:Object.assign({VelasVentana:10,AbsorcionDeltaMin:2000,AbsorcionRangoATR:0.6,
+         DivergenciaVelas:20,UsarAbsorcion:true,UsarDivergencia:false,
+         MedirControl:true,CooldownSenales:15},EJEC_COMUN),
+    barribles:["VelasVentana","AbsorcionDeltaMin","AbsorcionRangoATR","DivergenciaVelas",
+               "CooldownSenales","MultiploSL","MultiploTP","VelasVidaTrade"],
+    aux:"delta",
+    correr:(v,P,o)=>MotorMNQ.correrCVD(v,P,o)
+  },
+  {
+    id:"rangorev", nombre:"RangoReversion · extremo del rango contra grupo de control", tipo:"trades",
+    detecta:cs=>/rangorev|reversion/i.test(cs.clase)
+              || cs.props.some(p=>p.nombre==="MaxEficiencia"),
+    usa:new Set(["VelasRango","MaxEficiencia","UsarFiltroRango","PeriodoATR",
+                 "UmbralExtremo","VelasExtension","FactorExtensionATR","MaxRetrocesoPct",
+                 "MinRVOL","PeriodoVolumen","ExigirBarrido","VelasBarrido",
+                 "ColchonStopTicks","ObjetivoContra","ObjetivoAFavor","UsarProDireccion",
+                 "RatioMinimo","UsarHorario","HoraIni","HoraFin","MedirControl",
+                 "CooldownVelas"].concat(USA_EJEC)),
+    def:Object.assign({VelasRango:60,MaxEficiencia:0.35,UsarFiltroRango:true,
+         UmbralExtremo:0.80,VelasExtension:8,FactorExtensionATR:1.5,MaxRetrocesoPct:0.50,
+         MinRVOL:1.30,PeriodoVolumen:20,ExigirBarrido:true,VelasBarrido:3,
+         ColchonStopTicks:8,ObjetivoContra:0.50,ObjetivoAFavor:0.75,UsarProDireccion:true,
+         RatioMinimo:1.0,UsarHorario:false,HoraIni:1,HoraFin:11,MedirControl:true,
+         CooldownVelas:20},EJEC_COMUN),
+    barribles:["VelasRango","MaxEficiencia","UmbralExtremo","VelasExtension",
+               "FactorExtensionATR","MaxRetrocesoPct","MinRVOL","VelasBarrido",
+               "ColchonStopTicks","ObjetivoContra","ObjetivoAFavor","RatioMinimo",
+               "CooldownVelas","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrRangoRev(v,P,o)
+  },
+  {
+    id:"barrido", nombre:"BarridoRango · versión mínima", tipo:"trades",
+    detecta:cs=>/barridorango/i.test(cs.clase),
+    usa:new Set(["VelasRango","ColchonStopTicks"].concat(USA_EJEC)),
+    def:Object.assign({VelasRango:60,ColchonStopTicks:8},EJEC_COMUN),
+    barribles:["VelasRango","ColchonStopTicks","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrBarrido(v,P,o)
+  },
+  {
+    id:"scalp3", nombre:"ScalpTresTF · sesgo, Fibonacci y cruce de EMA", tipo:"trades",
+    detecta:cs=>/scalp/i.test(cs.clase) || cs.props.some(p=>p.nombre==="FibStop"),
+    usa:new Set(["MinutosSesgo","MinutosSetup","PeriodoEMA","UsarSesgo","FuerzaSwing",
+                 "FibMin","FibMax","FibStop","VelasEspera","ColchonStopTicks",
+                 "RatioMinimo","CooldownVelas"].concat(USA_EJEC)),
+    def:Object.assign({MinutosSesgo:240,MinutosSetup:5,PeriodoEMA:50,UsarSesgo:true,
+         FuerzaSwing:3,FibMin:0.382,FibMax:0.75,FibStop:0.75,VelasEspera:120,
+         ColchonStopTicks:4,RatioMinimo:1.0,CooldownVelas:15},EJEC_COMUN),
+    barribles:["MinutosSesgo","MinutosSetup","PeriodoEMA","FuerzaSwing","FibMin",
+               "FibMax","FibStop","VelasEspera","ColchonStopTicks","RatioMinimo",
+               "CooldownVelas","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrScalp3(v,P,o)
+  },
+  {
     id:"importadas", nombre:"Señales importadas · sirve para cualquier indicador", tipo:"trades",
     detecta:()=>false,          // solo se elige a mano
     usa:new Set(USA_EJEC), def:Object.assign({},EJEC_COMUN),
@@ -1350,7 +1842,7 @@ function clasificar(p){
 }
 
 /* ===== estado ===== */
-let CS=null,VELAS=null,RES=null,VENTANAS=[],SENALES=[];
+let CS=null,VELAS=null,RES=null,VENTANAS=[],SENALES=[],DELTA=[];
 const $=id=>document.getElementById(id);
 function avisar(t,mal){const a=$("aviso");a.textContent=t;a.className="aviso"+(mal?" mal":"");}
 
@@ -1419,7 +1911,9 @@ $("fCSV").addEventListener("change",e=>{ for(const f of e.target.files) agregarV
 ["dragleave","drop"].forEach(ev=>$("dropCSV").addEventListener(ev,e=>{e.preventDefault();$("dropCSV").classList.remove("sobre")}));
 $("dropCSV").addEventListener("drop",e=>{ for(const f of e.dataTransfer.files) agregarVelas(f); });
 function revisar(){
-  const ok=!!(CS&&VENTANAS.length&&(!esImportadas()||SENALES.length));
+  const faltaAux = (esImportadas()&&!SENALES.length)
+                || (MOTOR&&MOTOR.aux==="delta"&&!DELTA.length);
+  const ok=!!(CS&&VENTANAS.length&&!faltaAux);
   $("btnCorrer").disabled=!ok;
   $("btnAnalisis").disabled=!ok;
   ["secCob","secParam","secCorrer"].forEach(s=>{if(CS)$(s).classList.remove("oculto")});
@@ -1434,11 +1928,20 @@ function pintarSelectorMotor(){
     if(m.id===MOTOR.id)o.selected=true;
     s.appendChild(o);
   });
-  $("wrapSenales").classList.toggle("oculto",!esImportadas());
+  ajustarAux();
+}
+function usaAux(){ return esImportadas() || (MOTOR && MOTOR.aux==="delta"); }
+function ajustarAux(){
+  const w=$("wrapSenales");
+  w.classList.toggle("oculto",!usaAux());
+  if(!usaAux()) return;
+  const delta=(MOTOR.aux==="delta");
+  $("gSEN").textContent = delta ? T().subeDelta : T().subeSEN;
+  $("cSEN").textContent = delta ? T().subeDelta2 : T().subeSEN2;
 }
 $("motor").addEventListener("change",e=>{
   MOTOR=MOTORES.find(m=>m.id===e.target.value)||MOTORES[0];
-  $("wrapSenales").classList.toggle("oculto",!esImportadas());
+  ajustarAux();
   if(CS){completarProps();pintarCobertura();pintarParams();listarBarrido()}
   RES=null; $("secRes").classList.add("oculto"); $("btnJSON").disabled=true;
   revisar();
@@ -1447,14 +1950,15 @@ $("motor").addEventListener("change",e=>{
 
 /* ===== carga de senales importadas ===== */
 conectar("dropSEN","fSEN",f=>leerArchivo(f,txt=>{
-  const s=MotorMNQ.leerSenales(txt);
-  if(!s.length){avisar(T().sinSenales,true);return}
-  SENALES=s;
+  const delta=(MOTOR && MOTOR.aux==="delta");
+  const s = delta ? MotorMNQ.leerDelta(txt) : MotorMNQ.leerSenales(txt);
+  if(!s.length){avisar(delta?T().sinDelta:T().sinSenales,true);return}
+  if(delta){ DELTA=s; MotorMNQ.ponerDelta(s); } else { SENALES=s; }
   $("dropSEN").classList.add("listo");
-  $("gSEN").textContent=s.length+" "+T().senales;
+  $("gSEN").textContent=s.length+" "+(delta?T().velasDelta:T().senales);
   $("cSEN").textContent=new Date(s[0].t).toISOString().slice(0,10)+" → "
     +new Date(s[s.length-1].t).toISOString().slice(0,10);
-  avisar(T().senalesOK.replace("{n}",s.length),false);
+  avisar((delta?T().deltaOK:T().senalesOK).replace("{n}",s.length),false);
   revisar();
 },T().errLeer));
 
@@ -1629,6 +2133,7 @@ $("btnCorrer").addEventListener("click",()=>{
                  slippage:parseFloat($("cSlip").value)||0, modo:modo};
       P.ContratosATR=parseInt($("cContratos").value,10)||3;
       if(esImportadas()&&!SENALES.length){ avisar(T().sinSenales,true); return; }
+      if(MOTOR.aux==="delta"&&!DELTA.length){ avisar(T().sinDelta,true); return; }
       if(MOTOR.tipo==="eventos"){
         RES=MOTOR.correr(VENTANAS[0].velas,P,OPC);
         pintarResMagmax();
@@ -1640,6 +2145,8 @@ $("btnCorrer").addEventListener("click",()=>{
         const cual=$("barrer").value;
         RES.barrido=cual?barrer(P,modo,cual):null;
         pintarRes();
+        if(RES.coberturaDelta!==undefined && RES.coberturaDelta<0.9)
+          avisar(T().coberturaBaja.replace("{p}",Math.round(RES.coberturaDelta*100)),true);
       }
       $("secRes").classList.remove("oculto");
       $("btnJSON").disabled=false;
@@ -2141,6 +2648,10 @@ motorLbl:"Motor",motorAyuda:"Se detecta solo por el .cs. Cámbialo si te equivoc
 motorCambiado:"Motor activo: {m}",
 subeSEN:"3 · CSV de señales",subeSEN2:"fecha ; dirección [ ; precio ; familia ]",
 senales:"señales",senalesOK:"Cargadas {n} señales.",
+subeDelta:"3 · CSV de delta",subeDelta2:"fecha ; delta ; volumen",
+velasDelta:"velas con delta",deltaOK:"Cargadas {n} velas con delta.",
+sinDelta:"Falta el CSV de delta que exporta DeltaAcumulado.",
+coberturaBaja:"Aviso: el delta solo cubre el {p} % de las velas. Comprueba que el CSV sea del mismo contrato y del mismo rango de fechas.",
 sinSenales:"No encontré señales válidas en ese archivo.",
 analisis:"Análisis completo",cabInforme:"Informe completo",
 bajarPDF:"Descargar PDF",bajarJSONinf:"Descargar JSON del informe",
@@ -2196,6 +2707,10 @@ motorLbl:"Engine",motorAyuda:"Auto-detected from the .cs. Change it if the guess
 motorCambiado:"Active engine: {m}",
 subeSEN:"3 · Signals CSV",subeSEN2:"date ; direction [ ; price ; family ]",
 senales:"signals",senalesOK:"Loaded {n} signals.",
+subeDelta:"3 · Delta CSV",subeDelta2:"date ; delta ; volume",
+velasDelta:"bars with delta",deltaOK:"Loaded {n} bars with delta.",
+sinDelta:"Missing the delta CSV exported by DeltaAcumulado.",
+coberturaBaja:"Warning: delta only covers {p} % of the bars. Check the CSV is the same contract and date range.",
 sinSenales:"No valid signals found in that file.",
 analisis:"Full analysis",cabInforme:"Full report",
 bajarPDF:"Download PDF",bajarJSONinf:"Download report JSON",
