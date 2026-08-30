@@ -1607,6 +1607,94 @@ function correrScalp3(velas,P,opc){
   return reporte(ejecutar(velas,s,P,opc), velas, opc);
 }
 
+
+/* =====================================================================
+   MOTOR · CRT   ·   Candle Range Theory con confluencia mayor
+   C1 fija el rango, C2 barre un extremo y CIERRA de vuelta dentro.
+   El motor mide por separado los CRT que caen cerca del extremo del rango
+   de la temporalidad mayor y los que caen lejos: si las dos familias rinden
+   igual, la cascada de temporalidades no aporta ventaja.
+   ===================================================================== */
+function senalesCRT(velas,P){
+  const N=velas.length, out=[], tick=0.25;
+  const mCRT =Math.max(2,P.MinutosCRT||60);
+  const mHTF =Math.max(mCRT,P.MinutosHTF||240);
+  const margen=(P.MinBarridoTicks||0)*tick;
+  const colch=(P.ColchonSLTicks||0)*tick;
+  const estric=(P.CierreDentroDelRango===true);
+  const minR =(P.MinRangoPuntos||0);
+  const maxR =(P.MaxRangoPuntos||0);
+  const objEQ=((P.ObjetivoPrincipal||1)===1);
+  const vHTF =Math.max(3,P.VelasRangoHTF||20);
+  const cerca=(P.CercaniaHTF>0)?P.CercaniaHTF:0.35;
+  const exigir=(P.UsarConfluenciaHTF===true);
+
+  const bC=agregar(velas,mCRT);
+  const bH=agregar(velas,mHTF);
+  let pC=0,pH=0;
+  const histH=[];          // velas mayores ya cerradas
+
+  for(let i=0;i<N;i++){
+    while(pH<bH.length && bH[pH].cierraEn<=i) histH.push(bH[pH++]);
+
+    while(pC<bC.length && bC[pC].cierraEn<=i){
+      const j=pC++;
+      if(j<1) continue;
+
+      const c1=bC[j-1], c2=bC[j];
+      const crh=c1.h, crl=c1.l, rango=crh-crl;
+      if(rango<tick) continue;
+      if(minR>0 && rango<minR) continue;
+      if(maxR>0 && rango>maxR) continue;
+
+      const abajo = c2.l < crl-margen;
+      const arriba= c2.h > crh+margen;
+      if(abajo===arriba) continue;          // ninguno, o la vela se comio el rango
+
+      const dir = abajo?1:-1;
+      // la regla que lo define: el cierre vuelve DENTRO del rango
+      const volvio = dir>0 ? c2.c>crl : c2.c<crh;
+      if(!volvio) continue;
+      if(estric && (c2.c>crh || c2.c<crl)) continue;
+
+      const mecha = dir>0 ? c2.l : c2.h;
+
+      /* confluencia con el rango de la temporalidad mayor */
+      let confl=false;
+      if(histH.length>=vHTF){
+        let hi=-Infinity, lo=Infinity;
+        for(let k=histH.length-vHTF;k<histH.length;k++){
+          hi=Math.max(hi,histH[k].h); lo=Math.min(lo,histH[k].l);
+        }
+        const ancho=hi-lo;
+        if(ancho>0){
+          const dist = dir>0 ? Math.abs(mecha-lo) : Math.abs(mecha-hi);
+          confl = dist <= cerca*ancho;
+        }
+      }
+      if(exigir && !confl) continue;
+
+      const entrada=c2.c;
+      const sl = dir>0 ? mecha-colch : mecha+colch;
+      const eq = (crh+crl)/2;
+      const tp = objEQ ? eq : (dir>0?crh:crl);
+      const riesgo=Math.abs(entrada-sl);
+      if(riesgo<tick*2) continue;
+      if((dir>0 && tp<=entrada)||(dir<0 && tp>=entrada)) continue;
+
+      out.push({i:i, dir:dir, precio:entrada, sl:sl, tp:tp,
+                familia:(confl?"cerca del extremo ":"lejos del extremo ")+(dir>0?"largo":"corto")});
+    }
+  }
+  return out;
+}
+function correrCRT(velas,P,opc){
+  if(velas.length<500) return {error:"Pocas velas"};
+  const s=senalesCRT(velas,P);
+  if(!s.length) return {error:"Ninguna senal con estos parametros"};
+  return reporte(ejecutar(velas,s,P,opc), velas, opc);
+}
+
 const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder,
            correrEstructura:correrEstructura,ejecutar:ejecutar,senalesBOS:senalesBOS,
            correrBOS:correrBOS,leerSenales:leerSenales,correrImportadas:correrImportadas,
@@ -1616,6 +1704,7 @@ const API={leerVelas:leerVelas,correr:correr,agregar:agregar,atrWilder:atrWilder
            senalesRangoRev:senalesRangoRev,correrRangoRev:correrRangoRev,
            senalesBarrido:senalesBarrido,correrBarrido:correrBarrido,
            senalesScalp3:senalesScalp3,correrScalp3:correrScalp3,
+           senalesCRT:senalesCRT,correrCRT:correrCRT,
            ponerDelta:function(d){DELTA=d;},contarDelta:function(){return DELTA.length;}};
 if(typeof module!=="undefined"&&module.exports) module.exports=API;
 else raiz.MotorMNQ=API;
@@ -1785,6 +1874,19 @@ const MOTORES=[
                "FibMax","FibStop","VelasEspera","ColchonStopTicks","RatioMinimo",
                "CooldownVelas","VelasVidaTrade"],
     correr:(v,P,o)=>MotorMNQ.correrScalp3(v,P,o)
+  },
+  {
+    id:"crt", nombre:"CRT · rango, barrido y confluencia mayor", tipo:"trades",
+    detecta:cs=>/^crt/i.test(cs.clase) || cs.props.some(p=>p.nombre==="MinBarridoTicks"),
+    usa:new Set(["MinutosCRT","MinBarridoTicks","CierreDentroDelRango","MinRangoPuntos",
+                 "MaxRangoPuntos","ObjetivoPrincipal","ColchonSLTicks","UsarConfluenciaHTF",
+                 "MinutosHTF","VelasRangoHTF","CercaniaHTF"].concat(USA_EJEC)),
+    def:Object.assign({MinutosCRT:60,MinBarridoTicks:1,CierreDentroDelRango:false,
+         MinRangoPuntos:0,MaxRangoPuntos:0,ObjetivoPrincipal:1,ColchonSLTicks:4,
+         UsarConfluenciaHTF:false,MinutosHTF:240,VelasRangoHTF:20,CercaniaHTF:0.35},EJEC_COMUN),
+    barribles:["MinutosCRT","MinBarridoTicks","MinRangoPuntos","MaxRangoPuntos",
+               "ColchonSLTicks","MinutosHTF","VelasRangoHTF","CercaniaHTF","VelasVidaTrade"],
+    correr:(v,P,o)=>MotorMNQ.correrCRT(v,P,o)
   },
   {
     id:"importadas", nombre:"Señales importadas · sirve para cualquier indicador", tipo:"trades",
