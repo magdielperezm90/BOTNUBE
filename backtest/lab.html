@@ -2514,6 +2514,9 @@ $("btnCorrer").addEventListener("click",()=>{
         const cual=$("barrer").value;
         RES.barrido=cual?barrer(P,modo,cual):null;
         pintarRes();
+        if(RES.saltadas && RES.saltadas.length)
+          avisar(T().ventanasSaltadas.replace("{n}",RES.saltadas.length)
+                   .replace("{d}",RES.saltadas.join(" · ")),true);
         if(RES.coberturaDelta!==undefined && RES.coberturaDelta<0.9)
           avisar(T().coberturaBaja.replace("{p}",Math.round(RES.coberturaDelta*100)),true);
       }
@@ -2527,12 +2530,20 @@ $("btnCorrer").addEventListener("click",()=>{
 });
 function correrTodas(P,OPC){
   const partes=[];
+  // Una ventana sin senales NO debe tumbar el backtest entero: es normal que
+  // un contrato corto no llegue a producir nada. Se salta y se avisa al final.
+  const saltadas=[];
   for(const v of VENTANAS){
     const R=MOTOR.correr(v.velas,P,OPC);
-    if(R.error) return R;
+    if(R.error){ saltadas.push(v.nombre+": "+R.error); continue; }
     R._nombre=v.nombre; partes.push(R);
   }
-  if(partes.length===1){ partes[0].porVentana=null; return partes[0]; }
+  if(!partes.length)
+    return {error:"Ninguna ventana produjo señales. "+saltadas.join("  |  ")};
+  if(partes.length===1){
+    partes[0].porVentana=null; partes[0].saltadas=saltadas;
+    return partes[0];
+  }
   const rs=[], us=[]; let usd=0,cos=0;
   const acum={porTF:{},porEspacio:{},porRegimen:{}};
   for(const R of partes){
@@ -2571,7 +2582,8 @@ function correrTodas(P,OPC){
                                 us.slice(Math.floor(n*k/4),Math.floor(n*(k+1)/4)))),
     curva:curva, contratos:partes[0].contratos,
     porRegimen:{},porEspacio:{},porTF:{},
-    porVentana:partes.map(R=>({nombre:R._nombre,n:R.total.n,pf:R.total.pf,r:R.total.r,usd:R.total.usd})) };
+    porVentana:partes.map(R=>({nombre:R._nombre,n:R.total.n,pf:R.total.pf,r:R.total.r,usd:R.total.usd})),
+    saltadas:saltadas };
   for(const fam of ["porTF","porEspacio","porRegimen"])
     for(const k in acum[fam]){ const x=acum[fam][k];
       out[fam][k]={n:x.n, pf: x.neg>0 ? x.pos/x.neg : (x.pos>0?99:0),
@@ -3020,6 +3032,7 @@ senales:"señales",senalesOK:"Cargadas {n} señales.",
 subeDelta:"3 · CSV de delta",subeDelta2:"fecha ; delta ; volumen",
 velasDelta:"velas con delta",deltaOK:"Cargadas {n} velas con delta.",
 sinDelta:"Falta el CSV de delta que exporta DeltaAcumulado.",
+ventanasSaltadas:"Aviso: {n} ventana(s) sin señales, se midieron solo las demás. {d}",
 coberturaBaja:"Aviso: el delta solo cubre el {p} % de las velas. Comprueba que el CSV sea del mismo contrato y del mismo rango de fechas.",
 sinSenales:"No encontré señales válidas en ese archivo.",
 analisis:"Análisis completo",cabInforme:"Informe completo",
@@ -3079,6 +3092,7 @@ senales:"signals",senalesOK:"Loaded {n} signals.",
 subeDelta:"3 · Delta CSV",subeDelta2:"date ; delta ; volume",
 velasDelta:"bars with delta",deltaOK:"Loaded {n} bars with delta.",
 sinDelta:"Missing the delta CSV exported by DeltaAcumulado.",
+ventanasSaltadas:"Warning: {n} window(s) had no signals and were skipped. {d}",
 coberturaBaja:"Warning: delta only covers {p} % of the bars. Check the CSV is the same contract and date range.",
 sinSenales:"No valid signals found in that file.",
 analisis:"Full analysis",cabInforme:"Full report",
