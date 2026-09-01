@@ -941,7 +941,12 @@ function leerSenales(texto){
     const pr = p.length>2 ? parseFloat(p[2]) : NaN;
     const fa = p.length>3 && String(p[3]).trim() ? String(p[3]).trim()
                                                  : (dir===1?"senal alcista":"senal bajista");
-    out.push({t:t, dir:dir, precio:isFinite(pr)?pr:undefined, familia:fa});
+    // columnas 5 y 6 opcionales: stop y objetivo propios de la senal.
+    // Si vienen, el ejecutor los usa en vez de calcular SL/TP por ATR.
+    const sl = p.length>4 ? parseFloat(p[4]) : NaN;
+    const tp = p.length>5 ? parseFloat(p[5]) : NaN;
+    out.push({t:t, dir:dir, precio:isFinite(pr)?pr:undefined, familia:fa,
+              sl:isFinite(sl)?sl:undefined, tp:isFinite(tp)?tp:undefined});
   }
   out.sort((a,b)=>a.t-b.t);
   return out;
@@ -956,7 +961,8 @@ function alinear(velas, senales){
       // tolera desfases: usa la primera vela cuyo cierre es >= la marca
       if(j===0 && velas[0].t>s.t) continue;
     }
-    out.push({i:j, dir:s.dir, precio:s.precio, familia:s.familia});
+    out.push({i:j, dir:s.dir, precio:s.precio, familia:s.familia,
+              sl:s.sl, tp:s.tp});
   }
   return out;
 }
