@@ -1,56 +1,58 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-09-01 01:23 UTC",
- "ultima_vela": "2026-08-31",
- "precio_qqq": 716.76,
+ "actualizado": "2026-09-02 00:32 UTC",
+ "ultima_vela": "2026-09-01",
+ "precio_qqq": 707.64,
  "indicadores": {
-  "roc10": -1.8,
-  "valor_smc": 9715.18,
-  "valor_bh": 9899.94,
-  "tickers_alcistas": 6,
-  "tickers_total": 20
+  "roc10": -1.38,
+  "valor_smc": 9662.22,
+  "valor_bh": 9773.98,
+  "tickers_alcistas": 5,
+  "tickers_total": 19
  },
  "smc": {
-  "efectivo": 0.0,
+  "efectivo": 1872.266585572011,
   "posiciones": {
    "KO": {
     "unidades": 23.245331,
     "costo": 1956.19,
     "entrada": 84.07,
     "fecha": "2026-07-27",
-    "precio_actual": 88.67
+    "precio_actual": 88.0
    },
    "AAPL": {
     "unidades": 6.26713,
     "costo": 1987.6,
     "entrada": 316.83,
     "fecha": "2026-08-19",
-    "precio_actual": 316.85
+    "precio_actual": 325.13
    },
    "NVDA": {
     "unidades": 8.657977,
     "costo": 1975.82,
     "entrada": 227.98,
     "fecha": "2026-08-27",
-    "precio_actual": 220.78
-   },
-   "AMZN": {
-    "unidades": 7.351878,
-    "costo": 1960.72,
-    "entrada": 266.43,
-    "fecha": "2026-08-28",
-    "precio_actual": 259.77
+    "precio_actual": 217.44
    },
    "MSFT": {
     "unidades": 3.640865,
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 507.29
+    "precio_actual": 501.02
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-09-01",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "AMZN",
+    "precio": 254.92,
+    "unidades": 7.3519,
+    "valor": 1872.27,
+    "pnl": -88.45
+   },
    {
     "fecha": "2026-08-28",
     "tipo": "COMPRA (CHoCH +0.1%)",
@@ -438,6 +440,12 @@
    "smc": 9715.18,
    "bh": 9899.94,
    "roc10": -1.8
+  },
+  {
+   "fecha": "2026-09-01",
+   "smc": 9662.22,
+   "bh": 9773.98,
+   "roc10": -1.38
   }
  ]
 }
