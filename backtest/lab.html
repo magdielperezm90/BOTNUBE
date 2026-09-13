@@ -169,6 +169,10 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
       <label style="display:flex;gap:7px;align-items:center;margin-top:7px;font-size:11px;color:var(--tenue);cursor:pointer">
         <input type="checkbox" id="rapido" style="width:auto;accent-color:var(--ambar)">
         <span data-i="rapidoLbl">Barrido rápido: solo la primera ventana</span>
+      </label>
+      <label style="display:flex;gap:7px;align-items:flex-start;margin-top:9px;font-size:11px;color:var(--tenue);cursor:pointer" title="La vela que dispara la entrada puede tocar el stop en esa misma vela. Sin esto, esa perdida no se cuenta nunca.">
+        <input type="checkbox" id="velaEntrada" checked style="width:auto;accent-color:var(--ambar)">
+        <span data-i="velaEntradaLbl">Contar el stop en la vela de entrada (pesimista)</span>
       </label></div>
   </div>
   <div class="botones">
@@ -335,6 +339,12 @@ function correr(velas, P, opc){
   const valorPto = opc.valorPto !== undefined ? opc.valorPto : 2;   // MNQ
   const comision = opc.comision !== undefined ? opc.comision : 1.34;
   const slipTicks= opc.slippage !== undefined ? opc.slippage : 1;
+  /* La vela que dispara la entrada tambien puede tocar el stop. Con OHLC no se
+     sabe en que orden paso, asi que se toma el caso malo: si el stop esta dentro
+     del recorrido de esa vela, la operacion pierde. Apagarlo devuelve el
+     comportamiento antiguo, que se saltaba la vela de entrada entera y por eso
+     no contaba nunca esa clase de perdida. */
+  const cuentaVelaEntrada = opc.velaEntrada !== undefined ? opc.velaEntrada : true;
   const modo     = opc.modo || "tendencia";  // tendencia | lateral | ambos | sinFiltro
   const N = velas.length;
   if(N < 500) return {error:"Pocas velas"};
@@ -524,11 +534,30 @@ function correr(velas, P, opc){
                : (P.ObjetivoEnNivel && esp>0) ? entrada+g.dir*esp
                                               : entrada+g.dir*sl*P.MultiploTP;
       const ctr = contratos(sl);
-      abiertos.push({
+      const nuevo = {
         dir:g.dir, entrada:entrada, sl:entrada-g.dir*sl, tp:tp, barra:i,
         rPlan: Math.abs(tp-entrada)/sl, ctr:ctr, estrecho:estrecho,
         regimen:g.regimen, tfNivel:g.tf, origen:g.origen, esp:esp
-      });
+      };
+
+      /* La vela de entrada, en el caso malo. Si el stop cae dentro del recorrido
+         de ESTA vela, se cierra aqui en perdida. No se premia nunca el objetivo
+         en esta vela: con OHLC no hay forma de saber si se toco antes o despues
+         de la entrada, y darlo por bueno seria justo el sesgo que esto corrige. */
+      if(cuentaVelaEntrada){
+        const slAqui = nuevo.dir===1 ? b.l<=nuevo.sl : b.h>=nuevo.sl;
+        if(slAqui){
+          const slDist=Math.abs(nuevo.sl-nuevo.entrada);
+          nuevo.res=-1; nuevo.r=-1;
+          nuevo.costo = nuevo.ctr*(comision + slipTicks*tick*valorPto*2);
+          nuevo.usd   = -slDist*valorPto*nuevo.ctr - nuevo.costo;
+          nuevo.enVelaEntrada = true;
+          trades.push(nuevo);
+          continue;
+        }
+      }
+
+      abiertos.push(nuevo);
     }
 
     /* ---------- señales sobre la vela recien cerrada ---------- */
@@ -754,6 +783,12 @@ function ejecutar(velas, senales, P, opc){
   const valorPto = opc.valorPto !== undefined ? opc.valorPto : 2;
   const comision = opc.comision !== undefined ? opc.comision : 1.34;
   const slipTicks= opc.slippage !== undefined ? opc.slippage : 1;
+  /* La vela que dispara la entrada tambien puede tocar el stop. Con OHLC no se
+     sabe en que orden paso, asi que se toma el caso malo: si el stop esta dentro
+     del recorrido de esa vela, la operacion pierde. Apagarlo devuelve el
+     comportamiento antiguo, que se saltaba la vela de entrada entera y por eso
+     no contaba nunca esa clase de perdida. */
+  const cuentaVelaEntrada = opc.velaEntrada !== undefined ? opc.velaEntrada : true;
   const N = velas.length;
 
   const perATR = P.PeriodoATR>0 ? P.PeriodoATR : 14;
@@ -826,11 +861,29 @@ function ejecutar(velas, senales, P, opc){
         const tp = (s.tp!==undefined && isFinite(s.tp)) ? s.tp
                  : (P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
                                        : entrada + s.dir*sl*multTP);
-        abierto = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i, limite:s.limite,
+        const nuevo = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i, limite:s.limite,
                    rPlan:Math.abs(tp-entrada)/sl, ctr:contratos(sl),
                    estrecho:false, regimen:0, tfNivel:0,
                    familia: s.familia!==undefined ? s.familia : "senal",
                    origen: s.familia!==undefined ? s.familia : "senal", esp:0};
+
+        /* La vela de la senal tambien puede tocar el stop. Con OHLC no se sabe
+           el orden dentro de la vela, asi que se toma el caso malo: si el stop
+           esta dentro del recorrido de ESA vela, la operacion pierde ahi. Nunca
+           se premia el objetivo en la vela de entrada. */
+        if(cuentaVelaEntrada){
+          const slAqui = nuevo.dir===1 ? b.l<=nuevo.sl : b.h>=nuevo.sl;
+          if(slAqui){
+            nuevo.res=-1; nuevo.r=-1;
+            nuevo.costo = nuevo.ctr*(comision + slipTicks*tick*valorPto*2);
+            nuevo.usd   = -sl*valorPto*nuevo.ctr - nuevo.costo;
+            nuevo.enVelaEntrada = true;
+            trades.push(nuevo);
+            break;
+          }
+        }
+
+        abierto = nuevo;
         break;
       }
     }
@@ -2505,7 +2558,8 @@ $("btnCorrer").addEventListener("click",()=>{
       const P=paquete(),modo=$("modo").value;
       if(!VENTANAS.length){ avisar(T().sinVelas,true); return; }
       const OPC={comision:parseFloat($("cComision").value)||0,
-                 slippage:parseFloat($("cSlip").value)||0, modo:modo};
+                 slippage:parseFloat($("cSlip").value)||0, modo:modo,
+                 velaEntrada: $("velaEntrada") ? $("velaEntrada").checked : true};
       P.ContratosATR=parseInt($("cContratos").value,10)||3;
       if(esImportadas()&&!SENALES.length){ avisar(T().sinSenales,true); return; }
       if(MOTOR.aux==="delta"&&!DELTA.length){ avisar(T().sinDelta,true); return; }
@@ -2801,7 +2855,8 @@ function diagnosticar(filas,nBase){
 function analisisCompleto(){
   const P0=paquete(), modo=$("modo").value;
   const OPC={comision:parseFloat($("cComision").value)||0,
-             slippage:parseFloat($("cSlip").value)||0, modo:modo};
+             slippage:parseFloat($("cSlip").value)||0, modo:modo,
+             velaEntrada: $("velaEntrada") ? $("velaEntrada").checked : true};
   P0.ContratosATR=parseInt($("cContratos").value,10)||3;
 
   const lista=(MOTOR.barribles||[]).map(nm=>CS.props.find(p=>p.nombre===nm&&p.est==="M"))
