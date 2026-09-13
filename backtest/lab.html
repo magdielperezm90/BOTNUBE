@@ -91,6 +91,10 @@ svg{width:100%;height:190px;display:block}
 .aviso.mal{color:var(--rojo)}
 .nota{margin-top:18px;padding:11px 13px;border:1px solid var(--linea);border-left:2px solid var(--ambar);
 background:var(--panel);font-size:11.5px;color:var(--tenue)}
+.notaCaduc{margin-top:14px;padding:10px 12px;border:1px solid var(--linea);
+border-left:2px solid var(--ambar);background:var(--panel);font-size:11.5px;
+line-height:1.5;color:var(--texto)}
+.notaCaduc.alerta{border-left-color:var(--rojo)}
 .oculto{display:none}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -98,7 +102,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
 <body><div class="wrap">
 
 <header>
-  <div><h1 data-i="titulo">Lab MNQ</h1>
+  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.1 · caducados</span>
   <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
@@ -201,6 +205,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue)}
 <div class="cuerpo">
   <div class="vered" id="vered">—</div><div class="veredsub" id="veredsub"></div>
   <div class="met" id="met" style="margin-top:16px"></div>
+  <div class="notaCaduc oculto" id="avisoCaduc"></div>
   <div class="gt" id="hCurva" style="margin-top:20px" data-i="curva">Curva en R</div>
   <svg id="svg" viewBox="0 0 900 190" preserveAspectRatio="none" role="img"></svg>
   <div class="sub" id="nCurva" data-i="curvaNota">La línea vertical marca el corte 70/30. Lo de la derecha es la prueba honesta.</div>
@@ -679,10 +684,19 @@ function reporte(trades, velas, opc){
   const ctr=trades.map(t=>t.ctr);
   R.contratos = ctr.length ? {min:Math.min(...ctr),max:Math.max(...ctr),
                   prom:ctr.reduce((a,b)=>a+b,0)/ctr.length} : null;
-  R.caducados = trades.filter(t=>t.caduco).length;
-  R.ambiguos  = trades.filter(t=>t.res===0).length;
-  R.resueltos = metricas(trades.filter(t=>!t.caduco));
+  /* CADUCADOS. Un trade que no toco ni stop ni objetivo en VelasVidaTrade
+     velas se cierra a mercado. Su R es una fraccion, y si cierra en verde
+     cuenta como ACIERTO en el total. Por eso el acierto global NO es
+     comparable con el equilibrio del objetivo (33% a 2R): mezcla dos cosas.
+     "resueltos" = las operaciones que de verdad llegaron a stop u objetivo.
+     Esa es la columna que hay que mirar antes de creerse un PF.            */
+  R.caducados    = trades.filter(t=>t.caduco).length;
+  R.ambiguos     = trades.filter(t=>t.res===0).length;
+  R.resueltos    = metricas(trades.filter(t=>!t.caduco));
+  R.metCaducados = metricas(trades.filter(t=>t.caduco));
+  R.enVelaEntrada= trades.filter(t=>t.enVelaEntrada).length;
   R._usds = trades.map(t=>t.usd);
+  R._caducos = trades.map(t=>!!t.caduco);
   return R;
 }
 
@@ -2604,12 +2618,18 @@ function correrTodas(P,OPC){
     partes[0].porVentana=null; partes[0].saltadas=saltadas;
     return partes[0];
   }
-  const rs=[], us=[]; let usd=0,cos=0;
+  const rs=[], us=[], cd=[]; let usd=0,cos=0, nAmb=0, nVE=0;
   const acum={porTF:{},porEspacio:{},porRegimen:{}};
   for(const R of partes){
     const c=R.curva;
     for(let i=0;i<c.length;i++) rs.push(i?c[i]-c[i-1]:c[0]);
     if(R._usds) for(const u of R._usds) us.push(u);
+    // la bandera de caducado viaja en paralelo a la curva; si una ventana no
+    // la trae, se rellena con false para que los indices no se descuadren
+    if(R._caducos && R._caducos.length===c.length) for(const x of R._caducos) cd.push(x);
+    else for(let i=0;i<c.length;i++) cd.push(false);
+    nAmb += (R.ambiguos||0);
+    nVE  += (R.enVelaEntrada||0);
     usd+=R.total.usd; cos+=R.total.costos;
     for(const fam of ["porTF","porEspacio","porRegimen"]){
       const src=R[fam]||{};
@@ -2648,6 +2668,22 @@ function correrTodas(P,OPC){
     for(const k in acum[fam]){ const x=acum[fam][k];
       out[fam][k]={n:x.n, pf: x.neg>0 ? x.pos/x.neg : (x.pos>0?99:0),
                    r:x.r, acierto:100*x.gan/x.n, usd:0, costos:0, rTrade:x.r/x.n, dd:0}; }
+
+  /* mismo desglose de caducados que en una sola ventana, pero sobre la
+     secuencia unida. rs, us y cd estan alineados trade a trade. */
+  const alin = (us.length===rs.length);
+  const sel = (quiero)=>{
+    const r=[], u=[];
+    for(let i=0;i<rs.length;i++) if(!!cd[i]===quiero){ r.push(rs[i]); if(alin) u.push(us[i]); }
+    const m = met(r, alin?u:null);
+    m.usd = alin ? u.reduce((a,b)=>a+b,0) : 0;
+    return m;
+  };
+  out.caducados     = cd.filter(Boolean).length;
+  out.ambiguos      = nAmb;
+  out.enVelaEntrada = nVE;
+  out.resueltos     = sel(false);
+  out.metCaducados  = sel(true);
   return out;
 }
 /* Una corrida de barrido. Por defecto usa TODAS las ventanas cargadas,
@@ -2676,7 +2712,12 @@ function barrer(P,modo,nombre){
       slippage:parseFloat($("cSlip").value)||0});
     return {v:v,pf:(R.total?R.total.pf:0),n:(R.total?R.total.n:0),
             r:(R.total?R.total.r:0),dd:(R.total?R.total.dd:0),
-            ddUsd:(R.total?R.total.ddUsd:0),usd:(R.total?R.total.usd:0)};
+            ddUsd:(R.total?R.total.ddUsd:0),usd:(R.total?R.total.usd:0),
+            // un paso del barrido con 70% de caducados no es comparable con
+            // otro que tiene 10%: no estan midiendo la misma estrategia
+            cad:(R.caducados||0),
+            pfRes:(R.resueltos?R.resueltos.pf:0),
+            nRes:(R.resueltos?R.resueltos.n:0)};
   });
 }
 
@@ -2700,18 +2741,54 @@ function pintarRes(){
   const lim=parseFloat($("cLimite").value)||0;
   const ddU=t.ddUsd||0;
   m.push(["$"+Math.round(ddU).toLocaleString(),T().mDDUsd]);
-  if(lim>0) m.push([ddU<=lim?"✓":"✕", T().mApex.replace("{l}","$"+lim.toLocaleString())]);
+  // el indice del check de Apex se guarda: antes se pintaba "el ultimo" y
+  // como despues se empujaba la tarjeta de contratos, el color caia en ella
+  let idxApex=-1;
+  if(lim>0){ m.push([ddU<=lim?"✓":"✕", T().mApex.replace("{l}","$"+lim.toLocaleString())]); idxApex=m.length-1; }
   if(RES.contratos)m.push([RES.contratos.min+"-"+RES.contratos.max,T().mCtr]);
+
+  /* ---- caducados: sin esto el acierto global engaña ---- */
+  if(RES.caducados!==undefined && t.n>0){
+    const pcC=100*RES.caducados/t.n;
+    m.push([RES.caducados+" ("+pcC.toFixed(0)+"%)", T().mCaduc]);
+    if(RES.resueltos && RES.resueltos.n>0){
+      m.push([RES.resueltos.pf.toFixed(2), T().mPFres]);
+      m.push([RES.resueltos.acierto.toFixed(1)+"%", T().mAcRes]);
+    }
+  }
+
   $("met").innerHTML=m.map((x,i)=>{
-    const ultimo=(lim>0 && i===m.length-1);
-    const col=ultimo?(ddU<=lim?"var(--jade)":"var(--rojo)"):"";
+    const col=(i===idxApex)?(ddU<=lim?"var(--jade)":"var(--rojo)"):"";
     return `<div><b${col?' style="color:'+col+'"':''}>${x[0]}</b><span>${x[1]}</span></div>`;
   }).join("");
+
+  /* aviso en texto: si la mayoria de las operaciones caducan, el objetivo
+     casi nunca se alcanza y el PF describe otra cosa */
+  if(RES.caducados!==undefined && t.n>0){
+    const pcC=100*RES.caducados/t.n;
+    const av=$("avisoCaduc");
+    if(av){
+      if(RES.caducados===0){ av.classList.add("oculto"); }
+      else{
+        av.classList.remove("oculto");
+        av.className="notaCaduc"+(pcC>=30?" alerta":"");
+        const rr=RES.resueltos||{n:0,pf:0,acierto:0,r:0};
+        const cc=RES.metCaducados||{n:0,r:0};
+        av.textContent=T().avCaduc
+          .replace("{c}",RES.caducados).replace("{p}",pcC.toFixed(0))
+          .replace("{n}",rr.n).replace("{pf}",rr.pf.toFixed(2))
+          .replace("{ac}",rr.acierto.toFixed(1))
+          .replace("{rc}",cc.r.toFixed(1));
+      }
+    }
+  }
 
   curva();
   const fila=(n,x)=>`<tr><td>${n}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>${x.acierto.toFixed(0)}%</td></tr>`;
   let h=`<tr><th>${T().hFamilia}</th><th>n</th><th>PF</th><th>R</th><th>%</th></tr>`;
   h+=fila(T().hDentro,RES.dentro)+fila(T().hFuera,RES.fuera);
+  if(RES.caducados>0 && RES.resueltos)
+    h+=fila(T().hResueltos,RES.resueltos)+fila(T().hCaducados,RES.metCaducados||{n:0,pf:0,r:0,acierto:0});
   if(RES.porVentana&&RES.porVentana.length>1)
     for(const v of RES.porVentana)
       h+=`<tr><td>${v.nombre}</td><td>${v.n}</td><td class="${v.pf>=1?'b':'m'}">${v.pf.toFixed(2)}</td><td>${v.r.toFixed(1)}</td><td>$${Math.round(v.usd)}</td></tr>`;
@@ -2729,9 +2806,12 @@ function pintarRes(){
   if(RES.barrido){
     $("wrapBarrido").classList.remove("oculto");
     const pf=RES.barrido.map(x=>x.pf),dif=Math.max(...pf)-Math.min(...pf);
-    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th><th>DD $</th><th>neto</th></tr>`+
-      RES.barrido.map(x=>`<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>$${Math.round(x.ddUsd||0).toLocaleString()}</td><td class="${(x.usd||0)>=0?'b':'m'}">$${Math.round(x.usd||0).toLocaleString()}</td></tr>`).join("")+
-      `<tr><td colspan="4" style="color:${dif>0.6?'var(--rojo)':'var(--jade)'}">${dif>0.6?T().sPico:T().sMeseta} (${dif.toFixed(2)})</td></tr>`;
+    $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th><th>DD $</th><th>neto</th><th>cad.</th><th>PF res.</th></tr>`+
+      RES.barrido.map(x=>{
+        const pc = x.n>0 ? 100*(x.cad||0)/x.n : 0;
+        return `<tr><td>${x.v}</td><td>${x.n}</td><td class="${x.pf>=1?'b':'m'}">${x.pf.toFixed(2)}</td><td>${x.r.toFixed(1)}</td><td>$${Math.round(x.ddUsd||0).toLocaleString()}</td><td class="${(x.usd||0)>=0?'b':'m'}">$${Math.round(x.usd||0).toLocaleString()}</td><td${pc>=30?' style="color:var(--ambar)"':''}>${pc.toFixed(0)}%</td><td class="${(x.pfRes||0)>=1?'b':'m'}">${(x.pfRes||0).toFixed(2)}<span style="color:var(--tenue)"> ·${x.nRes||0}</span></td></tr>`;
+      }).join("")+
+      `<tr><td colspan="8" style="color:${dif>0.6?'var(--rojo)':'var(--jade)'}">${dif>0.6?T().sPico:T().sMeseta} (${dif.toFixed(2)})</td></tr>`;
   } else $("wrapBarrido").classList.add("oculto");
 }
 function pintarResMagmax(){
@@ -2958,6 +3038,15 @@ function cuerpoInforme(){
    + '<tr><td>'+D.mNeto+'</td><td>$'+Math.round(t.usd).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.mCostos+'</td><td>$'+Math.round(t.costos).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.hFuera+'</td><td>PF '+num(f.pf)+' · n '+f.n+'</td></tr>'
+   + ((A.base.caducados!==undefined && t.n>0)
+      ? '<tr><td>'+D.mCaduc+'</td><td>'+A.base.caducados+' ('
+        +num(100*A.base.caducados/t.n,0)+' %)</td></tr>'
+        +((A.base.resueltos&&A.base.resueltos.n>0)
+          ? '<tr><td>'+D.hResueltos+'</td><td>n '+A.base.resueltos.n
+            +' · PF '+num(A.base.resueltos.pf)
+            +' · '+num(A.base.resueltos.acierto,1)+' %</td></tr>'
+          : '')
+      : '')
    + '</table>';
 
   h+='<h2>'+D.robustez+'</h2><table class="inf"><tr><th>'+D.hTramo
@@ -3124,6 +3213,9 @@ errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:
 faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
 mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
 mCostos:"costos",mDD:"drawdown",mDDUsd:"drawdown $",
+mCaduc:"caducados",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
+hResueltos:"resueltas (SL/TP)",hCaducados:"caducadas",
+avCaduc:"{c} operaciones ({p} %) caducaron: no tocaron ni stop ni objetivo y se cerraron a mercado. Si cerraron en verde cuentan como acierto, así que el acierto global NO es comparable con el equilibrio del objetivo. Solo con las {n} resueltas: PF {pf} · acierto {ac} % . Las caducadas aportaron {rc} R.",
 mApex:"cabe en {l}",limiteLbl:"Límite de drawdown de la cuenta (USD)",
 iDDUsd:"DD $",iNeto:"neto",mCtr:"contratos",
 hFamilia:"familia",hDentro:"dentro (70%)",hFuera:"fuera (30%)",hTramo:"tramo",
@@ -3184,6 +3276,9 @@ errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Don
 faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
 mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
 mCostos:"costs",mDD:"drawdown",mDDUsd:"drawdown $",
+mCaduc:"expired",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
+hResueltos:"resolved (SL/TP)",hCaducados:"expired",
+avCaduc:"{c} trades ({p} %) expired: they reached neither stop nor target and were closed at market. Those closing green count as wins, so the overall win rate is NOT comparable with the target's break-even. Using only the {n} resolved trades: PF {pf} · win rate {ac} % . Expired trades contributed {rc} R.",
 mApex:"fits {l}",limiteLbl:"Account drawdown limit (USD)",
 iDDUsd:"DD $",iNeto:"net",mCtr:"contracts",
 hFamilia:"family",hDentro:"in-sample (70%)",hFuera:"out-of-sample (30%)",hTramo:"segment",
