@@ -1,13 +1,13 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-09-25 00:50 UTC",
- "ultima_vela": "2026-09-24",
- "precio_qqq": 741.21,
+ "actualizado": "2026-09-26 00:53 UTC",
+ "ultima_vela": "2026-09-25",
+ "precio_qqq": 741.1,
  "indicadores": {
-  "roc10": 3.58,
+  "roc10": 4.68,
   "valor_smc": 9663.44,
-  "valor_bh": 10237.65,
+  "valor_bh": 10236.13,
   "tickers_alcistas": 6,
   "tickers_total": 20
  },
@@ -542,6 +542,12 @@
    "smc": 9663.44,
    "bh": 10237.65,
    "roc10": 3.58
+  },
+  {
+   "fecha": "2026-09-25",
+   "smc": 9663.44,
+   "bh": 10236.13,
+   "roc10": 4.68
   }
  ]
 }
