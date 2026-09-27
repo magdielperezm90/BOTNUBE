@@ -102,7 +102,7 @@ line-height:1.5;color:var(--texto)}
 <body><div class="wrap">
 
 <header>
-  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.1 · caducados</span>
+  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.2 · señales alineadas</span>
   <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
@@ -177,6 +177,10 @@ line-height:1.5;color:var(--texto)}
       <label style="display:flex;gap:7px;align-items:flex-start;margin-top:9px;font-size:11px;color:var(--tenue);cursor:pointer" title="La vela que dispara la entrada puede tocar el stop en esa misma vela. Sin esto, esa perdida no se cuenta nunca.">
         <input type="checkbox" id="velaEntrada" checked style="width:auto;accent-color:var(--ambar)">
         <span data-i="velaEntradaLbl">Contar el stop en la vela de entrada (pesimista)</span>
+      </label>
+      <label style="display:flex;gap:7px;align-items:flex-start;margin-top:7px;font-size:11px;color:var(--tenue);cursor:pointer" title="Solo con señales importadas. Encendido, cada señal se mide entera aunque haya otra abierta o salgan dos a la misma hora (por ejemplo un largo y un corto de control). Apagado, una sola posición a la vez y las demás señales se descartan.">
+        <input type="checkbox" id="independientes" checked style="width:auto;accent-color:var(--ambar)">
+        <span data-i="independientesLbl">Señales importadas: medir cada señal por separado</span>
       </label></div>
   </div>
   <div class="botones">
@@ -695,6 +699,7 @@ function reporte(trades, velas, opc){
   R.resueltos    = metricas(trades.filter(t=>!t.caduco));
   R.metCaducados = metricas(trades.filter(t=>t.caduco));
   R.enVelaEntrada= trades.filter(t=>t.enVelaEntrada).length;
+  R.ignoradas    = trades.ignoradas||0;
   R._usds = trades.map(t=>t.usd);
   R._caducos = trades.map(t=>!!t.caduco);
   return R;
@@ -820,88 +825,125 @@ function ejecutar(velas, senales, P, opc){
     return n;
   }
 
-  /* senales indexadas por barra */
+  /* v1.2 - abrir y cerrar son las mismas reglas de siempre, sacadas a dos
+     funciones para poder usarlas tambien en el modo de senales independientes. */
+
+  /* Intenta cerrar t con la vela i. Devuelve true si se cerro. */
+  function cerrar(t, i){
+    const b=velas[i];
+    const tocaTP = t.dir===1 ? b.h>=t.tp : b.l<=t.tp;
+    const tocaSL = t.dir===1 ? b.l<=t.sl : b.h>=t.sl;
+    let res=null;
+    if(i>t.barra){
+      if(tocaTP&&tocaSL) res=0;
+      else if(tocaTP) res=1;
+      else if(tocaSL) res=-1;
+      else if(t.limite!==undefined && i>=t.limite) res=-2;
+      else if(i-t.barra > vida) res=-2;
+    }
+    if(res===null) return false;
+    t.res=res;
+    const slDist=Math.abs(t.sl-t.entrada);
+    let brutoPts;
+    if(res===1){ t.r=t.rPlan; brutoPts=Math.abs(t.tp-t.entrada); }
+    else if(res===-1||res===0){ t.r=-1; brutoPts=-slDist; }
+    else { brutoPts=t.dir*(b.c-t.entrada);
+           t.r = slDist>0 ? brutoPts/slDist : 0; t.caduco=true; }
+    t.costo = t.ctr*(comision + slipTicks*tick*valorPto*2);
+    t.usd   = brutoPts*valorPto*t.ctr - t.costo;
+    return true;
+  }
+
+  /* Abre la senal s en la vela i. Devuelve el trade, o null si no se puede
+     abrir. Si el stop salta en la propia vela de entrada, el trade ya viene
+     cerrado (res = -1). */
+  function abrir(s, i){
+    const b=velas[i];
+    const a = atr[i];
+    if(!(a>0)) return null;
+    const entrada = (s.precio!==undefined && isFinite(s.precio)) ? s.precio : b.c;
+    // si la senal trae su propio stop y objetivo, mandan esos; si no, se
+    // calculan por ATR como en el resto de motores
+    const slPrecio = (s.sl!==undefined && isFinite(s.sl))
+                     ? s.sl : entrada - s.dir*a*multSL;
+    const sl = Math.abs(entrada-slPrecio);
+    if(!(sl>0)) return null;   // sin distancia de stop no hay trade posible
+    const tp = (s.tp!==undefined && isFinite(s.tp)) ? s.tp
+             : (P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
+                                   : entrada + s.dir*sl*multTP);
+    const nuevo = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i, limite:s.limite,
+               rPlan:Math.abs(tp-entrada)/sl, ctr:contratos(sl),
+               estrecho:false, regimen:0, tfNivel:0,
+               familia: s.familia!==undefined ? s.familia : "senal",
+               origen: s.familia!==undefined ? s.familia : "senal", esp:0};
+
+    /* La vela de la senal tambien puede tocar el stop. Con OHLC no se sabe
+       el orden dentro de la vela, asi que se toma el caso malo: si el stop
+       esta dentro del recorrido de ESA vela, la operacion pierde ahi. Nunca
+       se premia el objetivo en la vela de entrada.
+       v1.2 - EXCEPCION: si la senal entra justo al CIERRE de esa vela (misma
+       hora y mismo precio), todo el recorrido de la vela paso ANTES de entrar
+       y no puede haber tocado el stop de una operacion que aun no existia. */
+    if(cuentaVelaEntrada && !s.alCierre){
+      const slAqui = nuevo.dir===1 ? b.l<=nuevo.sl : b.h>=nuevo.sl;
+      if(slAqui){
+        nuevo.res=-1; nuevo.r=-1;
+        nuevo.costo = nuevo.ctr*(comision + slipTicks*tick*valorPto*2);
+        nuevo.usd   = -sl*valorPto*nuevo.ctr - nuevo.costo;
+        nuevo.enVelaEntrada = true;
+      }
+    }
+    return nuevo;
+  }
+
+  const validas = senales.filter(s=>s.i>=0 && s.i<N);
+  const trades=[]; let ignoradas=0;
+
+  /* v1.2 - MODO INDEPENDIENTE (solo senales importadas). Cada senal se mide
+     entera por su cuenta, aunque haya otra abierta o coincidan dos en la
+     misma vela. Asi un largo y un corto de control a la misma hora cuentan
+     los dos, y la segunda entrada del dia no desaparece en silencio. */
+  if(opc.independientes && opc._importadas){
+    const orden = validas.slice().sort((x,y)=>x.i-y.i);
+    for(const s of orden){
+      const t = abrir(s, s.i);
+      if(!t){ ignoradas++; continue; }
+      if(t.res!==undefined){ trades.push(t); continue; }
+      let cerrada=false;
+      for(let i=s.i+1;i<N;i++){ if(cerrar(t,i)){ cerrada=true; break; } }
+      // igual que en el modo normal: si los datos se acaban antes de que se
+      // resuelva, no se cuenta
+      if(cerrada) trades.push(t); else ignoradas++;
+    }
+    trades.ignoradas = ignoradas;
+    return trades;
+  }
+
+  /* MODO NORMAL: una sola posicion a la vez (igual que hasta la v1.1). */
   const porBarra = {};
-  for(const s of senales){
-    if(s.i<0 || s.i>=N) continue;
+  for(const s of validas){
     if(!porBarra[s.i]) porBarra[s.i]=[];
     porBarra[s.i].push(s);
   }
 
-  const trades=[]; let abierto=null;
-
+  let abierto=null;
   for(let i=1;i<N;i++){
-    const b=velas[i];
-
     /* --- resolver la posicion abierta --- */
-    if(abierto){
-      const t=abierto;
-      const tocaTP = t.dir===1 ? b.h>=t.tp : b.l<=t.tp;
-      const tocaSL = t.dir===1 ? b.l<=t.sl : b.h>=t.sl;
-      let res=null;
-      if(i>t.barra){
-        if(tocaTP&&tocaSL) res=0;
-        else if(tocaTP) res=1;
-        else if(tocaSL) res=-1;
-        else if(t.limite!==undefined && i>=t.limite) res=-2;
-        else if(i-t.barra > vida) res=-2;
-      }
-      if(res!==null){
-        t.res=res;
-        const slDist=Math.abs(t.sl-t.entrada);
-        let brutoPts;
-        if(res===1){ t.r=t.rPlan; brutoPts=Math.abs(t.tp-t.entrada); }
-        else if(res===-1||res===0){ t.r=-1; brutoPts=-slDist; }
-        else { brutoPts=t.dir*(b.c-t.entrada);
-               t.r = slDist>0 ? brutoPts/slDist : 0; t.caduco=true; }
-        t.costo = t.ctr*(comision + slipTicks*tick*valorPto*2);
-        t.usd   = brutoPts*valorPto*t.ctr - t.costo;
-        trades.push(t); abierto=null;
-      }
-    }
+    if(abierto && cerrar(abierto,i)){ trades.push(abierto); abierto=null; }
 
     /* --- abrir con las senales de esta barra --- */
-    if(!abierto && porBarra[i]){
-      const a = atr[i];
-      while(a>0){
-        const s = porBarra[i][0];
-        const entrada = (s.precio!==undefined && isFinite(s.precio)) ? s.precio : b.c;
-        // si la senal trae su propio stop y objetivo, mandan esos; si no, se
-        // calculan por ATR como en el resto de motores
-        const slPrecio = (s.sl!==undefined && isFinite(s.sl))
-                         ? s.sl : entrada - s.dir*a*multSL;
-        const sl = Math.abs(entrada-slPrecio);
-        if(!(sl>0)) break;   // sin distancia de stop no hay trade posible
-        const tp = (s.tp!==undefined && isFinite(s.tp)) ? s.tp
-                 : (P.PuntosObjetivo>0 ? entrada + s.dir*P.PuntosObjetivo
-                                       : entrada + s.dir*sl*multTP);
-        const nuevo = {dir:s.dir, entrada:entrada, sl:slPrecio, tp:tp, barra:i, limite:s.limite,
-                   rPlan:Math.abs(tp-entrada)/sl, ctr:contratos(sl),
-                   estrecho:false, regimen:0, tfNivel:0,
-                   familia: s.familia!==undefined ? s.familia : "senal",
-                   origen: s.familia!==undefined ? s.familia : "senal", esp:0};
-
-        /* La vela de la senal tambien puede tocar el stop. Con OHLC no se sabe
-           el orden dentro de la vela, asi que se toma el caso malo: si el stop
-           esta dentro del recorrido de ESA vela, la operacion pierde ahi. Nunca
-           se premia el objetivo en la vela de entrada. */
-        if(cuentaVelaEntrada){
-          const slAqui = nuevo.dir===1 ? b.l<=nuevo.sl : b.h>=nuevo.sl;
-          if(slAqui){
-            nuevo.res=-1; nuevo.r=-1;
-            nuevo.costo = nuevo.ctr*(comision + slipTicks*tick*valorPto*2);
-            nuevo.usd   = -sl*valorPto*nuevo.ctr - nuevo.costo;
-            nuevo.enVelaEntrada = true;
-            trades.push(nuevo);
-            break;
-          }
-        }
-
-        abierto = nuevo;
-        break;
-      }
+    if(porBarra[i]){
+      if(abierto){ ignoradas += porBarra[i].length; continue; }
+      const t = abrir(porBarra[i][0], i);
+      // v1.2 - las demas senales de la misma vela se descartan; ahora se cuentan
+      ignoradas += porBarra[i].length - (t ? 1 : 0);
+      if(!t) continue;
+      if(t.res!==undefined){ trades.push(t); continue; }
+      abierto = t;
     }
   }
+  if(abierto) ignoradas++;   // se acabaron los datos sin resolverla
+  trades.ignoradas = ignoradas;
   return trades;
 }
 
@@ -1018,26 +1060,55 @@ function leerSenales(texto){
   out.sort((a,b)=>a.t-b.t);
   return out;
 }
-/* alinea cada senal por marca de tiempo con la vela correspondiente */
-function alinear(velas, senales){
-  const out=[]; let j=0;
+/* alinea cada senal por marca de tiempo con la vela correspondiente
+   v1.2 - ANTES, una senal posterior a la ultima vela de la ventana se pegaba
+   a esa ultima vela, y una senal que caia en un hueco de datos se movia a la
+   siguiente vela aunque fuera dias despues. Eso metia operaciones falsas en
+   ventanas que no tenian nada que ver (una por ventana, casi siempre -1R).
+   Ahora:
+   - la senal anterior a la primera vela o posterior a la ultima no se usa
+     (es normal con varias ventanas: pertenece a otra);
+   - si la vela mas cercana esta a mas de dos velas de distancia, se descarta
+     y se cuenta como "en un hueco";
+   - si la hora coincide exacta y el precio es el cierre de esa vela, se marca
+     alCierre: la entrada fue al cerrar la vela. */
+function alinear(velas, senales, tick){
+  const out=[]; let j=0, huecos=0;
+  const N=velas.length;
+  if(!N) { out.huecos=0; return out; }
+  const medioTick = (tick>0 ? tick : 0.25)/2;
+
+  // periodo tipico de las velas: la mediana de las distancias
+  const d=[];
+  for(let k=1;k<Math.min(N,400);k++){ const x=velas[k].t-velas[k-1].t; if(x>0) d.push(x); }
+  d.sort((a,b)=>a-b);
+  const periodo = d.length ? d[Math.floor(d.length/2)] : 60000;
+  const tolerancia = 2*periodo;
+
   for(const s of senales){
-    while(j<velas.length-1 && velas[j].t < s.t) j++;
-    if(j>=velas.length) break;
-    if(velas[j].t!==s.t){
-      // tolera desfases: usa la primera vela cuyo cierre es >= la marca
-      if(j===0 && velas[0].t>s.t) continue;
-    }
+    if(s.t < velas[0].t || s.t > velas[N-1].t) continue;   // de otra ventana
+    while(j<N-1 && velas[j].t < s.t) j++;
+    if(velas[j].t < s.t) continue;                        // por seguridad
+    if(velas[j].t - s.t > tolerancia){ huecos++; continue; }
+    const exacta = velas[j].t===s.t;
+    const alCierre = exacta && s.precio!==undefined && isFinite(s.precio)
+                     && Math.abs(s.precio - velas[j].c) <= medioTick;
     out.push({i:j, dir:s.dir, precio:s.precio, familia:s.familia,
-              sl:s.sl, tp:s.tp});
+              sl:s.sl, tp:s.tp, alCierre:alCierre});
   }
+  out.huecos=huecos;
   return out;
 }
 function correrImportadas(velas, senales, P, opc){
   if(velas.length<500) return {error:"Pocas velas"};
-  const s = alinear(velas, senales);
+  opc = opc || {};
+  const s = alinear(velas, senales, opc.tick);
   if(!s.length) return {error:"Ninguna senal cae dentro del rango de velas cargado"};
-  return reporte(ejecutar(velas, s, P, opc), velas, opc);
+  // el modo independiente solo se aplica a las senales importadas
+  const opcImp = Object.assign({}, opc, {_importadas:true});
+  const R = reporte(ejecutar(velas, s, P, opcImp), velas, opc);
+  R.huecos = s.huecos||0;
+  return R;
 }
 
 
@@ -2573,7 +2644,8 @@ $("btnCorrer").addEventListener("click",()=>{
       if(!VENTANAS.length){ avisar(T().sinVelas,true); return; }
       const OPC={comision:parseFloat($("cComision").value)||0,
                  slippage:parseFloat($("cSlip").value)||0, modo:modo,
-                 velaEntrada: $("velaEntrada") ? $("velaEntrada").checked : true};
+                 velaEntrada: $("velaEntrada") ? $("velaEntrada").checked : true,
+                 independientes: $("independientes") ? $("independientes").checked : true};
       P.ContratosATR=parseInt($("cContratos").value,10)||3;
       if(esImportadas()&&!SENALES.length){ avisar(T().sinSenales,true); return; }
       if(MOTOR.aux==="delta"&&!DELTA.length){ avisar(T().sinDelta,true); return; }
@@ -2616,9 +2688,10 @@ function correrTodas(P,OPC){
     return {error:"Ninguna ventana produjo señales. "+saltadas.join("  |  ")};
   if(partes.length===1){
     partes[0].porVentana=null; partes[0].saltadas=saltadas;
+    partes[0].ignoradas=partes[0].ignoradas||0; partes[0].huecos=partes[0].huecos||0;
     return partes[0];
   }
-  const rs=[], us=[], cd=[]; let usd=0,cos=0, nAmb=0, nVE=0;
+  const rs=[], us=[], cd=[]; let usd=0,cos=0, nAmb=0, nVE=0, nIgn=0, nHue=0;
   const acum={porTF:{},porEspacio:{},porRegimen:{}};
   for(const R of partes){
     const c=R.curva;
@@ -2630,6 +2703,8 @@ function correrTodas(P,OPC){
     else for(let i=0;i<c.length;i++) cd.push(false);
     nAmb += (R.ambiguos||0);
     nVE  += (R.enVelaEntrada||0);
+    nIgn += (R.ignoradas||0);
+    nHue += (R.huecos||0);
     usd+=R.total.usd; cos+=R.total.costos;
     for(const fam of ["porTF","porEspacio","porRegimen"]){
       const src=R[fam]||{};
@@ -2645,8 +2720,16 @@ function correrTodas(P,OPC){
       }
     }
   }
+  /* v1.2 - con varias ventanas el PF y el acierto se calculaban sobre la R,
+     que no incluye costos; con una sola ventana, sobre el dinero neto (con
+     costos). El mismo backtest daba un PF distinto segun cuantos archivos
+     hubiera cargados. Ahora los dos usan el dinero neto, como metricas(). */
   const met=(sub,subU)=>{ let p=0,q=0,g=0,rr=0,pico=0,ac=0,dd=0;
-    for(const r of sub){ if(r>0){p+=r;g++;} else q+=-r; rr+=r; ac+=r; pico=Math.max(pico,ac); dd=Math.max(dd,pico-ac); }
+    const conU = !!(subU && subU.length===sub.length);
+    for(let k=0;k<sub.length;k++){
+      const r=sub[k], v=conU?subU[k]:r;
+      if(v>0){p+=v;g++;} else q+=-v;
+      rr+=r; ac+=r; pico=Math.max(pico,ac); dd=Math.max(dd,pico-ac); }
     let ddU=0;
     if(subU){ let pu=0,au=0;
       for(const u of subU){ au+=u; pu=Math.max(pu,au); ddU=Math.max(ddU,pu-au); } }
@@ -2682,6 +2765,8 @@ function correrTodas(P,OPC){
   out.caducados     = cd.filter(Boolean).length;
   out.ambiguos      = nAmb;
   out.enVelaEntrada = nVE;
+  out.ignoradas     = nIgn;
+  out.huecos        = nHue;
   out.resueltos     = sel(false);
   out.metCaducados  = sel(true);
   return out;
@@ -2756,6 +2841,10 @@ function pintarRes(){
       m.push([RES.resueltos.acierto.toFixed(1)+"%", T().mAcRes]);
     }
   }
+
+  /* v1.2 - senales que no llegaron a operarse: se dicen, no se esconden */
+  if(RES.ignoradas>0) m.push([String(RES.ignoradas), T().mIgnor]);
+  if(RES.huecos>0)    m.push([String(RES.huecos), T().mHueco]);
 
   $("met").innerHTML=m.map((x,i)=>{
     const col=(i===idxApex)?(ddU<=lim?"var(--jade)":"var(--rojo)"):"";
@@ -2936,7 +3025,8 @@ function analisisCompleto(){
   const P0=paquete(), modo=$("modo").value;
   const OPC={comision:parseFloat($("cComision").value)||0,
              slippage:parseFloat($("cSlip").value)||0, modo:modo,
-             velaEntrada: $("velaEntrada") ? $("velaEntrada").checked : true};
+             velaEntrada: $("velaEntrada") ? $("velaEntrada").checked : true,
+             independientes: $("independientes") ? $("independientes").checked : true};
   P0.ContratosATR=parseInt($("cContratos").value,10)||3;
 
   const lista=(MOTOR.barribles||[]).map(nm=>CS.props.find(p=>p.nombre===nm&&p.est==="M"))
@@ -3038,6 +3128,8 @@ function cuerpoInforme(){
    + '<tr><td>'+D.mNeto+'</td><td>$'+Math.round(t.usd).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.mCostos+'</td><td>$'+Math.round(t.costos).toLocaleString()+'</td></tr>'
    + '<tr><td>'+D.hFuera+'</td><td>PF '+num(f.pf)+' · n '+f.n+'</td></tr>'
+   + (A.base.ignoradas>0 ? '<tr><td>'+D.mIgnor+'</td><td>'+A.base.ignoradas+'</td></tr>' : '')
+   + (A.base.huecos>0 ? '<tr><td>'+D.mHueco+'</td><td>'+A.base.huecos+'</td></tr>' : '')
    + ((A.base.caducados!==undefined && t.n>0)
       ? '<tr><td>'+D.mCaduc+'</td><td>'+A.base.caducados+' ('
         +num(100*A.base.caducados/t.n,0)+' %)</td></tr>'
@@ -3213,7 +3305,7 @@ errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:
 faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
 mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
 mCostos:"costos",mDD:"drawdown",mDDUsd:"drawdown $",
-mCaduc:"caducados",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
+mCaduc:"caducados",mIgnor:"señales sin operar",mHueco:"señales en un hueco de datos",independientesLbl:"Señales importadas: medir cada señal por separado",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
 hResueltos:"resueltas (SL/TP)",hCaducados:"caducadas",
 avCaduc:"{c} operaciones ({p} %) caducaron: no tocaron ni stop ni objetivo y se cerraron a mercado. Si cerraron en verde cuentan como acierto, así que el acierto global NO es comparable con el equilibrio del objetivo. Solo con las {n} resueltas: PF {pf} · acierto {ac} % . Las caducadas aportaron {rc} R.",
 mApex:"cabe en {l}",limiteLbl:"Límite de drawdown de la cuenta (USD)",
@@ -3276,7 +3368,7 @@ errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Don
 faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
 mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
 mCostos:"costs",mDD:"drawdown",mDDUsd:"drawdown $",
-mCaduc:"expired",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
+mCaduc:"expired",mIgnor:"signals not traded",mHueco:"signals in a data gap",independientesLbl:"Imported signals: measure each signal on its own",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
 hResueltos:"resolved (SL/TP)",hCaducados:"expired",
 avCaduc:"{c} trades ({p} %) expired: they reached neither stop nor target and were closed at market. Those closing green count as wins, so the overall win rate is NOT comparable with the target's break-even. Using only the {n} resolved trades: PF {pf} · win rate {ac} % . Expired trades contributed {rc} R.",
 mApex:"fits {l}",limiteLbl:"Account drawdown limit (USD)",
