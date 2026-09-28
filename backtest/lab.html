@@ -102,7 +102,7 @@ line-height:1.5;color:var(--texto)}
 <body><div class="wrap">
 
 <header>
-  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.2 · señales alineadas</span>
+  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.2.1 · señales alineadas</span>
   <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
@@ -1364,7 +1364,8 @@ function senalesCVD(velas,serie,P){
   const N=velas.length;
   const al=alinearDelta(velas,serie);
   if(al.cobertura<0.20) return {error:"El CSV de delta no cuadra con estas velas (solo "
-    +Math.round(al.cobertura*100)+" % de coincidencia). Revisa que sean el mismo instrumento y las mismas fechas."};
+    +Math.round(al.cobertura*100)+" % de coincidencia). Revisa que sean el mismo instrumento y las mismas fechas."
+    +" Si tu indicador exporta un ..._lab_....csv de senales, elige el motor 'Senales importadas'."};
 
   const dl=al.delta;
   const vent =Math.max(2,P.VelasVentana||10);
@@ -2210,7 +2211,11 @@ const MOTORES=[
   },
   {
     id:"cvd", nombre:"DeltaAcumulado · order flow contra grupo de control", tipo:"trades",
-    detecta:cs=>/delta/i.test(cs.clase) || cs.props.some(p=>p.nombre==="AbsorcionDeltaMin"),
+    /* v1.2.1 - antes bastaba con que el nombre llevara "delta", y cualquier
+       indicador como AceptacionDelta caia aqui y pedia un CSV de delta que no
+       es el suyo. Ahora solo DeltaAcumulado (o el que tenga su parametro). */
+    detecta:cs=>/deltaacumulado|cumulativedelta|^cvd/i.test(cs.clase)
+              || cs.props.some(p=>p.nombre==="AbsorcionDeltaMin"),
     usa:new Set(["VelasVentana","AbsorcionDeltaMin","AbsorcionRangoATR","PeriodoATR",
                  "DivergenciaVelas","UsarAbsorcion","UsarDivergencia","MedirControl",
                  "CooldownSenales"].concat(USA_EJEC)),
