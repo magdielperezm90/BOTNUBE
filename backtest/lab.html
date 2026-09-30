@@ -102,7 +102,7 @@ line-height:1.5;color:var(--texto)}
 <body><div class="wrap">
 
 <header>
-  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.3 · precios verificados</span>
+  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.4 · varios CSV y diagnóstico</span>
   <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
@@ -149,7 +149,8 @@ line-height:1.5;color:var(--texto)}
       <div class="g" id="gSEN" data-i="subeSEN">3 · CSV de señales</div>
       <div class="c" id="cSEN" data-i="subeSEN2">fecha ; dirección [ ; precio ; familia ]</div>
     </div>
-    <input type="file" id="fSEN" accept=".csv,.txt">
+    <input type="file" id="fSEN" accept=".csv,.txt" multiple>
+    <button type="button" id="btnQuitarSEN" class="oculto" style="margin-top:8px;font-size:11px" data-i="quitarSEN">Quitar las señales cargadas</button>
   </div>
   <div class="dos" style="margin-bottom:14px">
     <div><label class="gt" for="modo" data-i="queOperar">Qué operar</label>
@@ -1113,21 +1114,80 @@ function alinear(velas, senales, tick){
   out.desajustes=desajustes;
   return out;
 }
+/* v1.4 - cuanto cuadra el CSV con las velas si se desplaza la hora */
+function cuadre(velas, senales, tick, desplazamiento){
+  const sh = desplazamiento
+    ? senales.map(x=>Object.assign({}, x, {t:x.t+desplazamiento}))
+    : senales;
+  const a = alinear(velas, sh, tick);
+  const des = a.desajustes||0, tot = a.length + des;
+  return {a:a, des:des, tot:tot, ratio: tot ? des/tot : 0};
+}
+
+/* v1.4 - si no cuadra: diferencia entre el precio de cada senal y el cierre de
+   la vela con su misma hora. Si es casi siempre la misma, es otro contrato o
+   un grafico con precios ajustados. */
+function diagnosticoPrecio(velas, senales){
+  const difs=[]; const N=velas.length; let j=0;
+  for(const s of senales){
+    if(s.precio===undefined || !isFinite(s.precio)) continue;
+    if(s.t < velas[0].t || s.t > velas[N-1].t) continue;
+    while(j<N-1 && velas[j].t < s.t) j++;
+    if(velas[j].t !== s.t) continue;
+    difs.push(s.precio - velas[j].c);
+  }
+  if(difs.length < 5) return null;
+  difs.sort((a,b)=>a-b);
+  const q=f=>difs[Math.min(difs.length-1, Math.floor(difs.length*f))];
+  return {mediana:q(0.5), iqr:q(0.75)-q(0.25), n:difs.length};
+}
+
 function correrImportadas(velas, senales, P, opc){
   if(velas.length<500) return {error:"Pocas velas"};
   opc = opc || {};
-  const s = alinear(velas, senales, opc.tick);
-  const des = s.desajustes||0, tot = s.length + des;
-  if(tot>0 && des/tot > 0.20)
-    return {error:"El CSV y las velas no son del mismo contrato: "+des+" de "+tot
-      +" señales tienen un precio fuera de su vela. Genera el CSV en un gráfico del mismo"
-      +" contrato que las velas y sin ajuste (Merge policy: Do not merge)."};
+  const tick = opc.tick>0 ? opc.tick : 0.25;
+
+  let c = cuadre(velas, senales, opc.tick, 0);
+  let desfaseH = 0;
+  if(c.tot>0 && c.ratio > 0.20){
+    /* v1.4 - antes de rechazar, se prueba si es un desfase de horas entero
+       (el CSV en una zona horaria y las velas en otra). Solo se acepta si con
+       ese desfase cuadran al menos el 90 % de las senales. */
+    let mejor=null;
+    for(let h=-14; h<=14; h++){
+      if(!h) continue;
+      const c2 = cuadre(velas, senales, opc.tick, h*3600000);
+      if(c2.tot>=5 && c2.ratio<=0.10 && (!mejor || c2.a.length > mejor.c.a.length)) mejor={h:h, c:c2};
+    }
+    if(mejor){ c = mejor.c; desfaseH = mejor.h; }
+    else {
+      const dg = diagnosticoPrecio(velas, senales);
+      const ref = Math.abs(velas[Math.floor(velas.length/2)].c) || 1;
+      let causa;
+      if(dg && Math.abs(dg.mediana) > 0.2*ref)
+        causa = "los precios no se parecen en nada (unos "+Math.round(Math.abs(dg.mediana))
+          +" puntos de diferencia): es otro instrumento.";
+      else if(dg && Math.abs(dg.mediana) > 8*tick
+            && dg.iqr <= Math.max(20*tick, Math.abs(dg.mediana)*0.3))
+        causa = "las señales van unos "+Math.round(Math.abs(dg.mediana))+" puntos "
+          +(dg.mediana>0?"por encima":"por debajo")+" de las velas, casi siempre lo mismo."
+          +" Es otro contrato o un gráfico con precios ajustados: genera el CSV en un gráfico"
+          +" del mismo contrato que las velas, con Merge policy en Do not merge.";
+      else
+        causa = "no es un desfase de horas ni una diferencia de precio constante."
+          +" Hay que revisar el CSV y el archivo de velas juntos.";
+      return {error:"El CSV no cuadra con estas velas ("+c.des+" de "+c.tot
+        +" señales con un precio fuera de su vela): "+causa};
+    }
+  }
+  const s = c.a, des = c.des;
   if(!s.length) return {error:"Ninguna senal cae dentro del rango de velas cargado"};
   // el modo independiente solo se aplica a las senales importadas
   const opcImp = Object.assign({}, opc, {_importadas:true});
   const R = reporte(ejecutar(velas, s, P, opcImp), velas, opc);
   R.huecos = s.huecos||0;
   R.desajustes = des;
+  R.desfaseHoras = desfaseH;
   return R;
 }
 
@@ -2486,19 +2546,56 @@ $("motor").addEventListener("change",e=>{
   avisar(T().motorCambiado.replace("{m}",MOTOR.nombre),false);
 });
 
-/* ===== carga de senales importadas ===== */
-conectar("dropSEN","fSEN",f=>leerArchivo(f,txt=>{
-  const delta=(MOTOR && MOTOR.aux==="delta");
-  const s = delta ? MotorMNQ.leerDelta(txt) : MotorMNQ.leerSenales(txt);
-  if(!s.length){avisar(delta?T().sinDelta:T().sinSenales,true);return}
-  if(delta){ DELTA=s; MotorMNQ.ponerDelta(s); } else { SENALES=s; }
-  $("dropSEN").classList.add("listo");
-  $("gSEN").textContent=s.length+" "+(delta?T().velasDelta:T().senales);
-  $("cSEN").textContent=new Date(s[0].t).toISOString().slice(0,10)+" → "
-    +new Date(s[s.length-1].t).toISOString().slice(0,10);
-  avisar((delta?T().deltaOK:T().senalesOK).replace("{n}",s.length),false);
+/* ===== carga de senales importadas =====
+   v1.4 - antes, cargar un segundo CSV SUSTITUIA al primero, asi que "senales
+   y control" nunca iban juntos. Ahora se acumulan: cada archivo se guarda por
+   su nombre (si repites el mismo archivo, se sustituye ese, no se duplica) y
+   se pueden cargar varios de golpe. El boton quita todos. */
+let ARCH_SEN = {};
+function juntarSenales(){
+  let todas=[];
+  Object.keys(ARCH_SEN).forEach(k=>{ todas = todas.concat(ARCH_SEN[k]); });
+  todas.sort((a,b)=>a.t-b.t);
+  return todas;
+}
+function cargarSenal(f){
+  leerArchivo(f,txt=>{
+    const delta=(MOTOR && MOTOR.aux==="delta");
+    const s = delta ? MotorMNQ.leerDelta(txt) : MotorMNQ.leerSenales(txt);
+    if(!s.length){avisar((delta?T().sinDelta:T().sinSenales)+" ("+f.name+")",true);return}
+    let todas=s, nArch=1;
+    if(delta){ DELTA=s; MotorMNQ.ponerDelta(s); }
+    else { ARCH_SEN[f.name]=s; SENALES=juntarSenales(); todas=SENALES; nArch=Object.keys(ARCH_SEN).length; }
+    $("dropSEN").classList.add("listo");
+    $("gSEN").textContent=todas.length+" "+(delta?T().velasDelta:T().senales)
+      +(nArch>1 ? " · "+nArch+" "+T().archivos : "");
+    $("cSEN").textContent=delta ? (new Date(todas[0].t).toISOString().slice(0,10)+" → "
+        +new Date(todas[todas.length-1].t).toISOString().slice(0,10))
+      : Object.keys(ARCH_SEN).join(" · ");
+    $("btnQuitarSEN").classList.toggle("oculto", delta);
+    avisar((delta?T().deltaOK:T().senalesOK).replace("{n}",s.length)+" ("+f.name+")",false);
+    revisar();
+  },T().errLeer);
+}
+(function(){
+  const d=$("dropSEN"), i=$("fSEN");
+  const todos=lista=>{ for(let k=0;k<lista.length;k++) cargarSenal(lista[k]); };
+  d.addEventListener("click",()=>i.click());
+  d.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();i.click()}});
+  i.addEventListener("change",e=>{ if(e.target.files && e.target.files.length) todos(e.target.files); i.value=""; });
+  ["dragenter","dragover"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add("sobre")}));
+  ["dragleave","drop"].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove("sobre")}));
+  d.addEventListener("drop",e=>{ if(e.dataTransfer.files && e.dataTransfer.files.length) todos(e.dataTransfer.files); });
+})();
+$("btnQuitarSEN").addEventListener("click",()=>{
+  ARCH_SEN={}; SENALES=[];
+  $("dropSEN").classList.remove("listo");
+  $("gSEN").textContent=T().subeSEN; $("cSEN").textContent=T().subeSEN2;
+  $("btnQuitarSEN").classList.add("oculto");
+  RES=null; $("secRes").classList.add("oculto");
+  avisar(T().senalesQuitadas,false);
   revisar();
-},T().errLeer));
+});
 
 /* ===== cobertura ===== */
 function pintarCobertura(){
@@ -2715,9 +2812,11 @@ function correrTodas(P,OPC){
     partes[0].porVentana=null; partes[0].saltadas=saltadas;
     partes[0].ignoradas=partes[0].ignoradas||0; partes[0].huecos=partes[0].huecos||0;
     partes[0].desajustes=partes[0].desajustes||0;
+    partes[0].desfases = partes[0].desfaseHoras ? [partes[0].desfaseHoras] : [];
     return partes[0];
   }
   const rs=[], us=[], cd=[]; let usd=0,cos=0, nAmb=0, nVE=0, nIgn=0, nHue=0, nDes=0;
+  const desfases=[];
   const acum={porTF:{},porEspacio:{},porRegimen:{}};
   for(const R of partes){
     const c=R.curva;
@@ -2732,6 +2831,7 @@ function correrTodas(P,OPC){
     nIgn += (R.ignoradas||0);
     nHue += (R.huecos||0);
     nDes += (R.desajustes||0);
+    if(R.desfaseHoras && desfases.indexOf(R.desfaseHoras)<0) desfases.push(R.desfaseHoras);
     usd+=R.total.usd; cos+=R.total.costos;
     for(const fam of ["porTF","porEspacio","porRegimen"]){
       const src=R[fam]||{};
@@ -2795,6 +2895,7 @@ function correrTodas(P,OPC){
   out.ignoradas     = nIgn;
   out.huecos        = nHue;
   out.desajustes    = nDes;
+  out.desfases      = desfases;
   out.resueltos     = sel(false);
   out.metCaducados  = sel(true);
   return out;
@@ -2874,6 +2975,8 @@ function pintarRes(){
   if(RES.ignoradas>0) m.push([String(RES.ignoradas), T().mIgnor]);
   if(RES.huecos>0)    m.push([String(RES.huecos), T().mHueco]);
   if(RES.desajustes>0) m.push([String(RES.desajustes), T().mDesaj]);
+  if(RES.desfases && RES.desfases.length)
+    m.push([RES.desfases.map(h=>(h>0?"+":"")+h+" h").join(" / "), T().mDesfase]);
 
   $("met").innerHTML=m.map((x,i)=>{
     const col=(i===idxApex)?(ddU<=lim?"var(--jade)":"var(--rojo)"):"";
@@ -3160,6 +3263,8 @@ function cuerpoInforme(){
    + (A.base.ignoradas>0 ? '<tr><td>'+D.mIgnor+'</td><td>'+A.base.ignoradas+'</td></tr>' : '')
    + (A.base.huecos>0 ? '<tr><td>'+D.mHueco+'</td><td>'+A.base.huecos+'</td></tr>' : '')
    + (A.base.desajustes>0 ? '<tr><td>'+D.mDesaj+'</td><td>'+A.base.desajustes+'</td></tr>' : '')
+   + ((A.base.desfases && A.base.desfases.length)
+      ? '<tr><td>'+D.mDesfase+'</td><td>'+A.base.desfases.map(h=>(h>0?'+':'')+h+' h').join(' / ')+'</td></tr>' : '')
    + ((A.base.saltadas && A.base.saltadas.length)
       ? '<tr><td>'+D.mSaltadas+'</td><td>'+A.base.saltadas.map(x=>String(x).split(':')[0]).join(', ')+'</td></tr>' : '')
    + ((A.base.caducados!==undefined && t.n>0)
@@ -3337,7 +3442,7 @@ errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:
 faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
 mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
 mCostos:"costos",mDD:"drawdown",mDDUsd:"drawdown $",
-mCaduc:"caducados",mIgnor:"señales sin operar",mHueco:"señales en un hueco de datos",mDesaj:"señales con precio fuera de su vela",mSaltadas:"ventanas descartadas",independientesLbl:"Señales importadas: medir cada señal por separado",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
+mCaduc:"caducados",mIgnor:"señales sin operar",mHueco:"señales en un hueco de datos",mDesaj:"señales con precio fuera de su vela",mSaltadas:"ventanas descartadas",mDesfase:"hora del CSV corregida",archivos:"archivos",quitarSEN:"Quitar las señales cargadas",senalesQuitadas:"Señales quitadas. Carga los CSV de nuevo.",independientesLbl:"Señales importadas: medir cada señal por separado",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
 hResueltos:"resueltas (SL/TP)",hCaducados:"caducadas",
 avCaduc:"{c} operaciones ({p} %) caducaron: no tocaron ni stop ni objetivo y se cerraron a mercado. Si cerraron en verde cuentan como acierto, así que el acierto global NO es comparable con el equilibrio del objetivo. Solo con las {n} resueltas: PF {pf} · acierto {ac} % . Las caducadas aportaron {rc} R.",
 mApex:"cabe en {l}",limiteLbl:"Límite de drawdown de la cuenta (USD)",
@@ -3400,7 +3505,7 @@ errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Don
 faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
 mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
 mCostos:"costs",mDD:"drawdown",mDDUsd:"drawdown $",
-mCaduc:"expired",mIgnor:"signals not traded",mHueco:"signals in a data gap",mDesaj:"signals priced outside their bar",mSaltadas:"windows skipped",independientesLbl:"Imported signals: measure each signal on its own",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
+mCaduc:"expired",mIgnor:"signals not traded",mHueco:"signals in a data gap",mDesaj:"signals priced outside their bar",mSaltadas:"windows skipped",mDesfase:"CSV time corrected",archivos:"files",quitarSEN:"Remove loaded signals",senalesQuitadas:"Signals removed. Load the CSVs again.",independientesLbl:"Imported signals: measure each signal on its own",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
 hResueltos:"resolved (SL/TP)",hCaducados:"expired",
 avCaduc:"{c} trades ({p} %) expired: they reached neither stop nor target and were closed at market. Those closing green count as wins, so the overall win rate is NOT comparable with the target's break-even. Using only the {n} resolved trades: PF {pf} · win rate {ac} % . Expired trades contributed {rc} R.",
 mApex:"fits {l}",limiteLbl:"Account drawdown limit (USD)",
