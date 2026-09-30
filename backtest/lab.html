@@ -102,7 +102,7 @@ line-height:1.5;color:var(--texto)}
 <body><div class="wrap">
 
 <header>
-  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.2.1 · señales alineadas</span>
+  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.3 · precios verificados</span>
   <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
@@ -1071,12 +1071,20 @@ function leerSenales(texto){
    - si la vela mas cercana esta a mas de dos velas de distancia, se descarta
      y se cuenta como "en un hueco";
    - si la hora coincide exacta y el precio es el cierre de esa vela, se marca
-     alCierre: la entrada fue al cerrar la vela. */
+     alCierre: la entrada fue al cerrar la vela.
+   v1.3 - EL PRECIO TAMBIEN TIENE QUE CUADRAR. Antes solo se miraba la hora, y
+   un CSV de otro contrato (septiembre contra diciembre), de otro instrumento
+   (oro contra Nasdaq) o de un grafico continuo ajustado daba resultados
+   absurdos sin avisar: los cortos "ganaban" y los largos "perdian" en la
+   primera vela. Ahora, si el precio de entrada cae fuera de su vela con mas
+   margen que el recorrido de la propia vela (minimo 8 ticks), la senal se
+   descarta y se cuenta en "desajustes". */
 function alinear(velas, senales, tick){
-  const out=[]; let j=0, huecos=0;
+  const out=[]; let j=0, huecos=0, desajustes=0;
   const N=velas.length;
-  if(!N) { out.huecos=0; return out; }
+  if(!N) { out.huecos=0; out.desajustes=0; return out; }
   const medioTick = (tick>0 ? tick : 0.25)/2;
+  const ochoTicks = 8*(tick>0 ? tick : 0.25);
 
   // periodo tipico de las velas: la mediana de las distancias
   const d=[];
@@ -1090,6 +1098,11 @@ function alinear(velas, senales, tick){
     while(j<N-1 && velas[j].t < s.t) j++;
     if(velas[j].t < s.t) continue;                        // por seguridad
     if(velas[j].t - s.t > tolerancia){ huecos++; continue; }
+    if(s.precio!==undefined && isFinite(s.precio)){
+      const b=velas[j];
+      const margen=Math.max(ochoTicks, b.h-b.l);
+      if(s.precio < b.l-margen || s.precio > b.h+margen){ desajustes++; continue; }
+    }
     const exacta = velas[j].t===s.t;
     const alCierre = exacta && s.precio!==undefined && isFinite(s.precio)
                      && Math.abs(s.precio - velas[j].c) <= medioTick;
@@ -1097,17 +1110,24 @@ function alinear(velas, senales, tick){
               sl:s.sl, tp:s.tp, alCierre:alCierre});
   }
   out.huecos=huecos;
+  out.desajustes=desajustes;
   return out;
 }
 function correrImportadas(velas, senales, P, opc){
   if(velas.length<500) return {error:"Pocas velas"};
   opc = opc || {};
   const s = alinear(velas, senales, opc.tick);
+  const des = s.desajustes||0, tot = s.length + des;
+  if(tot>0 && des/tot > 0.20)
+    return {error:"El CSV y las velas no son del mismo contrato: "+des+" de "+tot
+      +" señales tienen un precio fuera de su vela. Genera el CSV en un gráfico del mismo"
+      +" contrato que las velas y sin ajuste (Merge policy: Do not merge)."};
   if(!s.length) return {error:"Ninguna senal cae dentro del rango de velas cargado"};
   // el modo independiente solo se aplica a las senales importadas
   const opcImp = Object.assign({}, opc, {_importadas:true});
   const R = reporte(ejecutar(velas, s, P, opcImp), velas, opc);
   R.huecos = s.huecos||0;
+  R.desajustes = des;
   return R;
 }
 
@@ -2694,9 +2714,10 @@ function correrTodas(P,OPC){
   if(partes.length===1){
     partes[0].porVentana=null; partes[0].saltadas=saltadas;
     partes[0].ignoradas=partes[0].ignoradas||0; partes[0].huecos=partes[0].huecos||0;
+    partes[0].desajustes=partes[0].desajustes||0;
     return partes[0];
   }
-  const rs=[], us=[], cd=[]; let usd=0,cos=0, nAmb=0, nVE=0, nIgn=0, nHue=0;
+  const rs=[], us=[], cd=[]; let usd=0,cos=0, nAmb=0, nVE=0, nIgn=0, nHue=0, nDes=0;
   const acum={porTF:{},porEspacio:{},porRegimen:{}};
   for(const R of partes){
     const c=R.curva;
@@ -2710,6 +2731,7 @@ function correrTodas(P,OPC){
     nVE  += (R.enVelaEntrada||0);
     nIgn += (R.ignoradas||0);
     nHue += (R.huecos||0);
+    nDes += (R.desajustes||0);
     usd+=R.total.usd; cos+=R.total.costos;
     for(const fam of ["porTF","porEspacio","porRegimen"]){
       const src=R[fam]||{};
@@ -2772,6 +2794,7 @@ function correrTodas(P,OPC){
   out.enVelaEntrada = nVE;
   out.ignoradas     = nIgn;
   out.huecos        = nHue;
+  out.desajustes    = nDes;
   out.resueltos     = sel(false);
   out.metCaducados  = sel(true);
   return out;
@@ -2850,6 +2873,7 @@ function pintarRes(){
   /* v1.2 - senales que no llegaron a operarse: se dicen, no se esconden */
   if(RES.ignoradas>0) m.push([String(RES.ignoradas), T().mIgnor]);
   if(RES.huecos>0)    m.push([String(RES.huecos), T().mHueco]);
+  if(RES.desajustes>0) m.push([String(RES.desajustes), T().mDesaj]);
 
   $("met").innerHTML=m.map((x,i)=>{
     const col=(i===idxApex)?(ddU<=lim?"var(--jade)":"var(--rojo)"):"";
@@ -3135,6 +3159,9 @@ function cuerpoInforme(){
    + '<tr><td>'+D.hFuera+'</td><td>PF '+num(f.pf)+' · n '+f.n+'</td></tr>'
    + (A.base.ignoradas>0 ? '<tr><td>'+D.mIgnor+'</td><td>'+A.base.ignoradas+'</td></tr>' : '')
    + (A.base.huecos>0 ? '<tr><td>'+D.mHueco+'</td><td>'+A.base.huecos+'</td></tr>' : '')
+   + (A.base.desajustes>0 ? '<tr><td>'+D.mDesaj+'</td><td>'+A.base.desajustes+'</td></tr>' : '')
+   + ((A.base.saltadas && A.base.saltadas.length)
+      ? '<tr><td>'+D.mSaltadas+'</td><td>'+A.base.saltadas.map(x=>String(x).split(':')[0]).join(', ')+'</td></tr>' : '')
    + ((A.base.caducados!==undefined && t.n>0)
       ? '<tr><td>'+D.mCaduc+'</td><td>'+A.base.caducados+' ('
         +num(100*A.base.caducados/t.n,0)+' %)</td></tr>'
@@ -3310,7 +3337,7 @@ errArchivo:"El archivo no se pudo abrir.",errCorrer:"El backtest falló:",listo:
 faltanTxt:"El motor todavía no usa:",nadaFalta:"El motor usa todo lo que afecta la lógica.",
 mTrades:"operaciones",mR:"R total",mRT:"R por trade",mAcierto:"acierto",mNeto:"neto",
 mCostos:"costos",mDD:"drawdown",mDDUsd:"drawdown $",
-mCaduc:"caducados",mIgnor:"señales sin operar",mHueco:"señales en un hueco de datos",independientesLbl:"Señales importadas: medir cada señal por separado",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
+mCaduc:"caducados",mIgnor:"señales sin operar",mHueco:"señales en un hueco de datos",mDesaj:"señales con precio fuera de su vela",mSaltadas:"ventanas descartadas",independientesLbl:"Señales importadas: medir cada señal por separado",mPFres:"PF sin caducados",mAcRes:"acierto sin caducados",
 hResueltos:"resueltas (SL/TP)",hCaducados:"caducadas",
 avCaduc:"{c} operaciones ({p} %) caducaron: no tocaron ni stop ni objetivo y se cerraron a mercado. Si cerraron en verde cuentan como acierto, así que el acierto global NO es comparable con el equilibrio del objetivo. Solo con las {n} resueltas: PF {pf} · acierto {ac} % . Las caducadas aportaron {rc} R.",
 mApex:"cabe en {l}",limiteLbl:"Límite de drawdown de la cuenta (USD)",
@@ -3373,7 +3400,7 @@ errArchivo:"The file wouldn't open.",errCorrer:"The backtest failed:",listo:"Don
 faltanTxt:"The engine doesn't use yet:",nadaFalta:"The engine uses everything that affects logic.",
 mTrades:"trades",mR:"total R",mRT:"R per trade",mAcierto:"win rate",mNeto:"net",
 mCostos:"costs",mDD:"drawdown",mDDUsd:"drawdown $",
-mCaduc:"expired",mIgnor:"signals not traded",mHueco:"signals in a data gap",independientesLbl:"Imported signals: measure each signal on its own",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
+mCaduc:"expired",mIgnor:"signals not traded",mHueco:"signals in a data gap",mDesaj:"signals priced outside their bar",mSaltadas:"windows skipped",independientesLbl:"Imported signals: measure each signal on its own",mPFres:"PF excl. expired",mAcRes:"win rate excl. expired",
 hResueltos:"resolved (SL/TP)",hCaducados:"expired",
 avCaduc:"{c} trades ({p} %) expired: they reached neither stop nor target and were closed at market. Those closing green count as wins, so the overall win rate is NOT comparable with the target's break-even. Using only the {n} resolved trades: PF {pf} · win rate {ac} % . Expired trades contributed {rc} R.",
 mApex:"fits {l}",limiteLbl:"Account drawdown limit (USD)",
