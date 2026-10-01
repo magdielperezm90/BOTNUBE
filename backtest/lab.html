@@ -102,7 +102,7 @@ line-height:1.5;color:var(--texto)}
 <body><div class="wrap">
 
 <header>
-  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.4 · varios CSV y diagnóstico</span>
+  <div><h1 data-i="titulo">Lab MNQ</h1><span class="ok" style="margin-left:8px">v1.4.1 · CSV grandes</span>
   <div class="sub" data-i="sub">Sube cualquier indicador y sus velas. El lab elige el motor que le corresponde.</div></div>
   <button id="lang" type="button">EN</button>
 </header>
@@ -686,9 +686,11 @@ function reporte(trades, velas, opc){
   R.porTF      = por(t=>t.familia!==undefined?t.familia:(t.tfNivel>=1440?"sesion":t.tfNivel+"m"));
   R.curva=[]; let acc=0;
   for(const t of trades){ acc+=t.r; R.curva.push(acc); }
-  const ctr=trades.map(t=>t.ctr);
-  R.contratos = ctr.length ? {min:Math.min(...ctr),max:Math.max(...ctr),
-                  prom:ctr.reduce((a,b)=>a+b,0)/ctr.length} : null;
+  /* v1.4.1 - con un bucle: Math.min(...lista) revienta la pila del navegador
+     cuando hay decenas de miles de operaciones ("Maximum call stack size"). */
+  let cMin=Infinity, cMax=-Infinity, cSum=0;
+  for(const t of trades){ if(t.ctr<cMin) cMin=t.ctr; if(t.ctr>cMax) cMax=t.ctr; cSum+=t.ctr; }
+  R.contratos = trades.length ? {min:cMin, max:cMax, prom:cSum/trades.length} : null;
   /* CADUCADOS. Un trade que no toco ni stop ni objetivo en VelasVidaTrade
      velas se cierra a mercado. Su R es una fraccion, y si cierra en verde
      cuenta como ACIERTO en el total. Por eso el acierto global NO es
@@ -3026,7 +3028,7 @@ function pintarRes(){
 
   if(RES.barrido){
     $("wrapBarrido").classList.remove("oculto");
-    const pf=RES.barrido.map(x=>x.pf),dif=Math.max(...pf)-Math.min(...pf);
+    const pf=RES.barrido.map(x=>x.pf),dif=pf.reduce((a,b)=>Math.max(a,b),-Infinity)-pf.reduce((a,b)=>Math.min(a,b),Infinity);
     $("tSens").innerHTML=`<tr><th>${$("barrer").options[$("barrer").selectedIndex].text}</th><th>n</th><th>PF</th><th>R</th><th>DD $</th><th>neto</th><th>cad.</th><th>PF res.</th></tr>`+
       RES.barrido.map(x=>{
         const pc = x.n>0 ? 100*(x.cad||0)/x.n : 0;
@@ -3132,7 +3134,7 @@ function diagnosticar(filas,nBase){
   if(val.length<3) return {clave:"pocos",impacto:0,mejor:null};
 
   const pfs=val.map(f=>f.pf);
-  const impacto=Math.max.apply(null,pfs)-Math.min.apply(null,pfs);
+  const impacto=pfs.reduce((a,b)=>Math.max(a,b),-Infinity)-pfs.reduce((a,b)=>Math.min(a,b),Infinity);
   let iMejor=0;
   for(let i=1;i<val.length;i++) if(val[i].pf>val[iMejor].pf) iMejor=i;
   const mejor=val[iMejor];
