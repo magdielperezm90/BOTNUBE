@@ -1,28 +1,60 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-10-06 02:30 UTC",
- "ultima_vela": "2026-10-05",
- "precio_qqq": 756.2,
+ "actualizado": "2026-10-07 01:48 UTC",
+ "ultima_vela": "2026-10-06",
+ "precio_qqq": 759.66,
  "indicadores": {
-  "roc10": 1.99,
-  "valor_smc": 9850.69,
-  "valor_bh": 10444.69,
-  "tickers_alcistas": 6,
+  "roc10": 1.63,
+  "valor_smc": 9861.74,
+  "valor_bh": 10492.48,
+  "tickers_alcistas": 8,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 7938.57936932988,
+  "efectivo": 3992.6983144136893,
   "posiciones": {
    "MSFT": {
     "unidades": 3.640865,
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 525.18
+    "precio_actual": 529.3
+   },
+   "SPY": {
+    "unidades": 2.530086,
+    "costo": 1973.14,
+    "entrada": 779.09,
+    "fecha": "2026-10-06",
+    "precio_actual": 779.09
+   },
+   "V": {
+    "unidades": 5.317209,
+    "costo": 1972.74,
+    "entrada": 370.64,
+    "fecha": "2026-10-06",
+    "precio_actual": 370.64
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-10-06",
+    "tipo": "COMPRA (CHoCH +0.0%)",
+    "ticker": "V",
+    "precio": 370.64,
+    "unidades": 5.3172,
+    "valor": 1972.74,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-10-06",
+    "tipo": "COMPRA (CHoCH +0.5%)",
+    "ticker": "SPY",
+    "precio": 779.09,
+    "unidades": 2.5301,
+    "valor": 1973.14,
+    "pnl": ""
+   },
    {
     "fecha": "2026-09-29",
     "tipo": "VENTA (estructura rota)",
@@ -590,6 +622,12 @@
    "smc": 9850.69,
    "bh": 10444.69,
    "roc10": 1.99
+  },
+  {
+   "fecha": "2026-10-06",
+   "smc": 9861.74,
+   "bh": 10492.48,
+   "roc10": 1.63
   }
  ]
 }
