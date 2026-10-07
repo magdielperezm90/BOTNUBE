@@ -25,9 +25,11 @@ section{margin-top:18px;border:1px solid var(--linea);background:var(--panel)}
 .cab{padding:9px 14px;border-bottom:1px solid var(--linea);background:var(--panel2);
 font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
 color:var(--ambar);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.cab .der{display:flex;gap:8px}
+.cab .der{display:flex;gap:8px;flex-wrap:wrap}
+button.sec,button.acc.mini{white-space:nowrap}
 .cuerpo{padding:14px}
 .dos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dos>*{min-width:0}
 @media(max-width:760px){.dos{grid-template-columns:1fr}}
 .drop{border:1px dashed var(--linea);background:var(--panel2);padding:22px 16px;text-align:center;cursor:pointer;transition:border-color .15s}
 .drop:hover,.drop.sobre{border-color:var(--ambar)}
@@ -64,6 +66,8 @@ button.acc{font-family:var(--display);font-size:15px;font-weight:600;letter-spac
 background:transparent;color:var(--ambar);border:1px solid var(--ambar);padding:10px 22px;cursor:pointer}
 button.acc:hover:not(:disabled){background:var(--ambar);color:var(--grafito)}
 button.acc:disabled{opacity:.35;cursor:not-allowed}
+button.acc.mini{font-size:13px;padding:5px 14px;letter-spacing:.08em}
+.prog.mal{color:var(--rojo)}
 button.sec{font-family:var(--mono);font-size:11px;letter-spacing:.03em;text-transform:none;font-weight:500;
 background:transparent;color:var(--tenue);border:1px solid var(--linea);padding:5px 10px;cursor:pointer}
 button.sec:hover{color:var(--texto);border-color:var(--tenue)}
@@ -185,10 +189,12 @@ background:var(--panel);font-size:11.5px;color:var(--tenue);line-height:1.6}
 </div></section>
 
 <section id="secRes" class="oculto"><div class="cab"><span>4 · Resultados</span>
-  <span class="der"><button class="sec" type="button" id="btnCSV">Operaciones (CSV)</button>
+  <span class="der"><button class="acc mini" type="button" id="btnPDF">Descargar PDF</button>
+  <button class="sec" type="button" id="btnCSV">Operaciones (CSV)</button>
   <button class="sec" type="button" id="btnJSON">Informe (JSON)</button>
-  <button class="sec" type="button" id="btnPDF">Imprimir / PDF</button></span></div>
+  <button class="sec" type="button" id="btnImprimir">Imprimir</button></span></div>
   <div class="cuerpo">
+    <div class="prog" id="progRes" role="status" aria-live="polite" style="margin:0 0 8px"></div>
     <div id="meta" class="criterio"></div>
     <div class="scroll"><table id="tResumen"></table></div>
     <div id="tarjetas"></div>
@@ -1084,9 +1090,9 @@ function s(x, d){ if (x === undefined || isNaN(x)) return "—"; return (x > 0 ?
 function usd(x, d){
   if (x === undefined || isNaN(x)) return "—";
   const t = NF[d || 0].format(Math.abs(x));
-  return (/[1-9]/.test(t) ? (x > 0 ? "+" : "−") : "") + t + " $";
+  return (/[1-9]/.test(t) ? (x > 0 ? "+" : "−") : "") + t + "\u00A0$";
 }
-function pct(x, d){ return isNaN(x) ? "—" : n(x, d === undefined ? 0 : d) + " %"; }
+function pct(x, d){ return isNaN(x) ? "—" : n(x, d === undefined ? 0 : d) + "\u00A0%"; }
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 function fecha(k){ const d = new Date(k * M.DIA); return d.getUTCDate() + " " + MESES[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
 function mes(clave){ const p = clave.split("-"); return MESES[+p[1] - 1] + " " + p[0]; }
@@ -1344,6 +1350,52 @@ function textoSalida(sal){
   if (sal.tipo === "minutos") return "a los " + sal.valor + " minutos";
   return "a las " + sal.valor + " velas de 1 minuto";
 }
+/* Avisos de una tarjeta. Cada uno con su clase (mal, bien, tenue o normal) y
+   su texto en HTML; el PDF usa los mismos, sin las etiquetas. */
+function notasDe(R){
+  const T = R.total, c = R.cuenta, out = [];
+  const add = (clase, html) => out.push({clase: clase, html: html});
+  if (!T.n) return out;
+  if (R.boot) add(R.boot.p5 >= 1 ? "bien" : "", "Con " + n(T.n, 0) + " operaciones, el PF real está probablemente entre <b>" + n(R.boot.p5) + "</b> y <b>" + n(R.boot.p95) +
+    "</b> (90 %). Probabilidad de que en realidad no gane dinero: <b>" + pct(100 * R.boot.pMenor1, 1) + "</b>.");
+  const nImp = (c.imposible || 0) + (c.imposibleCruzada || 0);
+  if (nImp){
+    const base = c.alCierre + c.dentro + c.sinPrecio + nImp;
+    add("mal", "<b>" + n(nImp, 0) + " de " + n(base, 0) + " señales (" + pct(100 * nImp / base) + ") apuntan una entrada a un precio que no se negoció en su vela.</b> " +
+      "El Lab no las mide a ese precio: entra al cierre de esa vela, el primer precio seguro en que la señal ya existe" +
+      (c.imposibleCruzada ? ", y descarta " + n(c.imposibleCruzada, 0) + " porque a ese precio el stop o el objetivo ya habían pasado" : "") + ". " +
+      (R.comoCSV && R.comoCSV.n ? "Con el precio del CSV daría PF " + n(R.comoCSV.pf) + " en " + n(R.comoCSV.n, 0) + " operaciones: ese número está inflado. " : "") +
+      "Corrige el indicador para que apunte la entrada real.");
+  }
+  if (/^(EsfuerzoResultado|AceptacionDelta)/i.test(R.indicador) && !R.resultados)
+    add("", "Las señales de " + esc(R.indicador) + " necesitan bid y ask (Tick Replay). Si este CSV salió de un gráfico sin Tick Replay, no valen. La medición buena es su archivo <b>_resultados_</b>, resuelto tick a tick por el propio indicador.");
+  if (c.noCuadra && c.noCuadra >= 0.05 * c.leidas)
+    add("mal", "<b>" + n(c.noCuadra, 0) + " señales con un precio muy lejos de su vela no se han medido.</b> Suele ser la zona horaria equivocada, o un CSV de otro contrato o de un gráfico con precios ajustados.");
+  if (R.control && R.control.total.n && R.control.total.pf >= T.pf)
+    add("mal", "<b>El control gana igual o más que la señal</b> (PF " + n(R.control.total.pf) + " contra " + n(T.pf) + "). Las mismas entradas sin la condición del indicador dan lo mismo: la condición no aporta.");
+  if (!R.resultados && R.espejo.n && R.espejo.pf >= T.pf)
+    add("mal", "<b>Al revés gana igual o más</b> (PF " + n(R.espejo.pf) + " contra " + n(T.pf) + "). La dirección de la señal no aporta.");
+  if (R.hermanos && R.hermanos.length)
+    add("tenue", "Medido con las velas de otro contrato del mismo precio (" + esc(R.hermanos.join(", ")) + "): dólares, tick y costes son los de este último.");
+  return out;
+}
+/* Filas de "Dónde aguanta": {etq en HTML, m métricas, tono}. Las filas sin
+   operaciones no salen, salvo la reserva. */
+function filasDonde(R){
+  const T = R.total, f = [];
+  const add = (etq, m, tono, siempre) => { if (siempre || m.n) f.push({etq: etq, m: m, tono: tono || ""}); };
+  add("Todo", T, "", true);
+  add("Primer 70 % · hasta " + fecha(R.corte - 1), R.dentro);
+  add("<b>Reserva</b> · último 30 %, desde " + fecha(R.corte), R.reserva, "", true);
+  if (R.ny.n && R.fueraNY.n){ add("Sesión de NY · 9:30 a 16:00", R.ny, "", true); add("Fuera de la sesión de NY", R.fueraNY, "", true); }
+  add("Largos", R.largos); add("Cortos", R.cortos);
+  if (!R.resultados) add("Al revés · mismas entradas, dirección contraria", R.espejo, "t");
+  if (R.control){ add("Control · las mismas entradas sin la condición", R.control.total, "a", true); add("Control en la reserva", R.control.reserva, "a", true); }
+  return f;
+}
+function aTexto(html){
+  return String(html).replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+}
 function tarjeta(R, idx){
   const T = R.total, c = R.cuenta, aj = ULT.aj;
   const vtxt = {pasa: "Pasa", no: "No pasa", pocos: "Pocas operaciones", sin: "Sin operaciones"}[R.veredicto];
@@ -1365,38 +1417,10 @@ function tarjeta(R, idx){
     "<div><b class='" + (T.rOp >= 0 ? "b" : "m") + "'>" + s(T.rOp) + "</b><span>R por operación</span><small>antes de costes</small></div>" +
     "<div><b class='" + (T.neto >= 0 ? "b" : "m") + "'>" + usd(T.neto) + "</b><span>Neto</span><small>" + usd(T.usdOp, 2) + " por operación · " + aj.contratos + " ctr</small></div>" +
     "<div><b class='m'>" + usd(-T.ddUsd).replace("+", "") + "</b><span>Caída máxima</span>" + caida + "</div></div>";
-  if (R.boot) h += "<div class='nota" + (R.boot.p5 >= 1 ? " bien" : "") + "'>Con " + n(T.n, 0) + " operaciones, el PF real está probablemente entre <b>" + n(R.boot.p5) + "</b> y <b>" + n(R.boot.p95) +
-    "</b> (90 %). Probabilidad de que en realidad no gane dinero: <b>" + pct(100 * R.boot.pMenor1, 1) + "</b>.</div>";
-  const nImp = (c.imposible || 0) + (c.imposibleCruzada || 0);
-  if (nImp){
-    const base = c.alCierre + c.dentro + c.sinPrecio + nImp;
-    h += "<div class='nota mal'><b>" + n(nImp, 0) + " de " + n(base, 0) + " señales (" + pct(100 * nImp / base) + ") apuntan una entrada a un precio que no se negoció en su vela.</b> " +
-      "El Lab no las mide a ese precio: entra al cierre de esa vela, el primer precio seguro en que la señal ya existe" +
-      (c.imposibleCruzada ? ", y descarta " + n(c.imposibleCruzada, 0) + " porque a ese precio el stop o el objetivo ya habían pasado" : "") + ". " +
-      (R.comoCSV && R.comoCSV.n ? "Con el precio del CSV daría PF " + n(R.comoCSV.pf) + " en " + n(R.comoCSV.n, 0) + " operaciones: ese número está inflado. " : "") +
-      "Corrige el indicador para que apunte la entrada real.</div>";
-  }
-  if (/^(EsfuerzoResultado|AceptacionDelta)/i.test(R.indicador) && !R.resultados)
-    h += "<div class='nota'>Las señales de " + esc(R.indicador) + " necesitan bid y ask (Tick Replay). Si este CSV salió de un gráfico sin Tick Replay, no valen. La medición buena es su archivo <b>_resultados_</b>, resuelto tick a tick por el propio indicador.</div>";
-  if (c.noCuadra && c.noCuadra >= 0.05 * c.leidas)
-    h += "<div class='nota mal'><b>" + n(c.noCuadra, 0) + " señales con un precio muy lejos de su vela no se han medido.</b> Suele ser la zona horaria equivocada, o un CSV de otro contrato o de un gráfico con precios ajustados.</div>";
-  if (R.control && R.control.total.n && R.control.total.pf >= T.pf)
-    h += "<div class='nota mal'><b>El control gana igual o más que la señal</b> (PF " + n(R.control.total.pf) + " contra " + n(T.pf) + "). Las mismas entradas sin la condición del indicador dan lo mismo: la condición no aporta.</div>";
-  if (!R.resultados && R.espejo.n && R.espejo.pf >= T.pf)
-    h += "<div class='nota mal'><b>Al revés gana igual o más</b> (PF " + n(R.espejo.pf) + " contra " + n(T.pf) + "). La dirección de la señal no aporta.</div>";
-  if (R.hermanos && R.hermanos.length)
-    h += "<div class='nota tenue'>Medido con las velas de otro contrato del mismo precio (" + esc(R.hermanos.join(", ")) + "): dólares, tick y costes son los de este último.</div>";
+  for (const x of notasDe(R)) h += "<div class='nota" + (x.clase ? " " + x.clase : "") + "'>" + x.html + "</div>";
   // dónde aguanta (las filas sin operaciones no se enseñan, salvo la reserva)
-  const siHay = (etq, m) => m.n ? filaMet(etq, m) : "";
   h += "<div class='gt'>Dónde aguanta</div><div class='scroll'><table>" + CAB_MET +
-    filaMet("Todo", T) +
-    siHay("Primer 70 % · hasta " + fecha(R.corte - 1), R.dentro) +
-    filaMet("<b>Reserva</b> · último 30 %, desde " + fecha(R.corte), R.reserva) +
-    (R.ny.n && R.fueraNY.n ? filaMet("Sesión de NY · 9:30 a 16:00", R.ny) + filaMet("Fuera de la sesión de NY", R.fueraNY) : "") +
-    siHay("Largos", R.largos) + siHay("Cortos", R.cortos) +
-    (R.resultados ? "" : siHay("<span class='t'>Al revés · mismas entradas, dirección contraria</span>", R.espejo)) +
-    (R.control ? filaMet("<span class='a'>Control · las mismas entradas sin la condición</span>", R.control.total) +
-      filaMet("<span class='a'>Control en la reserva</span>", R.control.reserva) : "") +
+    filasDonde(R).map(x => filaMet(x.tono ? "<span class='" + x.tono + "'>" + x.etq + "</span>" : x.etq, x.m)).join("") +
     "</table></div>";
   if (!R.resultados || R.control) h += "<div class='leyenda'>" + (R.resultados ? "" : "Si las mismas entradas al revés ganan casi lo mismo, la dirección de la señal no aporta nada. ") + (R.control ? "El control es la referencia sin la condición del indicador: la señal tiene que ganarle con claridad." : "") + "</div>";
   h += "<div class='gt'>Curva</div>" + curvaSVG(R);
@@ -1428,10 +1452,11 @@ function rango(par){
   const a = Math.floor(par[0] / M.DIA), b = Math.floor(par[1] / M.DIA);
   return a === b ? " (" + fecha(a) + ")" : " (del " + fecha(a) + " al " + fecha(b) + ")";
 }
-function calidad(R){
+/* Filas de "De dónde salen las cifras": [texto, valor, clase]. */
+function filasCalidad(R){
   const c = R.cuenta;
   const filas = [];
-  const f = (t, v, cl) => { if (v) filas.push("<tr><td class='izq'>" + t + "</td><td class='" + (cl || "") + "'>" + n(v, 0) + "</td></tr>"); };
+  const f = (t, v, cl) => { if (v) filas.push([t, v, cl || ""]); };
   f("Filas leídas", c.leidas);
   if (R.resultados){
     f("Operaciones que se miden", R.total.n, "b");
@@ -1458,7 +1483,11 @@ function calidad(R){
     f("Sin velas suficientes para resolverse", c.sinResolver, "t");
     f("Descartadas por haber otra abierta", R.descartadas, "t");
   }
-  let h = "<div class='gt'>De dónde salen las cifras</div><div class='scroll'><table>" + filas.join("") + "</table></div>";
+  return filas;
+}
+function calidad(R){
+  let h = "<div class='gt'>De dónde salen las cifras</div><div class='scroll'><table>" +
+    filasCalidad(R).map(x => "<tr><td class='izq'>" + x[0] + "</td><td class='" + x[2] + "'>" + n(x[1], 0) + "</td></tr>").join("") + "</table></div>";
   h += "<div class='leyenda'>Archivos: " + esc(R.archivos.join(", ")) + ".</div>";
   return h;
 }
@@ -1527,7 +1556,256 @@ $("btnJSON").addEventListener("click", () => {
   });
   bajar("Lab_informe.json", JSON.stringify({ajustes: ULT.aj, zona: ULT.zonaInfo && ULT.zonaInfo.tabla.slice(0, 3), resultados: limpio}, null, 1), "application/json");
 });
-$("btnPDF").addEventListener("click", () => window.print());
+
+/* ---------- PDF ----------
+   El informe se escribe como un PDF de verdad (texto y tablas, no una foto de
+   la pantalla) con jsPDF. La librería solo se descarga al pulsar el botón; si
+   no hay conexión, se dice y queda la opción de Imprimir. */
+const LIBS_PDF = [
+  ["https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js",
+   "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.8/jspdf.plugin.autotable.min.js"],
+  ["https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js",
+   "https://cdn.jsdelivr.net/npm/jspdf-autotable@5.0.8/dist/jspdf.plugin.autotable.min.js"]
+];
+function estadoRes(t, mal){ const e = $("progRes"); e.textContent = t || ""; e.className = "prog" + (mal ? " mal" : ""); }
+function cargarScript(src, ms){
+  return new Promise((ok, mal) => {
+    const el = document.createElement("script"); let hecho = false;
+    const fin = (bien, err) => { if (hecho) return; hecho = true; clearTimeout(reloj); if (bien) ok(); else { el.remove(); mal(err); } };
+    const reloj = setTimeout(() => fin(false, new Error("tiempo agotado: " + src)), ms || 20000);
+    el.src = src; el.async = true;
+    el.onload = () => fin(true); el.onerror = () => fin(false, new Error("no se pudo cargar " + src));
+    document.head.appendChild(el);
+  });
+}
+function hayPDF(){ return !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable); }
+async function libsPDF(){
+  if (hayPDF()) return true;
+  for (const par of LIBS_PDF){
+    try {
+      if (!(window.jspdf && window.jspdf.jsPDF)) await cargarScript(par[0]);
+      if (!hayPDF()) await cargarScript(par[1]);
+    } catch (e){ console.warn(e.message); }
+    if (hayPDF()) return true;
+  }
+  return false;
+}
+/* Las fuentes estándar del PDF solo tienen el alfabeto latino (con tildes y ñ):
+   los símbolos que no están se cambian por su equivalente en texto. */
+const WINANSI = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+function pdfTxt(x){
+  let t = String(x === undefined || x === null ? "" : x)
+    .replace(/→/g, "->").replace(/←/g, "<-").replace(/≥/g, ">=").replace(/≤/g, "<=")
+    .replace(/✓/g, "sí").replace(/✗/g, "no").replace(/−/g, "-").replace(/∞/g, "inf")
+    .replace(/[\u2007\u2009\u202F]/g, " ");
+  let o = "";
+  for (const ch of t){ const c = ch.codePointAt(0); o += (c <= 255 || WINANSI.indexOf(ch) >= 0) ? ch : "?"; }
+  return o;
+}
+function fechaArchivo(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+function construirPDF(lista){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit: "mm", format: "a4", orientation: "portrait", compress: true});
+  const W = 210, H = 297, M = 14, AN = W - 2 * M, PIE = 12;
+  const C = {texto: [22, 25, 30], tenue: [98, 104, 112], linea: [208, 211, 215], verde: [23, 120, 79], rojo: [176, 48, 43],
+             ambar: [154, 101, 16], fondo: [244, 245, 247]};
+  const colorClase = cl => cl === "b" ? C.verde : cl === "m" ? C.rojo : cl === "a" ? C.ambar : cl === "t" ? C.tenue : C.texto;
+  const aj = ULT.aj;
+  let y = M;
+  doc.setLineHeightFactor(1.2);
+  const fuente = (est, tam, col) => { doc.setFont("helvetica", est || "normal"); doc.setFontSize(tam || 9); doc.setTextColor.apply(doc, col || C.texto); };
+  const alto = tam => tam * 0.3528 * 1.2;
+  const sitio = h => { if (y + h > H - PIE - 4){ doc.addPage(); y = M; } };
+  function parrafo(t, o){
+    o = o || {}; const tam = o.tam || 9, x = M + (o.sangria || 0);
+    fuente(o.est, tam, o.col);
+    const ls = doc.splitTextToSize(pdfTxt(t), AN - (o.sangria || 0));
+    sitio(ls.length * alto(tam) + (o.antes || 0));
+    y += o.antes || 0;
+    doc.text(ls, x, y, {baseline: "top"});
+    y += ls.length * alto(tam) + (o.despues === undefined ? 1.6 : o.despues);
+  }
+  function titulo(t, sigue){
+    sitio(14 + (sigue === undefined ? 16 : sigue)); y += 2.5;
+    fuente("bold", 10.5, C.texto); doc.text(pdfTxt(t.toUpperCase()), M, y, {baseline: "top"});
+    y += alto(10.5) + 0.8; doc.setDrawColor.apply(doc, C.linea); doc.setLineWidth(0.3); doc.line(M, y, W - M, y); y += 2.2;
+  }
+  function nota(html, clase){
+    const tam = 8.4, ls = (fuente("normal", tam, clase === "tenue" ? C.tenue : C.texto), doc.splitTextToSize(pdfTxt(aTexto(html)), AN - 7));
+    const h = ls.length * alto(tam) + 3.4;
+    sitio(h + 2);
+    doc.setFillColor.apply(doc, C.fondo); doc.rect(M, y, AN, h, "F");
+    doc.setFillColor.apply(doc, clase === "mal" ? C.rojo : clase === "bien" ? C.verde : clase === "tenue" ? C.linea : C.ambar);
+    doc.rect(M, y, 1, h, "F");
+    doc.text(ls, M + 4, y + 1.7, {baseline: "top"});
+    y += h + 2.2;
+  }
+  function tabla(cab, filas, o){
+    o = o || {};
+    sitio(16);
+    const columnas = {};
+    for (let k = 0; k < cab.length; k++) columnas[k] = {halign: k === 0 || (o.izq && o.izq.indexOf(k) >= 0) ? "left" : "right"};
+    if (o.anchos) for (const k in o.anchos) columnas[k].cellWidth = o.anchos[k];
+    doc.autoTable({
+      startY: y, margin: {left: M, right: M, top: M, bottom: PIE + 6}, tableWidth: o.ancho || "auto",
+      head: [cab.map(pdfTxt)],
+      body: filas.map(f => f.map(c => (c && typeof c === "object") ? {content: pdfTxt(c.t), styles: c.s || {}} : pdfTxt(c))),
+      theme: "plain",
+      styles: {font: "helvetica", fontSize: o.tam || 8, textColor: C.texto, cellPadding: {top: 1.05, bottom: 1.05, left: 1.5, right: 1.5},
+               lineColor: C.linea, lineWidth: {bottom: 0.15}, overflow: "linebreak", valign: "top"},
+      headStyles: {fontStyle: "bold", fontSize: 6.8, textColor: C.tenue, lineColor: [150, 154, 160], lineWidth: {bottom: 0.3}},
+      columnStyles: columnas,
+      didParseCell: d => { if (d.section === "head") d.cell.styles.halign = columnas[d.column.index].halign; }
+    });
+    y = doc.lastAutoTable.finalY + 3;
+  }
+  const pfC = pf => ({t: n(pf), s: {textColor: colorClase(clasePF(pf))}});
+  const usdC = x => ({t: usd(x), s: {textColor: x > 0 ? C.verde : x < 0 ? C.rojo : C.texto}});
+  const filaM = (etq, m, tono) => [tono ? {t: etq, s: {textColor: colorClase(tono)}} : etq, n(m.n, 0), pfC(m.pf), pct(m.acierto), s(m.rOp), usdC(m.neto)];
+  const CAB = ["", "Ops", "PF", "Acierto", "R/op", "Neto"];
+  const VTXT = {pasa: "Pasa", no: "No pasa", pocos: "Pocas operaciones", sin: "Sin operaciones"};
+  const VCOL = {pasa: C.verde, no: C.rojo, pocos: C.ambar, sin: C.tenue};
+
+  function curva(R){
+    const c = R.curva; if (c.length < 2) return;
+    const h = 44; sitio(h + 10);
+    const x0 = M, y0 = y, w = AN;
+    // como mucho unos 1.600 puntos: el mínimo y el máximo de cada tramo, en orden
+    let pts = c.map((p, i) => ({i: i, v: p.v}));
+    if (pts.length > 1600){
+      const k = Math.ceil(pts.length / 800), r = [];
+      for (let a = 0; a < pts.length; a += k){
+        const tr = pts.slice(a, a + k); let lo = tr[0], hi = tr[0];
+        for (const p of tr){ if (p.v < lo.v) lo = p; if (p.v > hi.v) hi = p; }
+        if (lo.i <= hi.i){ r.push(lo); if (hi !== lo) r.push(hi); } else { r.push(hi); r.push(lo); }
+      }
+      if (r[r.length - 1].i !== pts.length - 1) r.push(pts[pts.length - 1]);
+      pts = r;
+    }
+    let mn = 0, mx = 0; for (const p of c){ if (p.v < mn) mn = p.v; if (p.v > mx) mx = p.v; }
+    const rg = (mx - mn) || 1, N = c.length - 1;
+    const X = i => x0 + 1.5 + i * (w - 3) / N, Y = v => y0 + h - 2 - (v - mn) * (h - 4) / rg;
+    doc.setFillColor.apply(doc, C.fondo); doc.rect(x0, y0, w, h, "F");
+    doc.setDrawColor(170, 174, 180); doc.setLineWidth(0.2); doc.line(x0, Y(0), x0 + w, Y(0));
+    const ic = c.findIndex(p => p.ses >= R.corte);
+    if (ic > 0){ doc.setDrawColor.apply(doc, C.ambar); doc.setLineDashPattern([1.2, 1.2], 0); doc.line(X(ic), y0, X(ic), y0 + h); doc.setLineDashPattern([], 0); }
+    doc.setDrawColor.apply(doc, c[N].v >= 0 ? C.verde : C.rojo); doc.setLineWidth(0.4);
+    const segs = []; for (let k = 1; k < pts.length; k++) segs.push([X(pts[k].i) - X(pts[k - 1].i), Y(pts[k].v) - Y(pts[k - 1].v)]);
+    doc.lines(segs, X(pts[0].i), Y(pts[0].v));
+    fuente("normal", 6.8, C.tenue);
+    doc.text(pdfTxt(usd(mx)), x0 + 1.5, y0 + 1.2, {baseline: "top"});
+    doc.text(pdfTxt(usd(mn)), x0 + 1.5, y0 + h - 1.2, {baseline: "bottom"});
+    y += h + 1.5;
+    parrafo("Neto acumulado en dólares, operación a operación (" + n(c.length, 0) + "). La línea discontinua marca el comienzo de la reserva (" + fecha(R.corte) + ").", {tam: 7.2, col: C.tenue});
+  }
+
+  // ---------- portada: ajustes, velas y resumen
+  fuente("bold", 18, C.texto); doc.text("Lab MNQ", M, y, {baseline: "top"});
+  fuente("normal", 10, C.tenue); doc.text(pdfTxt("Informe de medición · v" + window.LabMotor.VERSION), M + 31, y + 2.2, {baseline: "top"});
+  y += 10;
+  const zi = ULT.zonaInfo, eleg = zi ? (zi.tabla.find(x => x.zona === aj.zona) || zi.tabla[0]) : null;
+  parrafo("Medido el " + ULT.cuando.toLocaleString("es-ES") + " · " + aj.contratos + (aj.contratos === 1 ? " contrato" : " contratos") + " · comisión " + n(aj.comision) +
+    " $ + " + aj.slip + " tick de deslizamiento por lado · zona horaria " + (NOMBRE_ZONA[aj.zona] || aj.zona) + (eleg ? " (" + (ULT.manual ? "elegida a mano" : "automática") +
+    ": cuadran con su vela el " + pct(100 * eleg.cerca) + " de las señales)" : "") + ".", {tam: 8.6, col: C.tenue});
+  parrafo("Criterio, escrito antes de medir: PF ≥ " + n(aj.criterio.pf) + " con costes · PF ≥ " + n(aj.criterio.pfReserva) + " en la reserva (último 30 % de las sesiones) · al menos " +
+    aj.criterio.n + " operaciones.", {tam: 8.6, col: C.tenue});
+  if (PREP && PREP.contratos.length){
+    titulo("Velas");
+    let tot = 0; for (const m of PREP.usadas.values()) tot += m.size;
+    tabla(["Contrato", "Velas", "Desde", "Hasta", "Sesiones", "Se usan"],
+      PREP.contratos.map(ct => { const us = ct.sesiones.filter(x => x.usada);
+        return [ct.clave, n(ct.N, 0), fecha(ct.sesiones[0].k), fecha(ct.sesiones[ct.sesiones.length - 1].k), String(ct.sesiones.length),
+                us.length ? us.length + " · " + fecha(us[0].k) + " -> " + fecha(us[us.length - 1].k) : "0"]; }));
+    parrafo("Sesiones que se miden: " + tot + ". Cuentan las del contrato principal de cada día (el de más volumen), sin las sesiones cortadas al principio o al final de cada archivo.", {tam: 7.6, col: C.tenue});
+  }
+  titulo("Resumen");
+  tabla(["Indicador", "Tipo", "Ops", "Por sesión", "PF", "PF reserva", "Acierto", "Neto", "Veredicto"],
+    lista.map(R => [R.indicador, TIPO[R.tipo], n(R.total.n, 0), n(R.opsDia, 1), pfC(R.total.pf), pfC(R.reserva.pf), pct(R.total.acierto), usdC(R.total.neto),
+      {t: VTXT[R.veredicto], s: {textColor: VCOL[R.veredicto], fontStyle: "bold"}}]), {izq: [1], tam: 7.8});
+  titulo("Cómo mide");
+  parrafo("Cada señal entra al precio de su CSV en la vela de 1 minuto que cierra a esa hora. Si el precio es el cierre de la vela, el resultado empieza en la vela siguiente; si no, esa misma vela puede tocar el stop. Si el precio ni siquiera se negoció en esa vela, se entra a su cierre. Si una vela toca stop y objetivo, cuenta el stop. Solo cuentan las sesiones del contrato principal (el de más volumen) y no las sesiones cortadas al principio o al final de cada archivo. La reserva son las sesiones del último 30 %, por fecha. El PF y el acierto incluyen comisión y deslizamiento. Resultados pasados no garantizan resultados futuros.", {tam: 8, col: C.tenue});
+
+  // ---------- una sección por indicador
+  for (const R of lista){
+    doc.addPage(); y = M;
+    const T = R.total, c = R.cuenta;
+    fuente("bold", 16, C.texto); doc.text(pdfTxt(R.indicador), M, y, {baseline: "top"});
+    fuente("bold", 12, VCOL[R.veredicto]); doc.text(pdfTxt(VTXT[R.veredicto].toUpperCase()), W - M, y + 1, {baseline: "top", align: "right"});
+    y += 8;
+    parrafo(TIPO[R.tipo] + " · " + R.archivos.length + (R.archivos.length === 1 ? " archivo" : " archivos") + (R.resultados ? "" : " · salida " + textoSalida(R.salida)), {tam: 8.4, col: C.tenue});
+    if (!T.n){
+      nota("Ninguna señal se pudo operar. " + motivoCero(R), "mal");
+    } else {
+      const si = b => b ? "sí" : "no";
+      parrafo("Criterio: PF ≥ " + n(aj.criterio.pf) + " con costes: " + si(R.criterio.pfOK) + " · PF ≥ " + n(aj.criterio.pfReserva) + " en la reserva: " + si(R.criterio.resOK) +
+        " · al menos " + aj.criterio.n + " operaciones: " + si(R.criterio.nOK), {tam: 8.6});
+      y += 0.5;
+      tabla(["Operaciones", "PF con costes", "Acierto", "R por operación", "Neto", "Caída máxima"], [
+        [{t: n(T.n, 0), s: {fontSize: 13, fontStyle: "bold"}}, {t: n(T.pf), s: {fontSize: 13, fontStyle: "bold", textColor: colorClase(clasePF(T.pf))}},
+         {t: pct(T.acierto), s: {fontSize: 13, fontStyle: "bold"}}, {t: s(T.rOp), s: {fontSize: 13, fontStyle: "bold", textColor: T.rOp >= 0 ? C.verde : C.rojo}},
+         {t: usd(T.neto), s: {fontSize: 13, fontStyle: "bold", textColor: T.neto >= 0 ? C.verde : C.rojo}},
+         {t: usd(-T.ddUsd).replace("+", ""), s: {fontSize: 13, fontStyle: "bold", textColor: C.rojo}}],
+        [{t: n(R.opsDia, 1) + " por sesión · " + R.sesiones + " sesiones", s: {textColor: C.tenue, fontSize: 7}}, {t: "reserva " + n(R.reserva.pf), s: {textColor: C.tenue, fontSize: 7}},
+         {t: "con costes", s: {textColor: C.tenue, fontSize: 7}}, {t: "antes de costes", s: {textColor: C.tenue, fontSize: 7}},
+         {t: usd(T.usdOp, 2) + " por op. · " + aj.contratos + " ctr", s: {textColor: C.tenue, fontSize: 7}},
+         {t: (c.limiteOK ? "cabe en " : "pasa de ") + usd(aj.limiteCuenta).replace("+", ""), s: {textColor: c.limiteOK ? C.verde : C.rojo, fontSize: 7}}]
+      ], {anchos: {0: AN / 6, 1: AN / 6, 2: AN / 6, 3: AN / 6, 4: AN / 6, 5: AN / 6}});
+      for (const x of notasDe(R)) nota(x.html, x.clase);
+      titulo("Dónde aguanta");
+      tabla(CAB, filasDonde(R).map(x => filaM(aTexto(x.etq), x.m, x.tono)), {anchos: {0: 78}});
+      if (!R.resultados || R.control)
+        parrafo((R.resultados ? "" : "Si las mismas entradas al revés ganan casi lo mismo, la dirección de la señal no aporta nada. ") +
+          (R.control ? "El control es la referencia sin la condición del indicador: la señal tiene que ganarle con claridad." : ""), {tam: 7.2, col: C.tenue});
+      titulo("Curva");
+      curva(R);
+      const famCtl = R.control ? R.control.familias.map(x => ({clave: x.clave, m: x.m, control: true})) : [];
+      titulo("Por familia");
+      tabla(["Familia", "Ops", "PF", "Acierto", "R/op", "Neto"], R.familias.concat(famCtl).map(x => filaM(x.clave, x.m, x.control ? "a" : "")), {anchos: {0: 78}});
+      if (famCtl.length) parrafo("En ámbar, las familias del control.", {tam: 7.2, col: C.tenue});
+      titulo("Por contrato");
+      tabla(["Contrato", "Ops", "PF", "Acierto", "R/op", "Neto"], R.contratos.map(x => filaM(x.clave, x.m)), {anchos: {0: 78}});
+      titulo("Cómo terminan");
+      tabla(["Salida", "Ops", "De todas", "R/op", "Neto"], R.motivos.map(x => [x.clave, n(x.m.n, 0), pct(100 * x.m.n / T.n), s(x.m.rOp), usdC(x.m.neto)]), {anchos: {0: 78}});
+      const ganadores = R.meses.filter(x => x.m.neto > 0).length;
+      titulo("Por mes · " + ganadores + " de " + R.meses.length + " en positivo");
+      tabla(["Mes", "Ops", "PF", "Acierto", "R/op", "Neto"], R.meses.map(x => filaM(mes(x.clave), x.m)), {anchos: {0: 78}});
+    }
+    titulo("De dónde salen las cifras");
+    tabla(["", "Señales"], filasCalidad(R).map(x => [x[0], {t: n(x[1], 0), s: {textColor: colorClase(x[2])}}]), {tam: 7.6});
+    parrafo("Archivos: " + R.archivos.join(", ") + ".", {tam: 7, col: C.tenue});
+  }
+
+  // ---------- pie de página
+  const paginas = doc.getNumberOfPages();
+  for (let k = 1; k <= paginas; k++){
+    doc.setPage(k);
+    fuente("normal", 7, C.tenue);
+    doc.setDrawColor.apply(doc, C.linea); doc.setLineWidth(0.2); doc.line(M, H - PIE, W - M, H - PIE);
+    doc.text(pdfTxt("Lab MNQ v" + window.LabMotor.VERSION + " · " + ULT.cuando.toLocaleString("es-ES")), M, H - PIE + 2, {baseline: "top"});
+    doc.text(pdfTxt("Página " + k + " de " + paginas), W - M, H - PIE + 2, {baseline: "top", align: "right"});
+  }
+  return doc;
+}
+async function descargarPDF(){
+  const lista = window.LAB_LISTA;
+  if (!lista || !lista.length || !ULT) return;
+  const b = $("btnPDF"); b.disabled = true;
+  estadoRes("Preparando el PDF…");
+  try {
+    if (!(await libsPDF())){
+      estadoRes("No se pudo descargar el generador de PDF (hace falta conexión a internet). Usa «Imprimir» y elige «Guardar como PDF».", true);
+      return;
+    }
+    const doc = construirPDF(lista);
+    const nombre = "Lab_" + (lista.length === 1 ? lista[0].indicador.replace(/[^\w-]+/g, "_") + "_" : "informe_") + fechaArchivo(ULT.cuando) + ".pdf";
+    doc.save(nombre);
+    estadoRes("PDF descargado: " + nombre + " (" + doc.getNumberOfPages() + (doc.getNumberOfPages() === 1 ? " página)." : " páginas)."));
+  } catch (e){ console.error(e); estadoRes("No se pudo crear el PDF: " + e.message, true); }
+  finally { b.disabled = false; }
+}
+$("btnImprimir").addEventListener("click", () => window.print());
+$("btnPDF").addEventListener("click", descargarPDF);
 
 pintarZonas();
 pintarTodo();
