@@ -117,7 +117,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue);line-height:1.6}
 <body><div class="wrap">
 
 <header>
-  <div><h1>Lab MNQ</h1><span class="ver">v2.0.1 · señales reales</span>
+  <div><h1>Lab MNQ</h1><span class="ver">v2.0.2 · señales reales</span>
   <div class="sub">Mide las señales que exporta cada indicador desde NinjaTrader —su propio código, no una copia— sobre tus velas de 1 minuto, con costes y con la hora bien convertida aunque haya cambio de horario.</div></div>
 </header>
 
@@ -173,15 +173,14 @@ background:var(--panel);font-size:11.5px;color:var(--tenue);line-height:1.6}
   <div class="gt">Cómo se opera cada señal</div>
   <label class="chk"><input type="checkbox" id="velaEntrada" checked>
     <span>Si la entrada no es al cierre de la vela, contar como pérdida que esa misma vela toque el stop (con velas de 1 minuto no se sabe qué pasó antes).</span></label>
-  <label class="chk"><input type="checkbox" id="independientes" checked>
-    <span>Medir cada señal por separado, aunque haya otra abierta. Desmarcado: una posición a la vez y las demás se descartan.</span></label>
   <div class="campos" style="margin-top:10px">
     <div class="campo"><label for="slATR">Señales sin stop: stop a (× ATR 14)</label><input type="number" id="slATR" value="1.5" step="0.1"></div>
     <div class="campo"><label for="tpR">Señales sin objetivo: objetivo a (× riesgo)</label><input type="number" id="tpR" value="2" step="0.25"></div>
   </div>
-  <div id="bloqueSalidas"><div class="gt">Salida por tiempo de cada indicador</div>
+  <div id="bloqueSalidas"><div class="gt">Cómo se opera cada indicador</div>
   <div class="scroll"><table id="tSalidas"></table></div>
-  <div class="ayuda" style="font-size:10.5px;color:var(--tenue);margin-top:4px">Si no toca ni stop ni objetivo, la operación se cierra a mercado por esta regla. Cada indicador trae la suya: RangoApertura a las 16:00 de NY, EsfuerzoResultado a los 360 minutos, el resto a las 60 velas.</div></div>
+  <div class="ayuda" style="font-size:10.5px;color:var(--tenue);margin-top:4px"><b style="color:var(--texto);font-weight:500">Salida:</b> si no toca ni stop ni objetivo, la operación se cierra a mercado por esta regla. RangoApertura a las 16:00 de NY, EsfuerzoResultado a los 360 minutos, el resto a las 60 velas.<br>
+  <b style="color:var(--texto);font-weight:500">Posiciones:</b> «una a la vez» descarta las señales que llegan con otra operación abierta del mismo indicador, como en vivo con una sola posición. «Cada señal por separado» las mide todas, que es lo que hace falta para comparar casos y control. MomentumVolumen viene en «una a la vez» porque da varias entradas seguidas en el mismo movimiento; el control siempre se mide señal por señal.</div></div>
   <div class="botones" style="margin-top:16px">
     <button class="acc" type="button" id="btnMedir" disabled>Medir</button>
     <span class="t" id="faltan" style="font-size:11.5px"></span>
@@ -732,6 +731,17 @@ function limiteDe(ct, i, salida){
   return k;
 }
 
+/* Posiciones por defecto de cada indicador. "una": una operación a la vez por
+   contrato; las señales que llegan con otra abierta se descartan, como en vivo
+   con una sola posición. "todas": cada señal se mide entera por su cuenta (lo
+   que hace falta para comparar casos y control entre sí).
+   MomentumVolumen da varias entradas seguidas en el mismo movimiento (4 cortos
+   en 4 minutos), así que se mide de una en una. El control siempre va de una
+   en una señal, porque sus largos y cortos salen a la vez. */
+function posicionesPorDefecto(indicador){
+  if (/^MomentumVolumen/i.test(indicador)) return "una";
+  return "todas";
+}
 /* salida por defecto de cada indicador, según cómo cierra sus operaciones */
 function salidaPorDefecto(indicador){
   if (/^RangoApertura/i.test(indicador)) return {tipo: "hora", valor: 1600};
@@ -839,8 +849,11 @@ function simularGrupo(prep, archivos, aj){
       const d2 = -f.dir, rt = Math.abs(tp - e);
       const sl2 = e - d2 * riesgo, tp2 = e + d2 * rt;
       const res2 = resolver(ct, i, d2, e, sl2, tp2, m2, vida, lim, aj.velaEntrada);
-      if (res2) espejo.push({t: op.t, ses: op.ses, usd: res2.pts * ins.pv * aj.contratos - costo,
-        r: res2.pts / riesgo, ny: op.ny, contrato: op.contrato, familia: op.familia});
+      if (res2){
+        op.esp = {t: op.t, ses: op.ses, usd: res2.pts * ins.pv * aj.contratos - costo,
+          r: res2.pts / riesgo, ny: op.ny, contrato: op.contrato, familia: op.familia};
+        espejo.push(op.esp);
+      }
     }
   }
   return {ops: ops, espejo: espejo, cuenta: cuenta, porContrato: porContrato, cubiertos: cubiertos,
@@ -958,21 +971,24 @@ function informe(prep, sim, aj, sesRespaldo){
   const lista = Array.from(ses).sort((a, b) => a - b);
   const corte = lista.length ? lista[Math.floor(lista.length * 0.7)] : Infinity;
   let ops = sim.ops;
-  let descartadas = 0;
-  if (!aj.independientes && !sim.resultados){ ops = unaALaVez(ops); descartadas = ops.descartadas; }
+  let descartadas = 0, otroModo = null;
+  const una = !aj.independientes && !sim.resultados;
+  if (una){ ops = unaALaVez(ops); descartadas = ops.descartadas; if (descartadas) otroModo = {modo: "todas", total: metricas(sim.ops)}; }
+  else if (!sim.resultados){ const u = unaALaVez(sim.ops); if (u.descartadas) otroModo = {modo: "una", total: metricas(u), descartadas: u.descartadas}; }
   const tot = metricas(ops);
   const R = {
     total: tot, sesiones: lista.length, opsDia: lista.length ? tot.n / lista.length : NaN,
     corte: corte, dentro: metricas(ops.filter(o => o.ses < corte)), reserva: metricas(ops.filter(o => o.ses >= corte)),
     ny: metricas(ops.filter(o => o.ny)), fueraNY: metricas(ops.filter(o => !o.ny)),
     largos: metricas(ops.filter(o => o.dir > 0)), cortos: metricas(ops.filter(o => o.dir < 0)),
-    espejo: metricas(sim.espejo), familias: agrupar(ops, o => o.familia).sort((a, b) => b.m.n - a.m.n),
+    espejo: metricas(ops.filter(o => o.esp).map(o => o.esp)), familias: agrupar(ops, o => o.familia).sort((a, b) => b.m.n - a.m.n),
     contratos: agrupar(ops, o => o.contrato).sort((a, b) => (a.clave < b.clave ? -1 : 1)),
     meses: agrupar(ops, o => ymd(o.ses * DIA).slice(0, 7)).sort((a, b) => (a.clave < b.clave ? -1 : 1)),
     motivos: agrupar(ops, o => o.mot).sort((a, b) => b.m.n - a.m.n),
     boot: bootstrap(ops, aj.bootstrap || 2000, 7),
     comoCSV: (sim.cuenta && (sim.cuenta.imposible || sim.cuenta.imposibleCruzada)) ? metricas(sim.opsCSV || []) : null,
     cuenta: sim.cuenta, descartadas: descartadas, resultados: !!sim.resultados,
+    posiciones: sim.resultados ? null : (una ? "una" : "todas"), otroModo: otroModo,
     riesgoMedio: ops.length ? ops.reduce((a, o) => a + o.riesgo, 0) / ops.length : NaN,
     ops: ops
   };
@@ -1017,7 +1033,12 @@ function medir(prep, archivos, aj){
   const out = [];
   const lista = grupos(archivos).map(g => {
     const salida = (aj.salidas && aj.salidas[g.indicador]) || salidaPorDefecto(g.indicador);
-    const ajG = Object.assign({}, aj, {salida: salida});
+    // posiciones: lo elegido para ese indicador; si no, la casilla global de
+    // antes (las pruebas la usan); si no, lo de fábrica del indicador
+    let pos = (aj.posiciones && aj.posiciones[g.indicador]) ||
+              (typeof aj.independientes === "boolean" ? (aj.independientes ? "todas" : "una") : posicionesPorDefecto(g.indicador));
+    if (g.tipo !== "senales") pos = "todas";
+    const ajG = Object.assign({}, aj, {salida: salida, independientes: pos !== "una"});
     const deResultados = g.tipo === "resultados" || g.tipo === "resultadosControl";
     const sim = deResultados ? grupoResultados(prep, g.archivos, ajG) : simularGrupo(prep, g.archivos, ajG);
     return {g: g, ajG: ajG, salida: salida, sim: sim};
@@ -1045,10 +1066,10 @@ function medir(prep, archivos, aj){
   return out;
 }
 
-const API = {VERSION: "2.0.1", INSTR: INSTR, instrumento: instrumento, ZONAS: ZONAS, desfase: desfase, aPared: aPared,
+const API = {VERSION: "2.0.2", INSTR: INSTR, instrumento: instrumento, ZONAS: ZONAS, desfase: desfase, aPared: aPared,
   deParedAUTC: deParedAUTC, paredDeTexto: paredDeTexto, leerVelas: leerVelas, formatoVelas: formatoVelas,
   prepararContratos: prepararContratos, leerSenales: leerSenales, detectarZona: detectarZona,
-  salidaPorDefecto: salidaPorDefecto, medir: medir, metricas: metricas, ymd: ymd, hmTexto: hmTexto,
+  salidaPorDefecto: salidaPorDefecto, posicionesPorDefecto: posicionesPorDefecto, medir: medir, metricas: metricas, ymd: ymd, hmTexto: hmTexto,
   contratosDe: contratosDe, esControl: esControl, grupos: grupos, HERMANO: HERMANO,
   DIA: DIA, MIN: MIN, NY: NY};
 raiz.LabMotor = API;
@@ -1255,22 +1276,30 @@ function pintarZonas(){
   const o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Automática (recomendado)"; z.appendChild(o0);
   for (const k of M.ZONAS){ const o = document.createElement("option"); o.value = k; o.textContent = NOMBRE_ZONA[k] || k; z.appendChild(o); }
 }
-const SALIDAS = {};
+const SALIDAS = {}, POSICIONES = {};
 function pintarSalidas(gs){
   const inds = Array.from(new Set(gs.filter(g => g.tipo !== "resultados").map(g => g.indicador)));
   $("bloqueSalidas").classList.toggle("oculto", !inds.length);
   if (!inds.length) return;
-  let h = "<tr><th>Indicador</th><th>Regla</th><th>Valor</th></tr>";
+  const conSenales = new Set(gs.filter(g => g.tipo === "senales").map(g => g.indicador));
+  let h = "<tr><th>Indicador</th><th>Salida</th><th>Valor</th><th>Posiciones</th></tr>";
   for (const ind of inds){
     if (!SALIDAS[ind]) SALIDAS[ind] = M.salidaPorDefecto(ind);
-    const s0 = SALIDAS[ind];
-    h += "<tr><td>" + esc(ind) + "</td><td><select data-ind='" + esc(ind) + "' class='salTipo'>" +
+    if (!POSICIONES[ind]) POSICIONES[ind] = M.posicionesPorDefecto(ind);
+    const s0 = SALIDAS[ind], p0 = POSICIONES[ind];
+    h += "<tr><td>" + esc(ind) + "</td><td><select data-ind='" + esc(ind) + "' class='salTipo' aria-label='Salida de " + esc(ind) + "'>" +
       "<option value='velas'" + (s0.tipo === "velas" ? " selected" : "") + ">velas de 1 minuto</option>" +
       "<option value='minutos'" + (s0.tipo === "minutos" ? " selected" : "") + ">minutos</option>" +
       "<option value='hora'" + (s0.tipo === "hora" ? " selected" : "") + ">hasta la hora de NY (hhmm)</option></select></td>" +
-      "<td><input type='number' data-ind='" + esc(ind) + "' class='salValor' value='" + s0.valor + "' min='1' step='1'></td></tr>";
+      "<td><input type='number' data-ind='" + esc(ind) + "' class='salValor' value='" + s0.valor + "' min='1' step='1' aria-label='Valor de la salida de " + esc(ind) + "'></td>" +
+      "<td>" + (conSenales.has(ind) ? "<select data-ind='" + esc(ind) + "' class='posModo' aria-label='Posiciones de " + esc(ind) + "'>" +
+        "<option value='una'" + (p0 === "una" ? " selected" : "") + ">una a la vez</option>" +
+        "<option value='todas'" + (p0 === "todas" ? " selected" : "") + ">cada señal por separado</option></select>" : "<span class='t'>señal a señal</span>") + "</td></tr>";
   }
   $("tSalidas").innerHTML = h;
+  for (const el of document.querySelectorAll(".posModo")) el.addEventListener("change", e => {
+    POSICIONES[e.target.dataset.ind] = e.target.value;
+  });
   for (const el of document.querySelectorAll(".salTipo")) el.addEventListener("change", e => {
     const ind = e.target.dataset.ind; const v = e.target.value;
     SALIDAS[ind] = {tipo: v, valor: v === "hora" ? 1600 : v === "minutos" ? 360 : 60};
@@ -1286,7 +1315,7 @@ function pintarSalidas(gs){
 function num(id, def){ const v = parseFloat($(id).value); return isFinite(v) ? v : def; }
 function ajustes(){
   return {zona: $("zona").value || null, contratos: Math.max(1, Math.round(num("cContratos", 1))), comision: num("cComision", 1.34),
-    slip: num("cSlip", 1), velaEntrada: $("velaEntrada").checked, independientes: $("independientes").checked,
+    slip: num("cSlip", 1), velaEntrada: $("velaEntrada").checked, posiciones: JSON.parse(JSON.stringify(POSICIONES)),
     slATR: num("slATR", 1.5), tpR: num("tpR", 2), limiteCuenta: num("cLimite", 2000), bootstrap: 2000,
     criterio: {pf: num("kPF", 1.3), pfReserva: num("kPFRes", 1.3), n: Math.round(num("kN", 100))},
     salidas: JSON.parse(JSON.stringify(SALIDAS))};
@@ -1375,6 +1404,15 @@ function notasDe(R){
     add("mal", "<b>El control gana igual o más que la señal</b> (PF " + n(R.control.total.pf) + " contra " + n(T.pf) + "). Las mismas entradas sin la condición del indicador dan lo mismo: la condición no aporta.");
   if (!R.resultados && R.espejo.n && R.espejo.pf >= T.pf)
     add("mal", "<b>Al revés gana igual o más</b> (PF " + n(R.espejo.pf) + " contra " + n(T.pf) + "). La dirección de la señal no aporta.");
+  if (R.otroModo && R.otroModo.total.n){
+    const o = R.otroModo.total;
+    if (R.posiciones === "una")
+      add("tenue", n(R.descartadas, 0) + " señales llegaron con otra operación abierta y no se cuentan (una posición a la vez). Midiendo cada señal por separado serían " +
+        n(o.n, 0) + " operaciones, PF " + n(o.pf) + " y " + usd(o.neto) + ".");
+    else
+      add("tenue", "Con una posición a la vez se descartarían " + n(R.otroModo.descartadas, 0) + " señales que llegan con otra abierta: quedarían " +
+        n(o.n, 0) + " operaciones, PF " + n(o.pf) + " y " + usd(o.neto) + ".");
+  }
   if (R.hermanos && R.hermanos.length)
     add("tenue", "Medido con las velas de otro contrato del mismo precio (" + esc(R.hermanos.join(", ")) + "): dólares, tick y costes son los de este último.");
   return out;
@@ -1393,6 +1431,13 @@ function filasDonde(R){
   if (R.control){ add("Control · las mismas entradas sin la condición", R.control.total, "a", true); add("Control en la reserva", R.control.reserva, "a", true); }
   return f;
 }
+function textoPosiciones(R){
+  return R.posiciones === "una" ? "una posición a la vez" : R.posiciones === "todas" ? "cada señal por separado" : "";
+}
+function subtituloDe(R){
+  return TIPO[R.tipo] + " · " + R.archivos.length + (R.archivos.length === 1 ? " archivo" : " archivos") +
+    (R.resultados ? "" : " · salida " + textoSalida(R.salida) + " · " + textoPosiciones(R));
+}
 function aTexto(html){
   return String(html).replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 }
@@ -1400,8 +1445,7 @@ function tarjeta(R, idx){
   const T = R.total, c = R.cuenta, aj = ULT.aj;
   const vtxt = {pasa: "Pasa", no: "No pasa", pocos: "Pocas operaciones", sin: "Sin operaciones"}[R.veredicto];
   const ok = b => b ? "<span class='b'>✓</span>" : "<span class='m'>✗</span>";
-  let h = "<div class='tarjeta' id='tar" + idx + "'><div class='tcab'><div><h2>" + esc(R.indicador) + "</h2><div class='etq'>" + TIPO[R.tipo] + " · " +
-    R.archivos.length + (R.archivos.length === 1 ? " archivo" : " archivos") + (R.resultados ? "" : " · salida " + textoSalida(R.salida)) + "</div></div>" +
+  let h = "<div class='tarjeta' id='tar" + idx + "'><div class='tcab'><div><h2>" + esc(R.indicador) + "</h2><div class='etq'>" + subtituloDe(R) + "</div></div>" +
     "<span class='vered " + R.veredicto + "'>" + vtxt + "</span></div><div class='cuerpo'>";
   if (!T.n){
     h += "<div class='nota mal'>Ninguna señal se pudo operar. " + motivoCero(R) + "</div>" + calidad(R) + "</div></div>";
@@ -1733,7 +1777,7 @@ function construirPDF(lista){
     fuente("bold", 16, C.texto); doc.text(pdfTxt(R.indicador), M, y, {baseline: "top"});
     fuente("bold", 12, VCOL[R.veredicto]); doc.text(pdfTxt(VTXT[R.veredicto].toUpperCase()), W - M, y + 1, {baseline: "top", align: "right"});
     y += 8;
-    parrafo(TIPO[R.tipo] + " · " + R.archivos.length + (R.archivos.length === 1 ? " archivo" : " archivos") + (R.resultados ? "" : " · salida " + textoSalida(R.salida)), {tam: 8.4, col: C.tenue});
+    parrafo(subtituloDe(R), {tam: 8.4, col: C.tenue});
     if (!T.n){
       nota("Ninguna señal se pudo operar. " + motivoCero(R), "mal");
     } else {
