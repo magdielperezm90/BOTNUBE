@@ -1,13 +1,13 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-10-07 01:48 UTC",
- "ultima_vela": "2026-10-06",
- "precio_qqq": 759.66,
+ "actualizado": "2026-10-08 02:16 UTC",
+ "ultima_vela": "2026-10-07",
+ "precio_qqq": 757.73,
  "indicadores": {
-  "roc10": 1.63,
-  "valor_smc": 9861.74,
-  "valor_bh": 10492.48,
+  "roc10": 2.23,
+  "valor_smc": 9866.45,
+  "valor_bh": 10465.83,
   "tickers_alcistas": 8,
   "tickers_total": 20
  },
@@ -19,21 +19,21 @@
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 529.3
+    "precio_actual": 529.76
    },
    "SPY": {
     "unidades": 2.530086,
     "costo": 1973.14,
     "entrada": 779.09,
     "fecha": "2026-10-06",
-    "precio_actual": 779.09
+    "precio_actual": 777.22
    },
    "V": {
     "unidades": 5.317209,
     "costo": 1972.74,
     "entrada": 370.64,
     "fecha": "2026-10-06",
-    "precio_actual": 370.64
+    "precio_actual": 372.1
    }
   },
   "operaciones": [
@@ -628,6 +628,12 @@
    "smc": 9861.74,
    "bh": 10492.48,
    "roc10": 1.63
+  },
+  {
+   "fecha": "2026-10-07",
+   "smc": 9866.45,
+   "bh": 10465.83,
+   "roc10": 2.23
   }
  ]
 }
