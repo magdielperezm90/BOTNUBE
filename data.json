@@ -1,42 +1,74 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-10-08 02:16 UTC",
- "ultima_vela": "2026-10-07",
- "precio_qqq": 757.73,
+ "actualizado": "2026-10-09 02:34 UTC",
+ "ultima_vela": "2026-10-08",
+ "precio_qqq": 747.58,
  "indicadores": {
-  "roc10": 2.23,
-  "valor_smc": 9866.45,
-  "valor_bh": 10465.83,
-  "tickers_alcistas": 8,
+  "roc10": 0.87,
+  "valor_smc": 9844.11,
+  "valor_bh": 10325.63,
+  "tickers_alcistas": 10,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 3992.6983144136893,
+  "efectivo": 53.8741367616401,
   "posiciones": {
    "MSFT": {
     "unidades": 3.640865,
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 529.76
+    "precio_actual": 522.61
    },
    "SPY": {
     "unidades": 2.530086,
     "costo": 1973.14,
     "entrada": 779.09,
     "fecha": "2026-10-06",
-    "precio_actual": 777.22
+    "precio_actual": 773.93
    },
    "V": {
     "unidades": 5.317209,
     "costo": 1972.74,
     "entrada": 370.64,
     "fecha": "2026-10-06",
-    "precio_actual": 372.1
+    "precio_actual": 375.1
+   },
+   "XOM": {
+    "unidades": 11.677385,
+    "costo": 1969.61,
+    "entrada": 168.5,
+    "fecha": "2026-10-08",
+    "precio_actual": 168.5
+   },
+   "DIS": {
+    "unidades": 18.38204,
+    "costo": 1969.22,
+    "entrada": 107.02,
+    "fecha": "2026-10-08",
+    "precio_actual": 107.02
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-10-08",
+    "tipo": "COMPRA (CHoCH +0.4%)",
+    "ticker": "DIS",
+    "precio": 107.02,
+    "unidades": 18.382,
+    "valor": 1969.22,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-10-08",
+    "tipo": "COMPRA (CHoCH +2.2%)",
+    "ticker": "XOM",
+    "precio": 168.5,
+    "unidades": 11.6774,
+    "valor": 1969.61,
+    "pnl": ""
+   },
    {
     "fecha": "2026-10-06",
     "tipo": "COMPRA (CHoCH +0.0%)",
@@ -634,6 +666,12 @@
    "smc": 9866.45,
    "bh": 10465.83,
    "roc10": 2.23
+  },
+  {
+   "fecha": "2026-10-08",
+   "smc": 9844.11,
+   "bh": 10325.63,
+   "roc10": 0.87
   }
  ]
 }
