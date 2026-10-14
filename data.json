@@ -1,42 +1,74 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-10-07 01:48 UTC",
- "ultima_vela": "2026-10-06",
- "precio_qqq": 759.66,
+ "actualizado": "2026-10-13 03:11 UTC",
+ "ultima_vela": "2026-10-12",
+ "precio_qqq": 746.04,
  "indicadores": {
-  "roc10": 1.63,
-  "valor_smc": 9861.74,
-  "valor_bh": 10492.48,
-  "tickers_alcistas": 8,
+  "roc10": 1.29,
+  "valor_smc": 10067.15,
+  "valor_bh": 10304.36,
+  "tickers_alcistas": 11,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 3992.6983144136893,
+  "efectivo": 53.8741367616401,
   "posiciones": {
    "MSFT": {
     "unidades": 3.640865,
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 529.3
+    "precio_actual": 541.15
    },
    "SPY": {
     "unidades": 2.530086,
     "costo": 1973.14,
     "entrada": 779.09,
     "fecha": "2026-10-06",
-    "precio_actual": 779.09
+    "precio_actual": 778.1
    },
    "V": {
     "unidades": 5.317209,
     "costo": 1972.74,
     "entrada": 370.64,
     "fecha": "2026-10-06",
-    "precio_actual": 370.64
+    "precio_actual": 389.27
+   },
+   "XOM": {
+    "unidades": 11.677385,
+    "costo": 1969.61,
+    "entrada": 168.5,
+    "fecha": "2026-10-08",
+    "precio_actual": 172.15
+   },
+   "DIS": {
+    "unidades": 18.38204,
+    "costo": 1969.22,
+    "entrada": 107.02,
+    "fecha": "2026-10-08",
+    "precio_actual": 108.49
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-10-08",
+    "tipo": "COMPRA (CHoCH +0.4%)",
+    "ticker": "DIS",
+    "precio": 107.02,
+    "unidades": 18.382,
+    "valor": 1969.22,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-10-08",
+    "tipo": "COMPRA (CHoCH +2.2%)",
+    "ticker": "XOM",
+    "precio": 168.5,
+    "unidades": 11.6774,
+    "valor": 1969.61,
+    "pnl": ""
+   },
    {
     "fecha": "2026-10-06",
     "tipo": "COMPRA (CHoCH +0.0%)",
@@ -628,6 +660,30 @@
    "smc": 9861.74,
    "bh": 10492.48,
    "roc10": 1.63
+  },
+  {
+   "fecha": "2026-10-07",
+   "smc": 9866.45,
+   "bh": 10465.83,
+   "roc10": 2.23
+  },
+  {
+   "fecha": "2026-10-08",
+   "smc": 9844.11,
+   "bh": 10325.63,
+   "roc10": 0.87
+  },
+  {
+   "fecha": "2026-10-09",
+   "smc": 9980.32,
+   "bh": 10376.6,
+   "roc10": 0.91
+  },
+  {
+   "fecha": "2026-10-12",
+   "smc": 10067.15,
+   "bh": 10304.36,
+   "roc10": 1.29
   }
  ]
 }
