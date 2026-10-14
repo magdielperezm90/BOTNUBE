@@ -117,7 +117,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue);line-height:1.6}
 <body><div class="wrap">
 
 <header>
-  <div><h1>Lab MNQ</h1><span class="ver">v2.0.2 · señales reales</span>
+  <div><h1>Lab MNQ</h1><span class="ver">v2.0.3 · señales reales</span>
   <div class="sub">Mide las señales que exporta cada indicador desde NinjaTrader —su propio código, no una copia— sobre tus velas de 1 minuto, con costes y con la hora bien convertida aunque haya cambio de horario.</div></div>
 </header>
 
@@ -179,7 +179,7 @@ background:var(--panel);font-size:11.5px;color:var(--tenue);line-height:1.6}
   </div>
   <div id="bloqueSalidas"><div class="gt">Cómo se opera cada indicador</div>
   <div class="scroll"><table id="tSalidas"></table></div>
-  <div class="ayuda" style="font-size:10.5px;color:var(--tenue);margin-top:4px"><b style="color:var(--texto);font-weight:500">Salida:</b> si no toca ni stop ni objetivo, la operación se cierra a mercado por esta regla. RangoApertura a las 16:00 de NY, EsfuerzoResultado a los 360 minutos, el resto a las 60 velas.<br>
+  <div class="ayuda" style="font-size:10.5px;color:var(--tenue);margin-top:4px"><b style="color:var(--texto);font-weight:500">Salida:</b> si no toca ni stop ni objetivo, la operación se cierra a mercado por esta regla. RangoApertura y AceptacionDelta a las 16:00 de NY, EsfuerzoResultado a los 360 minutos, el resto a las 60 velas.<br>
   <b style="color:var(--texto);font-weight:500">Posiciones:</b> «una a la vez» descarta las señales que llegan con otra operación abierta del mismo indicador, como en vivo con una sola posición. «Cada señal por separado» las mide todas, que es lo que hace falta para comparar casos y control. MomentumVolumen viene en «una a la vez» porque da varias entradas seguidas en el mismo movimiento; el control siempre se mide señal por señal.</div></div>
   <div class="botones" style="margin-top:16px">
     <button class="acc" type="button" id="btnMedir" disabled>Medir</button>
@@ -215,6 +215,11 @@ background:var(--panel);font-size:11.5px;color:var(--tenue);line-height:1.6}
    a ese precio (inflaba el resultado: MomentumVolumen v9.9 daba PF 2,55). Se
    entra al cierre de esa vela, el primer precio seguro en que la señal ya
    existe; si a ese precio el stop o el objetivo ya habían pasado, se descarta.
+   v2.0.3 - Una hora con segundos (gráfico de ticks, volumen o rango) va a la
+   vela de 1 minuto que la contiene, no a la que cerró antes. La zona horaria
+   automática compara las zonas solo con las señales que todas meten en una
+   vela: ya no gana la que mete más señales dentro cuando las velas acaban
+   antes que las señales. AceptacionDelta sale a las 16:00 de NY.
    ===================================================================== */
 (function (raiz) {
 "use strict";
@@ -549,8 +554,11 @@ function buscar(ct, t){
   while (lo < hi){ const m = (lo + hi) >> 1; if (ct.fin[m] < t) lo = m + 1; else hi = m; }
   return lo;
 }
-/* la vela que cierra a esa hora; si falta ese minuto, la última de los 4 anteriores */
+/* la vela que cierra a esa hora; si falta ese minuto, la última de los 4 anteriores.
+   Una hora con segundos (12:02:08) es de la vela que la contiene, la que cierra
+   en el minuto siguiente (12:03): las velas llevan la hora de su cierre. */
 function velaDe(ct, t){
+  t = Math.ceil(t / MIN) * MIN;
   let i = buscar(ct, t);
   if (i < ct.N && ct.fin[i] === t) return i;
   i--;
@@ -665,29 +673,41 @@ function detectarZona(prep, archivos){
     for (let k = 0; k < a.filas.length; k += paso) muestra.push({a: a, f: a.filas[k], cts: cts});
   }
   if (!muestra.length) return null;
-  const tabla = [];
-  for (const z of cand){
-    let pts = 0, exactas = 0, dentro = 0, cerca = 0, conVela = 0;
-    for (const m of muestra){
-      const tick = instrumentoDe(m.cts, m.a).tick;
-      let mejor = -1;
-      for (const ct of m.cts){
-        const e = encaje(ct, m.f, z, tick);
-        if (e && e.p > mejor) mejor = e.p;
-      }
-      if (mejor < 0) continue;          // fuera de las fechas de las velas: no informa
-      conVela++;
-      pts += mejor;
-      if (mejor === 3) exactas++;
-      if (mejor >= 2) dentro++;
-      if (mejor >= 1) cerca++;
+  // cuánto cuadra cada señal con cada zona (-1: con esa zona no cae en ninguna vela)
+  const pz = cand.map(z => muestra.map(m => {
+    const tick = instrumentoDe(m.cts, m.a).tick;
+    let mejor = -1;
+    for (const ct of m.cts){
+      const e = encaje(ct, m.f, z, tick);
+      if (e && e.p > mejor) mejor = e.p;
     }
+    return mejor;
+  }));
+  // Las zonas se comparan con las señales que TODAS meten en una vela. Si no,
+  // cuando las velas acaban antes que las señales gana la zona que retrasa las
+  // horas (mete más señales dentro), aunque cuadren peor.
+  const comunes = [];
+  for (let k = 0; k < muestra.length; k++) if (pz.every(f => f[k] >= 0)) comunes.push(k);
+  const tabla = [];
+  for (let iz = 0; iz < cand.length; iz++){
+    let pts = 0, exactas = 0, dentro = 0, cerca = 0, conVela = 0, ptsComunes = 0;
+    for (let k = 0; k < muestra.length; k++){
+      const v = pz[iz][k];
+      if (v < 0) continue;              // fuera de las fechas de las velas: no informa
+      conVela++;
+      pts += v;
+      if (v === 3) exactas++;
+      if (v >= 2) dentro++;
+      if (v >= 1) cerca++;
+    }
+    for (const k of comunes) ptsComunes += pz[iz][k];
     // las proporciones, sobre las señales que caen en una vela con esa zona
-    tabla.push({zona: z, pts: pts, conVela: conVela, exactas: conVela ? exactas / conVela : 0, dentro: conVela ? dentro / conVela : 0,
-                cerca: conVela ? cerca / conVela : 0});
+    tabla.push({zona: cand[iz], pts: pts, ptsComunes: ptsComunes, conVela: conVela, exactas: conVela ? exactas / conVela : 0,
+                dentro: conVela ? dentro / conVela : 0, cerca: conVela ? cerca / conVela : 0});
   }
-  tabla.sort((x, y) => y.pts - x.pts);
-  return {zona: tabla[0].zona, tabla: tabla, muestra: muestra.length};
+  if (comunes.length) tabla.sort((x, y) => y.ptsComunes - x.ptsComunes || y.pts - x.pts);
+  else tabla.sort((x, y) => y.pts - x.pts);
+  return {zona: tabla[0].zona, tabla: tabla, muestra: muestra.length, comunes: comunes.length};
 }
 
 /* ---------------------------------------------------------------------
@@ -744,7 +764,9 @@ function posicionesPorDefecto(indicador){
 }
 /* salida por defecto de cada indicador, según cómo cierra sus operaciones */
 function salidaPorDefecto(indicador){
-  if (/^RangoApertura/i.test(indicador)) return {tipo: "hora", valor: 1600};
+  // AceptacionDelta solo evalúa de 9:30 a 16:00 de NY y su CSV no trae salida
+  // por tiempo: se opera dentro del día, como RangoApertura
+  if (/^(RangoApertura|AceptacionDelta)/i.test(indicador)) return {tipo: "hora", valor: 1600};
   if (/^EsfuerzoResultado/i.test(indicador)) return {tipo: "minutos", valor: 360};
   return {tipo: "velas", valor: 60};
 }
@@ -757,7 +779,7 @@ function simularGrupo(prep, archivos, aj){
   const ops = [], espejo = [];
   const cuenta = {leidas: 0, duplicadas: 0, sinContrato: 0, sinVela: 0, fueraVelas: 0, noCuadra: 0, fueraSesion: 0,
                   noPrincipal: 0, cortada: 0, nivelesMal: 0, alCierre: 0, dentro: 0, imposible: 0, imposibleCruzada: 0,
-                  sinResolver: 0, sinPrecio: 0};
+                  sinResolver: 0, sinPrecio: 0, conSegundos: 0};
   const porContrato = new Map();
   const vistos = new Map();
   const opsCSV = [];   // las mismas señales al precio del CSV, solo para enseñar cuánto inflaba
@@ -835,6 +857,7 @@ function simularGrupo(prep, archivos, aj){
       const res = resolver(ct, i, f.dir, e, sl, tp, m2, vida, lim, aj.velaEntrada);
       if (!res){ cuenta.sinResolver++; continue; }
       if (modo === "cierre") cuenta.alCierre++; else if (modo === "intrabarra") cuenta.dentro++; else cuenta.imposible++;
+      if (f.pared % MIN) cuenta.conSegundos++;
       const riesgo = Math.abs(e - sl);
       const p = aPared(ct.fin[i] - MIN, NY);
       const hm = Math.floor((p % DIA) / MIN);
@@ -1066,7 +1089,7 @@ function medir(prep, archivos, aj){
   return out;
 }
 
-const API = {VERSION: "2.0.2", INSTR: INSTR, instrumento: instrumento, ZONAS: ZONAS, desfase: desfase, aPared: aPared,
+const API = {VERSION: "2.0.3", INSTR: INSTR, instrumento: instrumento, ZONAS: ZONAS, desfase: desfase, aPared: aPared,
   deParedAUTC: deParedAUTC, paredDeTexto: paredDeTexto, leerVelas: leerVelas, formatoVelas: formatoVelas,
   prepararContratos: prepararContratos, leerSenales: leerSenales, detectarZona: detectarZona,
   salidaPorDefecto: salidaPorDefecto, posicionesPorDefecto: posicionesPorDefecto, medir: medir, metricas: metricas, ymd: ymd, hmTexto: hmTexto,
@@ -1396,8 +1419,12 @@ function notasDe(R){
       (R.comoCSV && R.comoCSV.n ? "Con el precio del CSV daría PF " + n(R.comoCSV.pf) + " en " + n(R.comoCSV.n, 0) + " operaciones: ese número está inflado. " : "") +
       "Corrige el indicador para que apunte la entrada real.");
   }
-  if (/^(EsfuerzoResultado|AceptacionDelta)/i.test(R.indicador) && !R.resultados)
+  if (/^EsfuerzoResultado/i.test(R.indicador) && !R.resultados)
     add("", "Las señales de " + esc(R.indicador) + " necesitan bid y ask (Tick Replay). Si este CSV salió de un gráfico sin Tick Replay, no valen. La medición buena es su archivo <b>_resultados_</b>, resuelto tick a tick por el propio indicador.");
+  if (/^AceptacionDelta/i.test(R.indicador) && !R.resultados)
+    add("", "AceptacionDelta solo apunta señales donde tuvo bid y ask: en vivo, o en histórico con <b>Tick Replay</b>. Sin Tick Replay, los días pasados del gráfico salen vacíos, pero lo que sí apunta vale.");
+  if (c.conSegundos)
+    add("", n(c.conSegundos, 0) + " de estas operaciones traen la hora con segundos: salen de un gráfico que no es de minutos (ticks, volumen o rango). Se miden en la vela de 1 minuto que contiene esa hora.");
   if (c.noCuadra && c.noCuadra >= 0.05 * c.leidas)
     add("mal", "<b>" + n(c.noCuadra, 0) + " señales con un precio muy lejos de su vela no se han medido.</b> Suele ser la zona horaria equivocada, o un CSV de otro contrato o de un gráfico con precios ajustados.");
   if (R.control && R.control.total.n && R.control.total.pf >= T.pf)
@@ -1515,6 +1542,7 @@ function filasCalidad(R){
     f("· entrada dentro de la vela", c.dentro);
     f("· precio que no se negoció en su vela: se entra al cierre de esa vela", c.imposible, "m");
     f("· sin precio: se entra al cierre", c.sinPrecio, "t");
+    f("· con segundos en la hora: en la vela de 1 minuto que la contiene", c.conSegundos, "t");
     f("Ese día mandaba otro contrato (o este aún no había hecho el rollover)", c.noPrincipal, "t");
     f("Sesión cortada al principio o al final del archivo de velas", c.cortada, "t");
     f("Sin velas de su contrato o instrumento", c.sinContrato, "a");
