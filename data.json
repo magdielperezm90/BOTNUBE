@@ -1,56 +1,74 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-10-14 01:24 UTC",
- "ultima_vela": "2026-10-13",
- "precio_qqq": 746.04,
+ "actualizado": "2026-10-15 00:53 UTC",
+ "ultima_vela": "2026-10-14",
+ "precio_qqq": 728.95,
  "indicadores": {
-  "roc10": 1.29,
-  "valor_smc": 9810.14,
-  "valor_bh": 10304.36,
-  "tickers_alcistas": 11,
+  "roc10": -1.46,
+  "valor_smc": 10091.96,
+  "valor_bh": 10068.31,
+  "tickers_alcistas": 9,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 53.8741367616401,
+  "efectivo": 0.0,
   "posiciones": {
    "MSFT": {
     "unidades": 3.640865,
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 541.15
-   },
-   "SPY": {
-    "unidades": 2.530086,
-    "costo": 1973.14,
-    "entrada": 779.09,
-    "fecha": "2026-10-06",
-    "precio_actual": 778.1
+    "precio_actual": 533.69
    },
    "V": {
     "unidades": 5.317209,
     "costo": 1972.74,
     "entrada": 370.64,
     "fecha": "2026-10-06",
-    "precio_actual": 389.27
+    "precio_actual": 391.43
    },
    "XOM": {
     "unidades": 11.677385,
     "costo": 1969.61,
     "entrada": 168.5,
     "fecha": "2026-10-08",
-    "precio_actual": 172.15
+    "precio_actual": 177.01
    },
    "DIS": {
     "unidades": 18.38204,
     "costo": 1969.22,
     "entrada": 107.02,
     "fecha": "2026-10-08",
-    "precio_actual": 108.49
+    "precio_actual": 108.99
+   },
+   "UNH": {
+    "unidades": 5.047981,
+    "costo": 1999.08,
+    "entrada": 395.62,
+    "fecha": "2026-10-14",
+    "precio_actual": 395.62
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-10-14",
+    "tipo": "COMPRA (CHoCH +3.8%)",
+    "ticker": "UNH",
+    "precio": 395.62,
+    "unidades": 5.048,
+    "valor": 1999.08,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-10-14",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "SPY",
+    "precio": 769.6,
+    "unidades": 2.5301,
+    "valor": 1945.21,
+    "pnl": -27.93
+   },
    {
     "fecha": "2026-10-08",
     "tipo": "COMPRA (CHoCH +0.4%)",
@@ -690,6 +708,12 @@
    "smc": 9810.14,
    "bh": 10304.36,
    "roc10": 1.29
+  },
+  {
+   "fecha": "2026-10-14",
+   "smc": 10091.96,
+   "bh": 10068.31,
+   "roc10": -1.46
   }
  ]
 }
