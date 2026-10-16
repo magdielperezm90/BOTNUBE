@@ -1,14 +1,14 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-10-15 00:53 UTC",
- "ultima_vela": "2026-10-14",
- "precio_qqq": 728.95,
+ "actualizado": "2026-10-16 00:46 UTC",
+ "ultima_vela": "2026-10-15",
+ "precio_qqq": 728.0,
  "indicadores": {
-  "roc10": -1.46,
-  "valor_smc": 10091.96,
-  "valor_bh": 10068.31,
-  "tickers_alcistas": 9,
+  "roc10": -1.89,
+  "valor_smc": 10216.77,
+  "valor_bh": 10055.19,
+  "tickers_alcistas": 8,
   "tickers_total": 20
  },
  "smc": {
@@ -19,35 +19,35 @@
     "costo": 1871.56,
     "entrada": 513.53,
     "fecha": "2026-08-28",
-    "precio_actual": 533.69
+    "precio_actual": 539.44
    },
    "V": {
     "unidades": 5.317209,
     "costo": 1972.74,
     "entrada": 370.64,
     "fecha": "2026-10-06",
-    "precio_actual": 391.43
+    "precio_actual": 399.75
    },
    "XOM": {
     "unidades": 11.677385,
     "costo": 1969.61,
     "entrada": 168.5,
     "fecha": "2026-10-08",
-    "precio_actual": 177.01
+    "precio_actual": 174.68
    },
    "DIS": {
     "unidades": 18.38204,
     "costo": 1969.22,
     "entrada": 107.02,
     "fecha": "2026-10-08",
-    "precio_actual": 108.99
+    "precio_actual": 110.68
    },
    "UNH": {
     "unidades": 5.047981,
     "costo": 1999.08,
     "entrada": 395.62,
     "fecha": "2026-10-14",
-    "precio_actual": 395.62
+    "precio_actual": 406.67
    }
   },
   "operaciones": [
@@ -714,6 +714,12 @@
    "smc": 10091.96,
    "bh": 10068.31,
    "roc10": -1.46
+  },
+  {
+   "fecha": "2026-10-15",
+   "smc": 10216.77,
+   "bh": 10055.19,
+   "roc10": -1.89
   }
  ]
 }
