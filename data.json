@@ -1,13 +1,13 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-11-04 02:42 UTC",
- "ultima_vela": "2026-11-03",
- "precio_qqq": 685.28,
+ "actualizado": "2026-11-05 02:47 UTC",
+ "ultima_vela": "2026-11-04",
+ "precio_qqq": 691.95,
  "indicadores": {
-  "roc10": -4.51,
-  "valor_smc": 10417.44,
-  "valor_bh": 9465.14,
+  "roc10": -4.58,
+  "valor_smc": 10446.77,
+  "valor_bh": 9557.27,
   "tickers_alcistas": 9,
   "tickers_total": 20
  },
@@ -19,38 +19,74 @@
     "costo": 1972.74,
     "entrada": 370.64,
     "fecha": "2026-10-06",
-    "precio_actual": 420.42
-   },
-   "XOM": {
-    "unidades": 11.677385,
-    "costo": 1969.61,
-    "entrada": 168.5,
-    "fecha": "2026-10-08",
-    "precio_actual": 177.46
+    "precio_actual": 436.57
    },
    "DIS": {
     "unidades": 18.38204,
     "costo": 1969.22,
     "entrada": 107.02,
     "fecha": "2026-10-08",
-    "precio_actual": 114.18
+    "precio_actual": 118.95
    },
    "UNH": {
     "unidades": 5.047981,
     "costo": 1999.08,
     "entrada": 395.62,
     "fecha": "2026-10-14",
-    "precio_actual": 404.44
+    "precio_actual": 409.38
    },
-   "TSLA": {
-    "unidades": 4.941648,
-    "costo": 1937.19,
-    "entrada": 391.62,
-    "fecha": "2026-10-26",
-    "precio_actual": 398.5
+   "AMZN": {
+    "unidades": 7.848885,
+    "costo": 2090.13,
+    "entrada": 266.03,
+    "fecha": "2026-11-04",
+    "precio_actual": 266.03
+   },
+   "MSFT": {
+    "unidades": 3.210344,
+    "costo": 1786.1,
+    "entrada": 555.8,
+    "fecha": "2026-11-04",
+    "precio_actual": 555.8
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-11-04",
+    "tipo": "COMPRA (CHoCH +2.7%)",
+    "ticker": "MSFT",
+    "precio": 555.8,
+    "unidades": 3.2103,
+    "valor": 1786.1,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-11-04",
+    "tipo": "COMPRA (CHoCH +4.2%)",
+    "ticker": "AMZN",
+    "precio": 266.03,
+    "unidades": 7.8489,
+    "valor": 2090.13,
+    "pnl": ""
+   },
+   {
+    "fecha": "2026-11-04",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "TSLA",
+    "precio": 385.19,
+    "unidades": 4.9416,
+    "valor": 1901.57,
+    "pnl": -35.62
+   },
+   {
+    "fecha": "2026-11-04",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "XOM",
+    "precio": 169.27,
+    "unidades": 11.6774,
+    "valor": 1974.65,
+    "pnl": 5.04
+   },
    {
     "fecha": "2026-10-26",
     "tipo": "COMPRA (CHoCH +0.8%)",
@@ -816,6 +852,12 @@
    "smc": 10417.44,
    "bh": 9465.14,
    "roc10": -4.51
+  },
+  {
+   "fecha": "2026-11-04",
+   "smc": 10446.77,
+   "bh": 9557.27,
+   "roc10": -4.58
   }
  ]
 }
