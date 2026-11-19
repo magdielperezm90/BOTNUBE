@@ -1,56 +1,60 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-11-18 03:52 UTC",
- "ultima_vela": "2026-11-17",
- "precio_qqq": 656.95,
+ "actualizado": "2026-11-19 03:51 UTC",
+ "ultima_vela": "2026-11-18",
+ "precio_qqq": 659.51,
  "indicadores": {
-  "roc10": -4.13,
-  "valor_smc": 10009.09,
-  "valor_bh": 9073.84,
-  "tickers_alcistas": 8,
+  "roc10": -4.69,
+  "valor_smc": 9975.6,
+  "valor_bh": 9109.2,
+  "tickers_alcistas": 5,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 0.0,
+  "efectivo": 3970.1764270893254,
   "posiciones": {
-   "V": {
-    "unidades": 5.317209,
-    "costo": 1972.74,
-    "entrada": 370.64,
-    "fecha": "2026-10-06",
-    "precio_actual": 416.77
-   },
    "DIS": {
     "unidades": 18.38204,
     "costo": 1969.22,
     "entrada": 107.02,
     "fecha": "2026-10-08",
-    "precio_actual": 116.94
-   },
-   "UNH": {
-    "unidades": 5.047981,
-    "costo": 1999.08,
-    "entrada": 395.62,
-    "fecha": "2026-10-14",
-    "precio_actual": 389.68
+    "precio_actual": 122.36
    },
    "AMZN": {
     "unidades": 7.848885,
     "costo": 2090.13,
     "entrada": 266.03,
     "fecha": "2026-11-04",
-    "precio_actual": 257.89
+    "precio_actual": 267.74
    },
    "AAPL": {
     "unidades": 4.694942,
     "costo": 1671.33,
     "entrada": 355.63,
     "fecha": "2026-11-11",
-    "precio_actual": 351.91
+    "precio_actual": 352.45
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-11-18",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "UNH",
+    "precio": 349.91,
+    "unidades": 5.048,
+    "valor": 1764.57,
+    "pnl": -234.51
+   },
+   {
+    "fecha": "2026-11-18",
+    "tipo": "VENTA (estructura rota)",
+    "ticker": "V",
+    "precio": 415.22,
+    "unidades": 5.3172,
+    "valor": 2205.6,
+    "pnl": 232.86
+   },
    {
     "fecha": "2026-11-11",
     "tipo": "COMPRA (CHoCH +0.1%)",
@@ -930,6 +934,12 @@
    "smc": 10009.09,
    "bh": 9073.84,
    "roc10": -4.13
+  },
+  {
+   "fecha": "2026-11-18",
+   "smc": 9975.6,
+   "bh": 9109.2,
+   "roc10": -4.69
   }
  ]
 }
