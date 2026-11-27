@@ -1,7 +1,7 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-11-26 04:23 UTC",
+ "actualizado": "2026-11-27 04:32 UTC",
  "ultima_vela": "2026-11-25",
  "precio_qqq": 633.93,
  "indicadores": {
@@ -9,7 +9,7 @@
   "valor_smc": 9883.71,
   "valor_bh": 8755.89,
   "tickers_alcistas": 3,
-  "tickers_total": 19
+  "tickers_total": 20
  },
  "smc": {
   "efectivo": 5905.501018423089,
