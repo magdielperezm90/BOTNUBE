@@ -1,35 +1,51 @@
 {
  "version": 3,
  "capital_inicial": 10000.0,
- "actualizado": "2026-11-27 04:32 UTC",
- "ultima_vela": "2026-11-25",
- "precio_qqq": 633.93,
+ "actualizado": "2026-11-28 04:14 UTC",
+ "ultima_vela": "2026-11-27",
+ "precio_qqq": 650.99,
  "indicadores": {
-  "roc10": -8.18,
-  "valor_smc": 9883.71,
-  "valor_bh": 8755.89,
-  "tickers_alcistas": 3,
+  "roc10": -5.4,
+  "valor_smc": 9925.77,
+  "valor_bh": 8991.52,
+  "tickers_alcistas": 4,
   "tickers_total": 20
  },
  "smc": {
-  "efectivo": 5905.501018423089,
+  "efectivo": 3919.9497597125433,
   "posiciones": {
    "DIS": {
     "unidades": 18.38204,
     "costo": 1969.22,
     "entrada": 107.02,
     "fecha": "2026-10-08",
-    "precio_actual": 125.6
+    "precio_actual": 127.24
    },
    "AAPL": {
     "unidades": 4.694942,
     "costo": 1671.33,
     "entrada": 355.63,
     "fecha": "2026-11-11",
-    "precio_actual": 355.58
+    "precio_actual": 358.54
+   },
+   "TSLA": {
+    "unidades": 4.958914,
+    "costo": 1985.55,
+    "entrada": 400.0,
+    "fecha": "2026-11-27",
+    "precio_actual": 400.0
    }
   },
   "operaciones": [
+   {
+    "fecha": "2026-11-27",
+    "tipo": "COMPRA (CHoCH +1.6%)",
+    "ticker": "TSLA",
+    "precio": 400.0,
+    "unidades": 4.9589,
+    "valor": 1985.55,
+    "pnl": ""
+   },
    {
     "fecha": "2026-11-20",
     "tipo": "VENTA (estructura rota)",
@@ -972,6 +988,12 @@
    "smc": 9883.71,
    "bh": 8755.89,
    "roc10": -8.18
+  },
+  {
+   "fecha": "2026-11-27",
+   "smc": 9925.77,
+   "bh": 8991.52,
+   "roc10": -5.4
   }
  ]
 }
